@@ -51,17 +51,27 @@
 
   const TRANSPORTEURS=['','Colissimo','Chronopost','Mondial Relay','UPS','DHL','Autre'];
   function gravure(o){ return (o.initiales && o.initiales!=='—') ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure'; }
-  let ORDERS=[];
-  function renderOrders(list){
-    ORDERS=list;
-    document.getElementById('ordersBody').innerHTML=list.map(o=>
-      '<div class="ord-row" data-id="'+o.id+'">'+
-        '<div class="orow-l"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
-        '<div class="orow-c">'+o.date+' · '+(o.client||'')+'</div>'+
-        '<div class="orow-r">'+eur(o.total)+'<span class="orow-go">Détails ›</span></div>'+
-      '</div>').join('');
-    document.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
+  let ORDERS=[], FILTER='';
+  function ocard(o){
+    return '<div class="ord-row" data-id="'+o.id+'">'+
+      '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
+        '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div></div>'+
+      '<div class="orow-r"><span class="orow-total">'+eur(o.total)+'</span><span class="orow-go">Voir le détail ›</span></div>'+
+    '</div>';
   }
+  function applyFilter(){
+    const list = FILTER ? ORDERS.filter(o=>norm(o.statut).includes(FILTER)) : ORDERS;
+    const box=document.getElementById('ordersBody');
+    box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
+    box.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
+  }
+  function renderOrders(list){ ORDERS=list; applyFilter(); }
+  (function(){
+    document.querySelectorAll('#ordFilters .of').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#ordFilters .of').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active'); FILTER=b.dataset.f||''; applyFilter();
+    }));
+  })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   function openOrder(id){
     const o=ORDERS.find(x=>x.id===id); if(!o) return;
