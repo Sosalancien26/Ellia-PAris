@@ -218,14 +218,23 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='POST' && pathname==='/api/orders'){
         const d = JSON.parse((await readBody(req))||'{}');
         const numero = 'EP-'+Date.now().toString().slice(-6);
+        const qte = (Array.isArray(d.items) && d.items.length) ? d.items.length : 1;
+        if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
+        // Vérification du stock (sécurité serveur : bloque la vente si rupture)
+        try{
+          const sr = await sb('products?ref=eq.ELLIA-NOIR&select=stock');
+          const stock = (sr && sr[0]) ? Number(sr[0].stock) : 0;
+          if(stock < qte) return sendJSON(res,{ ok:false, error:'rupture', stock }, 409);
+        }catch(_){}
         notifyNewOrder(d, numero);
-        if(!USE_DB) return sendJSON(res,{ ok:true, numero, demo:true });
         const row = { numero, client_nom:d.client_nom, client_email:d.client_email, telephone:d.telephone,
           initiales:d.initiales, finition:d.finition, emplacement:d.emplacement,
           adresse_livraison:d.adresse_livraison, cp_livraison:d.cp_livraison, ville_livraison:d.ville_livraison, pays_livraison:d.pays_livraison||'France',
           adresse_facturation:d.adresse_facturation, cp_facturation:d.cp_facturation, ville_facturation:d.ville_facturation, pays_facturation:d.pays_facturation||'France',
           user_id:d.user_id||null, montant_total:d.montant_total||0, statut:'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
+        // Décrément automatique du stock
+        try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte } }); }catch(_){}
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
       }
 

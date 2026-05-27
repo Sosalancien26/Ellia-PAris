@@ -34,4 +34,18 @@
 
   document.addEventListener('DOMContentLoaded', updateCount);
   updateCount();
+
+  /* Blocage achat si rupture de stock (UX ; sécurité réelle côté serveur) */
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    const buyers=document.querySelectorAll('[data-add],#addPerso');
+    if(!buyers.length) return;
+    try{
+      const r=await fetch('/api/products'); if(!r.ok) return;
+      const prods=await r.json();
+      const p=(prods||[]).find(x=>x.ref==='ELLIA-NOIR');
+      if(p && Number(p.stock)<=0){
+        buyers.forEach(b=>{ b.setAttribute('disabled','disabled'); b.style.opacity='.5'; b.style.pointerEvents='none'; b.textContent='Épuisé'; });
+      }
+    }catch(e){}
+  });
 })();

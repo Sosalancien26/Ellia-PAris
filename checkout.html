@@ -145,7 +145,8 @@
     let numero='EP-'+Date.now().toString().slice(-6);
     try{
       const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(r.ok){ const d=await r.json(); if(d&&d.numero) numero=d.numero; }
+      if(r.status===409){ err.textContent='Désolé, La Pochette est actuellement en rupture de stock.'; return; }
+      if(r.ok){ const dd=await r.json(); if(dd&&dd.numero) numero=dd.numero; }
     }catch(e){}
     Cart.clear();
     location.href='confirmation.html?n='+encodeURIComponent(numero);
