@@ -49,19 +49,39 @@
       '<div class="m">'+m.mois+'</div></div>').join('');
   }
 
+  const TRANSPORTEURS=['','Colissimo','Chronopost','Mondial Relay','UPS','DHL','Autre'];
+  function gravure(o){ return (o.initiales && o.initiales!=='—') ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure'; }
   function renderOrders(list){
     document.getElementById('ordersBody').innerHTML=list.map(o=>{
-      const opts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
-      return '<tr><td class="oid">'+o.id+'</td><td>'+o.date+'</td><td>'+o.client+'</td>'+
-        '<td>'+o.initiales+'</td><td>'+o.finition+'</td><td>'+eur(o.total)+'</td>'+
-        '<td><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span> '+
-        '<select class="statut" data-id="'+o.id+'">'+opts+'</select></td></tr>';
+      const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
+      const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+((o.transporteur||'')===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
+      return '<div class="ord-card" data-id="'+o.id+'">'+
+        '<div class="ord-head"><div class="l"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
+        '<div class="ord-date">'+o.date+' · '+eur(o.total)+'</div></div>'+
+        '<div class="ord-body">'+
+          '<div class="ord-col"><div class="lbl">Client</div>'+(o.client||'')+'<br>'+(o.email||'')+(o.telephone?('<br>'+o.telephone):'')+'</div>'+
+          '<div class="ord-col"><div class="lbl">Livraison</div>'+(o.adresse||'—')+'</div>'+
+          '<div class="ord-col"><div class="lbl">Personnalisation</div>'+gravure(o)+'</div>'+
+        '</div>'+
+        '<div class="ord-actions">'+
+          '<select class="f-statut">'+sOpts+'</select>'+
+          '<select class="f-transp">'+tOpts+'</select>'+
+          '<input class="f-suivi" placeholder="N° de suivi" value="'+(o.suivi||'')+'">'+
+          '<button class="ord-save">Enregistrer</button>'+
+          '<span class="ord-saved" style="display:none">✓ Enregistré</span>'+
+        '</div></div>';
     }).join('');
-    document.querySelectorAll('select.statut').forEach(sel=>sel.addEventListener('change',()=>{
-      const b=document.querySelector('[data-badge="'+sel.dataset.id+'"]');
-      b.textContent=sel.value;b.className='badge '+badgeClass(sel.value);
-      fetch('/api/orders/'+encodeURIComponent(sel.dataset.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:sel.value})}).catch(()=>{});
-    }));
+    document.querySelectorAll('.ord-card').forEach(card=>{
+      const id=card.dataset.id;
+      card.querySelector('.ord-save').addEventListener('click',()=>{
+        const statut=card.querySelector('.f-statut').value;
+        const transporteur=card.querySelector('.f-transp').value;
+        const suivi=card.querySelector('.f-suivi').value.trim();
+        const b=card.querySelector('[data-badge]'); b.textContent=statut; b.className='badge '+badgeClass(statut);
+        fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});
+        const sv=card.querySelector('.ord-saved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2200);
+      });
+    });
   }
 
   function etatLabel(stock,seuil){

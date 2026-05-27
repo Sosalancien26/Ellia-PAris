@@ -8,6 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>
+  .acct{max-width:820px;margin:0 auto;padding:0 24px}
+  .acct h2{font-size:26px;margin:0 0 18px}
+  .acct-sec{margin-bottom:46px}
+  .acct-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+  .pform{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .pform .field{margin:0}
+  .pform .full{grid-column:1/-1}
+  @media(max-width:640px){.pform{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div class="cursor"></div><div class="cursor-dot"></div>
@@ -22,12 +32,34 @@
 
 <section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Espace client</div><h1>Mon compte</h1><p id="hello"></p></div></section>
 
-<section class="pad" style="padding-top:20px"><div class="authwrap" style="max-width:760px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
-    <h2 style="font-size:26px">Mes commandes</h2>
-    <button class="btn" id="logout" style="padding:11px 22px">Se déconnecter</button>
+<section class="pad" style="padding-top:20px"><div class="acct">
+
+  <div class="acct-sec">
+    <div class="acct-head"><h2>Mes informations</h2><button class="btn" id="logout" style="padding:11px 22px">Se déconnecter</button></div>
+    <div class="pform">
+      <div class="field"><label>Nom complet</label><input id="p_nom"></div>
+      <div class="field"><label>Téléphone</label><input id="p_tel" type="tel"></div>
+      <div class="field full"><label>Adresse</label><input id="p_adr"></div>
+      <div class="field"><label>Code postal</label><input id="p_cp"></div>
+      <div class="field"><label>Ville</label><input id="p_ville"></div>
+      <div class="field"><label>Pays</label><input id="p_pays" value="France"></div>
+    </div>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:16px">
+      <button class="btn solid" id="p_save" style="padding:13px 26px">Enregistrer mes informations</button>
+      <span class="authmsg" id="p_msg" style="margin:0"></span>
+    </div>
   </div>
-  <div id="orders"></div>
+
+  <div class="acct-sec">
+    <h2>Commandes en cours</h2>
+    <div id="enCours"></div>
+  </div>
+
+  <div class="acct-sec">
+    <h2>Commandes passées</h2>
+    <div id="passees"></div>
+  </div>
+
 </div></section>
 
 <footer><div class="wrap"><div class="foot-bottom"><span>© 2026 ELLIA PARIS</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div></div></footer>
@@ -41,15 +73,41 @@
   const { data:{ session } } = await SB.auth.getSession();
   if(!session){ location.href='connexion.html'; return; }
   const user=session.user;
-  document.getElementById('hello').textContent = (user.user_metadata && user.user_metadata.nom ? user.user_metadata.nom+' — ' : '') + user.email;
-  const eur=n=>Number(n).toLocaleString('fr-FR')+' €';
-  const { data:orders, error } = await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut').order('created_at',{ascending:false});
-  const box=document.getElementById('orders');
-  if(error){ box.innerHTML='<p style="color:#b1432f">Erreur de chargement : '+error.message+'</p>'; return; }
-  if(!orders || !orders.length){ box.innerHTML='<p style="color:var(--gris-txt)">Aucune commande pour le moment. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>'; return; }
-  box.innerHTML=orders.map(o=>'<div class="order-card"><div><div class="oid">'+o.numero+'</div><div class="meta">'+(o.created_at||'').slice(0,10)+(o.initiales?(' · Gravure '+o.initiales+' ('+o.finition+')'):'')+'</div></div><div style="text-align:right"><div class="oid">'+eur(o.montant_total)+'</div><div class="st">'+o.statut+'</div></div></div>').join('');
+  const f=id=>document.getElementById(id);
+  f('hello').textContent=(user.user_metadata&&user.user_metadata.nom?user.user_metadata.nom+' — ':'')+user.email;
+  const eur=n=>Number(n||0).toLocaleString('fr-FR')+' €';
+
+  // Profil
+  let prof=null;
+  try{ const r=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle(); prof=r.data; }catch(e){}
+  if(prof){ f('p_nom').value=prof.nom||''; f('p_tel').value=prof.telephone||''; f('p_adr').value=prof.adresse||''; f('p_cp').value=prof.cp||''; f('p_ville').value=prof.ville||''; f('p_pays').value=prof.pays||'France'; }
+  else { f('p_nom').value=(user.user_metadata&&user.user_metadata.nom)||''; }
+  f('p_save').addEventListener('click', async ()=>{
+    const msg=f('p_msg'); msg.className='authmsg'; msg.textContent='Enregistrement…';
+    const { error } = await SB.from('profiles').upsert({ id:user.id, nom:f('p_nom').value.trim(), telephone:f('p_tel').value.trim(), adresse:f('p_adr').value.trim(), cp:f('p_cp').value.trim(), ville:f('p_ville').value.trim(), pays:f('p_pays').value.trim()||'France' });
+    msg.className='authmsg '+(error?'err':'ok'); msg.textContent=error?('Erreur : '+error.message):'Informations enregistrées ✓';
+  });
+
+  // Commandes
+  function trackUrl(t,n){ if(!n) return ''; t=(t||'').toLowerCase(); n=encodeURIComponent(n);
+    if(t.includes('colissimo')||t.includes('poste')) return 'https://www.laposte.fr/outils/suivre-vos-envois?code='+n;
+    if(t.includes('chrono')) return 'https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT='+n;
+    if(t.includes('ups')) return 'https://www.ups.com/track?tracknum='+n;
+    if(t.includes('dhl')) return 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id='+n;
+    if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n; return ''; }
+  const card=o=>{
+    return '<a href="commande.html?n='+encodeURIComponent(o.numero)+'" class="order-card" style="cursor:pointer;text-decoration:none">'+
+      '<div><div class="oid">'+o.numero+'</div><div class="meta">'+(o.created_at||'').slice(0,10)+(o.initiales?(' · '+o.initiales+' ('+(o.finition||'')+')'):'')+(o.suivi?' · 📦 Suivi disponible':'')+'</div></div>'+
+      '<div style="text-align:right"><div class="oid">'+eur(o.montant_total)+'</div><div class="st">'+o.statut+'  ›</div></div></a>'; };
+  let orders=[];
+  try{ const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false}); orders=r.data||[]; }catch(e){}
+  const enCours=[], passees=[];
+  orders.forEach(o=>{ const s=(o.statut||'').toLowerCase(); (s.includes('livr')||s.includes('annul')?passees:enCours).push(o); });
+  f('enCours').innerHTML = enCours.length?enCours.map(card).join(''):'<p style="color:var(--gris-txt)">Aucune commande en cours. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>';
+  f('passees').innerHTML = passees.length?passees.map(card).join(''):'<p style="color:var(--gris-txt)">Aucune commande passée.</p>';
+
+  f('logout').addEventListener('click', async e=>{ e.preventDefault(); await SB.auth.signOut(); location.href='index.html'; });
 })();
-document.getElementById('logout').addEventListener('click', async ()=>{ await SB.auth.signOut(); location.href='index.html'; });
 </script>
 </body>
 </html>

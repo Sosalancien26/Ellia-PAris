@@ -272,7 +272,11 @@ const server = http.createServer(async (req, res) => {
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
   fs.readFile(file, (err, buf) => {
     if (err) { res.statusCode=404; res.setHeader('Content-Type','text/html; charset=utf-8'); return res.end('<h1 style="font-family:serif">404 — page introuvable</h1>'); }
-    res.setHeader('Content-Type', TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream');
+    const ext = path.extname(file).toLowerCase();
+    // Anti-cache : HTML/CSS/JS toujours frais ; images/polices mises en cache 1 jour
+    if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
+    else res.setHeader('Cache-Control','public, max-age=86400');
+    res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
     res.end(buf);
   });
 });
