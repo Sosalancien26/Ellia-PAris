@@ -41,25 +41,70 @@ try {
 } catch (e) { console.warn('Nodemailer indisponible :', e.message); }
 const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_USER || 'no-reply@ellia-paris.fr') + '>');
 function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
+const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
+function emailLayout(inner){
+  return `<div style="margin:0;padding:30px 12px;background:#f3f1ec">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e6e3dc">
+    <div style="text-align:center;padding:30px 0 20px;border-bottom:1px solid #efece6">
+      <img src="${LOGO}" alt="ELLIA PARIS" style="height:44px;width:auto" />
+    </div>
+    <div style="padding:34px 40px;font-family:Georgia,'Times New Roman',serif;color:#0d0d0d;font-size:16px;line-height:1.6">${inner}</div>
+    <div style="padding:22px 40px;border-top:1px solid #efece6;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.06em;color:#8a857d">
+      ELLIA PARIS — Maison de maroquinerie · Paris<br/>
+      <a href="https://ellia-paris.fr" style="color:#8a857d;text-decoration:none">ellia-paris.fr</a>
+    </div>
+  </div>
+</div>`;
+}
+function lineItems(items){
+  if(!items || !items.length) return '';
+  const rows = items.map(it=>`<tr>
+    <td style="padding:12px 0;border-bottom:1px solid #efece6">${it.nom||'La Pochette Ellia'}${it.initiales?`<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d">Gravure ${it.initiales} · ${it.finition||''} · ${it.emplacement||''}</span>`:''}</td>
+    <td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap">${euro(it.prix)}</td></tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:18px 0">${rows}</table>`;
+}
+function addressBlock(d){
+  if(!d.adresse_livraison) return '';
+  return `<p style="font-family:Arial,sans-serif;font-size:13px;color:#56524c;line-height:1.6;margin:16px 0 0">
+    <b style="font-family:Georgia,serif;color:#0d0d0d;font-size:15px">Adresse de livraison</b><br/>
+    ${d.client_nom||''}<br/>${d.adresse_livraison}<br/>${(d.cp_livraison||'')} ${(d.ville_livraison||'')}<br/>${d.pays_livraison||'France'}${d.telephone?('<br/>'+d.telephone):''}</p>`;
+}
 function sendMail(to, subject, html){
   if (!transporter || !to) return;
   transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
 }
 function notifyNewOrder(d, numero){
-  const html = '<div style="font-family:Georgia,serif;color:#111"><h2>Merci pour votre commande</h2>'+
-    '<p>Bonjour '+(d.client_nom||'')+',</p>'+
-    '<p>Votre commande <b>'+numero+'</b> a bien été enregistrée'+(d.montant_total?(' (total '+euro(d.montant_total)+')'):'')+'.</p>'+
-    '<p>Nous revenons vers vous très vite. Avec soin,<br>ELLIA PARIS</p></div>';
-  sendMail(d.client_email, 'Votre commande ELLIA PARIS '+numero, html);
+  const inner = `<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>
+    <p style="margin:0 0 8px">Bonjour ${d.client_nom||''},</p>
+    <p style="margin:0 0 4px">Votre commande <b>${numero}</b> a bien été enregistrée. En voici le détail :</p>
+    ${lineItems(d.items)}
+    <table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>
+      <td><b style="font-family:Georgia,serif;font-size:17px">Total</b></td>
+      <td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">${euro(d.montant_total)}</b></td></tr></table>
+    ${addressBlock(d)}
+    <p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Le paiement et l'expédition vous seront confirmés par e-mail. Avec soin,<br/>ELLIA PARIS</p>`;
+  sendMail(d.client_email, 'Votre commande ELLIA PARIS — '+numero, emailLayout(inner));
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    '<p>Commande <b>'+numero+'</b> — '+(d.client_nom||'')+' ('+(d.client_email||'')+') — '+euro(d.montant_total)+'</p>');
+    emailLayout(`<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ${numero}</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">${d.client_nom||''} — ${d.client_email||''}${d.telephone?(' — '+d.telephone):''}</p>${lineItems(d.items)}<p style="font-family:Georgia,serif"><b>Total ${euro(d.montant_total)}</b></p>${addressBlock(d)}`));
 }
+const STATUT_MSG = {
+  'nouvelle':'a bien été reçue et est en cours de traitement.',
+  'en preparation':'est en cours de préparation dans nos ateliers.',
+  'expediee':'a été expédiée — elle est en route vers vous.',
+  'livree':'a été livrée. Nous espérons qu\'elle vous comble.',
+  'annulee':'a été annulée. Pour toute question, répondez à cet e-mail.'
+};
 function notifyStatus(order, numero, statut){
-  const html = '<div style="font-family:Georgia,serif;color:#111"><h2>Votre commande '+numero+'</h2>'+
-    '<p>Bonjour '+(order.client_nom||'')+',</p>'+
-    '<p>Le statut de votre commande est désormais : <b>'+statut+'</b>.</p>'+
-    '<p>— ELLIA PARIS</p></div>';
-  sendMail(order.client_email, 'Commande '+numero+' — '+statut, html);
+  const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
+  const recap = (order.montant_total!=null) ? `<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ${euro(order.montant_total)}${order.initiales?(' · Gravure '+order.initiales):''}</p>` : '';
+  const inner = `<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ${numero}</h1>
+    <p style="margin:0 0 8px">Bonjour ${order.client_nom||''},</p>
+    <p style="margin:0 0 4px">Votre commande <b>${numero}</b> ${msg}</p>
+    <p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">${statut}</span></p>
+    ${recap}
+    <p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>`;
+  sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner));
 }
 
 const TYPES = {
@@ -179,7 +224,7 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ statut:d.statut } });
-        try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
+        try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom,montant_total,initiales'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
         return sendJSON(res,{ ok:true });
       }
       /* MAJ stock d'un produit : PATCH /api/products/REF */

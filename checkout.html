@@ -140,7 +140,7 @@
       ville_facturation: same.checked? v('l_ville'):v('f_ville'),
       pays_facturation: same.checked? (v('l_pays')||'France'):(v('f_pays')||'France'),
       initiales:perso.initiales||null, finition:perso.finition||null, emplacement:perso.emplacement||null,
-      montant_total:Cart.total(), user_id:userId
+      items:items, montant_total:Cart.total(), user_id:userId
     };
     let numero='EP-'+Date.now().toString().slice(-6);
     try{
