@@ -33,8 +33,11 @@
   .ocard-total{font-family:var(--serif);font-size:18px}
   .ocard-link{font-size:12px;color:var(--noir);display:block;margin-top:6px}
   .empty{color:var(--gris-txt);padding:20px 0}
-  .pform{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:620px}
+  .pform{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:640px}
   .pform .field{margin:0}.pform .full{grid-column:1/-1}
+  .pform label{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt);margin-bottom:9px}
+  .pform input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);outline:none;transition:border-color .3s}
+  .pform input:focus{border-color:var(--noir)}
   @media(max-width:860px){.acct-layout{grid-template-columns:1fr;gap:22px}.acct-side{position:static}.acct-side nav{display:flex;flex-wrap:wrap;gap:6px}.acct-side .grp{width:100%}.pform{grid-template-columns:1fr}.ocard img{display:none}}
 </style>
 </head>

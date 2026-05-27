@@ -164,11 +164,13 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,created_at&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,created_at&order=created_at.desc');
+  const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10), client:r.client_nom||'—', email:r.client_email||'', telephone:r.telephone||'',
     initiales:r.initiales||'—', finition:r.finition||'—', emplacement:r.emplacement||'', total:Number(r.montant_total), statut:r.statut,
     suivi:r.suivi||'', transporteur:r.transporteur||'',
-    adresse:[r.adresse_livraison,((r.cp_livraison||'')+' '+(r.ville_livraison||'')).trim(),r.pays_livraison].filter(x=>x&&String(x).trim()).join(' · ') }));
+    adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
+    adresseFact:j(r.adresse_facturation,r.cp_facturation,r.ville_facturation,r.pays_facturation) }));
 }
 async function getStats(){
   if(!USE_DB) return MOCK_STATS;

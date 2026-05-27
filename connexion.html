@@ -29,6 +29,12 @@
   <div class="authmsg" id="msg"></div>
   <div class="auth-alt"><a href="#" id="forgot">Mot de passe oublié ?</a></div>
   <div class="auth-alt">Pas encore de compte ? <a href="inscription.html">Créer un compte</a></div>
+
+  <div id="resetBox" style="display:none;margin-top:10px;padding-top:18px;border-top:1px solid var(--ligne)">
+    <div class="field"><label>Nouveau mot de passe</label><input id="newpw" type="password" autocomplete="new-password" placeholder="8 caractères minimum"></div>
+    <button class="btn solid" id="doReset" style="width:100%;text-align:center">Définir mon nouveau mot de passe</button>
+    <div class="authmsg" id="rmsg"></div>
+  </div>
 </div></section>
 
 <footer><div class="wrap"><div class="foot-bottom"><span>© 2026 ELLIA PARIS</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div></div></footer>
@@ -54,6 +60,23 @@ document.getElementById('forgot').addEventListener('click', async (e)=>{
   const { error } = await SB.auth.resetPasswordForEmail(email, { redirectTo: location.origin+'/connexion.html' });
   msg.className = error?'authmsg err':'authmsg ok';
   msg.textContent = error? ('Erreur : '+error.message) : 'Si un compte existe, un e-mail de réinitialisation vient d\'être envoyé.';
+});
+/* Réinitialisation : quand l'utilisateur arrive via le lien reçu par e-mail */
+SB.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('resetBox').style.display='block';
+    const m=document.getElementById('msg'); m.className='authmsg ok'; m.textContent='Choisissez votre nouveau mot de passe ci-dessous.';
+    document.getElementById('newpw').focus();
+  }
+});
+document.getElementById('doReset').addEventListener('click', async ()=>{
+  const rmsg=document.getElementById('rmsg'); rmsg.className='authmsg'; rmsg.textContent='';
+  const pw=document.getElementById('newpw').value;
+  if(pw.length<8){ rmsg.className='authmsg err'; rmsg.textContent='8 caractères minimum.'; return; }
+  const { error } = await SB.auth.updateUser({ password:pw });
+  if(error){ rmsg.className='authmsg err'; rmsg.textContent='Erreur : '+error.message; return; }
+  rmsg.className='authmsg ok'; rmsg.textContent='Mot de passe mis à jour ✓ Redirection…';
+  setTimeout(()=>location.href='compte.html',1200);
 });
 </script>
 </body>

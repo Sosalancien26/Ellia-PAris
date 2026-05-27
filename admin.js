@@ -51,38 +51,50 @@
 
   const TRANSPORTEURS=['','Colissimo','Chronopost','Mondial Relay','UPS','DHL','Autre'];
   function gravure(o){ return (o.initiales && o.initiales!=='—') ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure'; }
+  let ORDERS=[];
   function renderOrders(list){
-    document.getElementById('ordersBody').innerHTML=list.map(o=>{
-      const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
-      const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+((o.transporteur||'')===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
-      return '<div class="ord-card" data-id="'+o.id+'">'+
-        '<div class="ord-head"><div class="l"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
-        '<div class="ord-date">'+o.date+' · '+eur(o.total)+'</div></div>'+
-        '<div class="ord-body">'+
-          '<div class="ord-col"><div class="lbl">Client</div>'+(o.client||'')+'<br>'+(o.email||'')+(o.telephone?('<br>'+o.telephone):'')+'</div>'+
-          '<div class="ord-col"><div class="lbl">Livraison</div>'+(o.adresse||'—')+'</div>'+
-          '<div class="ord-col"><div class="lbl">Personnalisation</div>'+gravure(o)+'</div>'+
-        '</div>'+
-        '<div class="ord-actions">'+
-          '<select class="f-statut">'+sOpts+'</select>'+
-          '<select class="f-transp">'+tOpts+'</select>'+
-          '<input class="f-suivi" placeholder="N° de suivi" value="'+(o.suivi||'')+'">'+
-          '<button class="ord-save">Enregistrer</button>'+
-          '<span class="ord-saved" style="display:none">✓ Enregistré</span>'+
-        '</div></div>';
-    }).join('');
-    document.querySelectorAll('.ord-card').forEach(card=>{
-      const id=card.dataset.id;
-      card.querySelector('.ord-save').addEventListener('click',()=>{
-        const statut=card.querySelector('.f-statut').value;
-        const transporteur=card.querySelector('.f-transp').value;
-        const suivi=card.querySelector('.f-suivi').value.trim();
-        const b=card.querySelector('[data-badge]'); b.textContent=statut; b.className='badge '+badgeClass(statut);
-        fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});
-        const sv=card.querySelector('.ord-saved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2200);
-      });
+    ORDERS=list;
+    document.getElementById('ordersBody').innerHTML=list.map(o=>
+      '<div class="ord-row" data-id="'+o.id+'">'+
+        '<div class="orow-l"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
+        '<div class="orow-c">'+o.date+' · '+(o.client||'')+'</div>'+
+        '<div class="orow-r">'+eur(o.total)+'<span class="orow-go">Détails ›</span></div>'+
+      '</div>').join('');
+    document.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
+  }
+  function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
+  function openOrder(id){
+    const o=ORDERS.find(x=>x.id===id); if(!o) return;
+    const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
+    const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+((o.transporteur||'')===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
+    document.getElementById('ordModalBox').innerHTML=
+      '<button class="om-close" id="omClose">×</button>'+
+      '<h3>Commande '+o.id+'</h3><div style="color:var(--gris);font-size:13px;margin-bottom:16px">'+o.date+'</div>'+
+      omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
+      omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
+      omRow('Personnalisation',gravure(o))+omRow('Total','<b>'+eur(o.total)+'</b>')+
+      '<div style="margin:20px 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Gestion de la commande</div>'+
+      '<div class="om-actions">'+
+        '<select class="om-statut">'+sOpts+'</select>'+
+        '<select class="om-transp">'+tOpts+'</select>'+
+        '<input class="om-suivi" placeholder="N° de suivi" value="'+(o.suivi||'')+'">'+
+        '<button class="ord-save" id="omSave">Enregistrer</button>'+
+        '<span class="ord-saved" id="omSaved" style="display:none">✓ Enregistré</span>'+
+      '</div>';
+    document.getElementById('ordModal').classList.add('open');
+    document.getElementById('omClose').addEventListener('click',closeOrder);
+    document.getElementById('omSave').addEventListener('click',()=>{
+      const statut=document.querySelector('.om-statut').value;
+      const transporteur=document.querySelector('.om-transp').value;
+      const suivi=document.querySelector('.om-suivi').value.trim();
+      o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
+      const b=document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+      fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});
+      const sv=document.getElementById('omSaved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2000);
     });
   }
+  function closeOrder(){ document.getElementById('ordModal').classList.remove('open'); }
+  (function(){ const m=document.getElementById('ordModal'); if(m) m.addEventListener('click',e=>{ if(e.target===m) closeOrder(); }); })();
 
   function etatLabel(stock,seuil){
     if(seuil===0) return '<span class="stock-ok">Illimité</span>';
