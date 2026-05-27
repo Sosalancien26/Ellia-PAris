@@ -2,10 +2,13 @@
   "name": "ellia-paris",
   "version": "0.1.0",
   "private": true,
-  "description": "Site e-commerce ELLIA PARIS — maquette (serveur Node sans dependance)",
+  "description": "Site e-commerce ELLIA PARIS — serveur Node",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.14"
   },
   "engines": {
     "node": ">=18"

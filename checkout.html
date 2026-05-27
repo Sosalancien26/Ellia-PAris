@@ -6,15 +6,19 @@
 <title>Commande — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .co-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;max-width:1100px;margin:0 auto;padding:0 40px}
+  .co-form h3{font-size:20px;margin:0 0 18px}
   .co-form .frow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .co-field{margin-bottom:18px}
   .co-field label{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt);margin-bottom:8px}
   .co-field input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);outline:none;transition:border-color .3s}
   .co-field input:focus{border-color:var(--noir)}
+  .co-sep{margin:30px 0 18px;padding-top:24px;border-top:1px solid var(--ligne)}
+  .co-check{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--gris-clair);margin:6px 0 20px;cursor:pointer}
+  .co-check input{width:16px;height:16px}
   .co-summary{background:#fff;border:1px solid var(--ligne);padding:34px;align-self:start}
   .co-summary h3{font-size:22px;margin-bottom:22px}
   .co-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid var(--ligne-soft);font-size:14px}
@@ -22,6 +26,8 @@
   .co-tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;padding-top:18px;border-top:1px solid var(--ligne)}
   .co-tot .v{font-family:var(--serif);font-size:34px}
   .pay-note{background:#fbf6e8;border:1px solid #ecdfbd;color:#7a6320;font-size:12.5px;padding:13px 16px;margin:20px 0}
+  .acct-note{font-size:13px;color:var(--gris-txt);margin-bottom:22px}
+  .acct-note a{color:var(--noir);text-decoration:underline}
   .err{color:#b1432f;font-size:13px;margin-top:10px;min-height:18px}
 </style>
 </head>
@@ -29,30 +35,51 @@
 <div class="cursor"></div><div class="cursor-dot"></div>
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
     <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a></nav>
-    <div class="nav-right"><span class="nav-ico account">Compte</span><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a></div>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a></div>
 
 <section class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
 
 <section class="pad" style="padding-top:30px">
   <div class="co-grid">
     <form class="co-form" id="coForm" onsubmit="return false">
-      <div class="eyebrow" style="margin-bottom:18px">Vos coordonnées</div>
+      <div class="acct-note" id="acctNote">Vous avez un compte ? <a href="connexion.html">Connectez-vous</a> pour retrouver vos commandes. (La commande fonctionne aussi sans compte.)</div>
+
+      <h3>Coordonnées</h3>
       <div class="frow">
-        <div class="co-field"><label>Prénom</label><input id="prenom" required></div>
-        <div class="co-field"><label>Nom</label><input id="nom" required></div>
+        <div class="co-field"><label>Prénom</label><input id="prenom" autocomplete="given-name"></div>
+        <div class="co-field"><label>Nom</label><input id="nom" autocomplete="family-name"></div>
       </div>
-      <div class="co-field"><label>E-mail</label><input id="email" type="email" required></div>
-      <div class="co-field"><label>Adresse</label><input id="adresse"></div>
       <div class="frow">
-        <div class="co-field"><label>Code postal</label><input id="cp"></div>
-        <div class="co-field"><label>Ville</label><input id="ville"></div>
+        <div class="co-field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
+        <div class="co-field"><label>Téléphone</label><input id="telephone" type="tel" autocomplete="tel"></div>
       </div>
-      <div class="pay-note">Paiement par carte (Stripe) — bientôt disponible. Pour l'instant, votre commande est enregistrée et nous vous contactons pour le règlement.</div>
+
+      <div class="co-sep"><h3>Adresse de livraison</h3></div>
+      <div class="co-field"><label>Adresse</label><input id="l_adresse" autocomplete="shipping street-address"></div>
+      <div class="frow">
+        <div class="co-field"><label>Code postal</label><input id="l_cp"></div>
+        <div class="co-field"><label>Ville</label><input id="l_ville"></div>
+      </div>
+      <div class="co-field"><label>Pays</label><input id="l_pays" value="France"></div>
+
+      <label class="co-check"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
+
+      <div id="billing" style="display:none">
+        <div class="co-sep"><h3>Adresse de facturation</h3></div>
+        <div class="co-field"><label>Adresse</label><input id="f_adresse"></div>
+        <div class="frow">
+          <div class="co-field"><label>Code postal</label><input id="f_cp"></div>
+          <div class="co-field"><label>Ville</label><input id="f_ville"></div>
+        </div>
+        <div class="co-field"><label>Pays</label><input id="f_pays" value="France"></div>
+      </div>
+
+      <div class="pay-note">Paiement par carte (Stripe) — bientôt disponible. Votre commande est enregistrée et vous recevez un e-mail de confirmation ; nous vous contactons pour le règlement.</div>
       <button class="btn solid" id="validate" style="width:100%;text-align:center">Valider ma commande</button>
       <div class="err" id="err"></div>
     </form>
@@ -67,11 +94,13 @@
 </section>
 
 <div class="mockup-flag">Maquette — commande</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="app.js"></script>
 <script src="cart.js"></script>
 <script>
 (function(){
-  const eur=n=>n.toLocaleString('fr-FR')+' €';
+  const eur=n=>Number(n).toLocaleString('fr-FR')+' €';
   const items=Cart.items();
   if(!items.length){ location.href='panier.html'; return; }
   const persoTxt=it=>it.initiales?('Gravure : '+it.initiales+' · '+it.finition+' · '+it.emplacement):'Sans gravure';
@@ -79,23 +108,48 @@
     '<div class="co-item"><div>'+(it.nom||'La Pochette Ellia')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
   document.getElementById('coTotal').textContent=eur(Cart.total());
 
+  // Facturation identique -> afficher/masquer
+  const same=document.getElementById('sameAddr'), billing=document.getElementById('billing');
+  same.addEventListener('change',()=>{ billing.style.display = same.checked ? 'none' : 'block'; });
+
+  // Pré-remplir si connecté
+  let userId=null;
+  (async function(){
+    try{
+      const { data:{ session } } = await SB.auth.getSession();
+      if(session){ userId=session.user.id;
+        const e=document.getElementById('email'); if(!e.value) e.value=session.user.email;
+        const nm=session.user.user_metadata && session.user.user_metadata.nom;
+        document.getElementById('acctNote').innerHTML='Connecté : <b>'+session.user.email+'</b>';
+        if(nm){ const parts=nm.split(' '); document.getElementById('prenom').value=parts[0]||''; document.getElementById('nom').value=parts.slice(1).join(' ')||''; }
+      }
+    }catch(e){}
+  })();
+
+  const v=id=>document.getElementById(id).value.trim();
   document.getElementById('validate').addEventListener('click', async ()=>{
     const err=document.getElementById('err'); err.textContent='';
-    const prenom=val('prenom'), nom=val('nom'), email=val('email');
-    if(!prenom||!nom||!email){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
+    if(!v('prenom')||!v('nom')||!v('email')){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
+    if(!v('l_adresse')||!v('l_cp')||!v('l_ville')){ err.textContent='Merci de compléter l\'adresse de livraison.'; return; }
     const perso=items.find(i=>i.initiales)||{};
-    const payload={ client_nom:prenom+' '+nom, client_email:email,
+    const payload={
+      client_nom:v('prenom')+' '+v('nom'), client_email:v('email'), telephone:v('telephone'),
+      adresse_livraison:v('l_adresse'), cp_livraison:v('l_cp'), ville_livraison:v('l_ville'), pays_livraison:v('l_pays')||'France',
+      adresse_facturation: same.checked? v('l_adresse'):v('f_adresse'),
+      cp_facturation: same.checked? v('l_cp'):v('f_cp'),
+      ville_facturation: same.checked? v('l_ville'):v('f_ville'),
+      pays_facturation: same.checked? (v('l_pays')||'France'):(v('f_pays')||'France'),
       initiales:perso.initiales||null, finition:perso.finition||null, emplacement:perso.emplacement||null,
-      montant_total:Cart.total() };
+      montant_total:Cart.total(), user_id:userId
+    };
     let numero='EP-'+Date.now().toString().slice(-6);
     try{
       const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(r.ok){ const d=await r.json(); if(d&&d.numero) numero=d.numero; }
-    }catch(e){ /* mode hors-serveur : on simule */ }
+    }catch(e){}
     Cart.clear();
     location.href='confirmation.html?n='+encodeURIComponent(numero);
   });
-  function val(id){ return document.getElementById(id).value.trim(); }
 })();
 </script>
 </body>

@@ -26,6 +26,42 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ellia2026';
 const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
+/* ----- E-mails (SMTP Workspace via nodemailer, optionnel) ----- */
+let transporter = null;
+try {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const nodemailer = require('nodemailer');
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: false,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+  }
+} catch (e) { console.warn('Nodemailer indisponible :', e.message); }
+const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_USER || 'no-reply@ellia-paris.fr') + '>');
+function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
+function sendMail(to, subject, html){
+  if (!transporter || !to) return;
+  transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
+}
+function notifyNewOrder(d, numero){
+  const html = '<div style="font-family:Georgia,serif;color:#111"><h2>Merci pour votre commande</h2>'+
+    '<p>Bonjour '+(d.client_nom||'')+',</p>'+
+    '<p>Votre commande <b>'+numero+'</b> a bien été enregistrée'+(d.montant_total?(' (total '+euro(d.montant_total)+')'):'')+'.</p>'+
+    '<p>Nous revenons vers vous très vite. Avec soin,<br>ELLIA PARIS</p></div>';
+  sendMail(d.client_email, 'Votre commande ELLIA PARIS '+numero, html);
+  if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
+    '<p>Commande <b>'+numero+'</b> — '+(d.client_nom||'')+' ('+(d.client_email||'')+') — '+euro(d.montant_total)+'</p>');
+}
+function notifyStatus(order, numero, statut){
+  const html = '<div style="font-family:Georgia,serif;color:#111"><h2>Votre commande '+numero+'</h2>'+
+    '<p>Bonjour '+(order.client_nom||'')+',</p>'+
+    '<p>Le statut de votre commande est désormais : <b>'+statut+'</b>.</p>'+
+    '<p>— ELLIA PARIS</p></div>';
+  sendMail(order.client_email, 'Commande '+numero+' — '+statut, html);
+}
+
 const TYPES = {
   '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8',
@@ -120,10 +156,13 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='POST' && pathname==='/api/orders'){
         const d = JSON.parse((await readBody(req))||'{}');
         const numero = 'EP-'+Date.now().toString().slice(-6);
+        notifyNewOrder(d, numero);
         if(!USE_DB) return sendJSON(res,{ ok:true, numero, demo:true });
-        const row = { numero, client_nom:d.client_nom, client_email:d.client_email,
+        const row = { numero, client_nom:d.client_nom, client_email:d.client_email, telephone:d.telephone,
           initiales:d.initiales, finition:d.finition, emplacement:d.emplacement,
-          montant_total:d.montant_total||0, statut:'Nouvelle' };
+          adresse_livraison:d.adresse_livraison, cp_livraison:d.cp_livraison, ville_livraison:d.ville_livraison, pays_livraison:d.pays_livraison||'France',
+          adresse_facturation:d.adresse_facturation, cp_facturation:d.cp_facturation, ville_facturation:d.ville_facturation, pays_facturation:d.pays_facturation||'France',
+          user_id:d.user_id||null, montant_total:d.montant_total||0, statut:'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
       }
@@ -140,6 +179,7 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ statut:d.statut } });
+        try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
         return sendJSON(res,{ ok:true });
       }
       /* MAJ stock d'un produit : PATCH /api/products/REF */

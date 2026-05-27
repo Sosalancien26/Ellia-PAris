@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Créer un compte — ELLIA PARIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="cursor"></div><div class="cursor-dot"></div>
+<header id="header" class="solid">
+  <div class="bar">
+    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a></nav>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+  </div>
+</header>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a></div>
+
+<section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Le Cercle ELLIA</div><h1>Créer un compte</h1></div></section>
+
+<section class="pad" style="padding-top:30px"><div class="authwrap">
+  <div class="field"><label>Nom complet</label><input id="nom" autocomplete="name"></div>
+  <div class="field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
+  <div class="field"><label>Mot de passe</label><input id="pw" type="password" autocomplete="new-password" placeholder="8 caractères minimum"></div>
+  <button class="btn solid" id="go" style="width:100%;text-align:center">Créer mon compte</button>
+  <div class="authmsg" id="msg"></div>
+  <div class="auth-alt">Déjà un compte ? <a href="connexion.html">Se connecter</a></div>
+</div></section>
+
+<footer><div class="wrap"><div class="foot-bottom"><span>© 2026 ELLIA PARIS</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script src="cart.js"></script>
+<script>
+document.getElementById('go').addEventListener('click', async ()=>{
+  const msg=document.getElementById('msg'); msg.className='authmsg'; msg.textContent='';
+  const nom=document.getElementById('nom').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const pw=document.getElementById('pw').value;
+  if(!nom||!email||pw.length<8){ msg.className='authmsg err'; msg.textContent='Remplis ton nom, ton e-mail et un mot de passe de 8 caractères minimum.'; return; }
+  const { error } = await SB.auth.signUp({ email, password:pw, options:{ data:{ nom }, emailRedirectTo: location.origin + '/connexion.html' } });
+  if(error){ msg.className='authmsg err'; msg.textContent='Erreur : '+error.message; return; }
+  msg.className='authmsg ok'; msg.textContent='Compte créé ! Vérifie ta boîte mail et clique sur le lien de confirmation pour activer ton compte.';
+});
+</script>
+</body>
+</html>
