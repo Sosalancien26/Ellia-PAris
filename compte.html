@@ -9,14 +9,33 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
-  .acct{max-width:820px;margin:0 auto;padding:0 24px}
-  .acct h2{font-size:26px;margin:0 0 18px}
-  .acct-sec{margin-bottom:46px}
-  .acct-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px}
-  .pform{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .pform .field{margin:0}
-  .pform .full{grid-column:1/-1}
-  @media(max-width:640px){.pform{grid-template-columns:1fr}}
+  .acct-layout{max-width:1120px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:250px 1fr;gap:46px;align-items:start}
+  .acct-side{position:sticky;top:108px}
+  .acct-hello{font-family:var(--serif);font-size:26px;margin-bottom:8px}
+  .acct-mail{font-size:12.5px;color:var(--gris-txt);margin-bottom:22px;word-break:break-all}
+  .acct-side .grp{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt);margin:20px 0 8px}
+  .acct-side button,.acct-side a.navi{display:block;width:100%;text-align:left;background:none;border:none;border-left:2px solid transparent;font-family:var(--sans);font-size:14.5px;color:var(--gris-clair);padding:10px 14px;cursor:pointer;text-decoration:none}
+  .acct-side button.active{color:var(--noir);border-left-color:var(--noir);background:#fff;font-weight:500}
+  .acct-side button:hover,.acct-side a.navi:hover{color:var(--noir)}
+  .acct-side .logout{margin-top:26px;color:#b1432f}
+  .acct-panel{display:none}.acct-panel.active{display:block}
+  .acct-panel h2{font-size:30px;margin-bottom:24px}
+  .ocard{display:flex;gap:18px;align-items:center;border:1px solid var(--ligne);padding:16px;margin-bottom:14px;text-decoration:none;color:inherit;transition:border-color .3s}
+  .ocard:hover{border-color:var(--noir)}
+  .ocard img{width:96px;height:68px;object-fit:cover;background:#eceae4;flex-shrink:0}
+  .ocard-info{flex:1;min-width:0}
+  .ocard-num{font-size:12px;color:var(--gris-txt);letter-spacing:.04em}
+  .ocard-name{font-family:var(--serif);font-size:19px;margin:3px 0}
+  .ocard-meta{font-size:13px;color:var(--gris-txt)}
+  .ocard-right{text-align:right;flex-shrink:0}
+  .ocb{display:inline-block;font-size:11px;letter-spacing:.06em;padding:5px 11px;border-radius:2px;margin-bottom:8px}
+  .ocb-blue{background:#e4eef6;color:#2b5d86}.ocb-amber{background:#f6edda;color:#9a6a14}.ocb-grey{background:#ececec;color:#555}.ocb-green{background:#e6f1ea;color:#2f7d52}.ocb-red{background:#f6e9e6;color:#8a3b2c}
+  .ocard-total{font-family:var(--serif);font-size:18px}
+  .ocard-link{font-size:12px;color:var(--noir);display:block;margin-top:6px}
+  .empty{color:var(--gris-txt);padding:20px 0}
+  .pform{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:620px}
+  .pform .field{margin:0}.pform .full{grid-column:1/-1}
+  @media(max-width:860px){.acct-layout{grid-template-columns:1fr;gap:22px}.acct-side{position:static}.acct-side nav{display:flex;flex-wrap:wrap;gap:6px}.acct-side .grp{width:100%}.pform{grid-template-columns:1fr}.ocard img{display:none}}
 </style>
 </head>
 <body>
@@ -30,36 +49,41 @@
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a></div>
 
-<section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Espace client</div><h1>Mon compte</h1><p id="hello"></p></div></section>
+<section class="pad page-top" style="padding-top:130px"><div class="acct-layout">
+  <aside class="acct-side">
+    <div class="acct-hello" id="hello">Bonjour</div>
+    <div class="acct-mail" id="mail"></div>
+    <nav>
+      <div class="grp">Mes commandes</div>
+      <button class="navbtn active" data-tab="encours">En cours</button>
+      <button class="navbtn" data-tab="terminees">Terminées</button>
+      <div class="grp">Mon compte</div>
+      <button class="navbtn" data-tab="infos">Mes informations</button>
+      <a class="navi" href="cgv.html">Livraison & retours</a>
+      <a class="navi" href="maison.html">Contact</a>
+      <button class="logout" id="logout">Se déconnecter</button>
+    </nav>
+  </aside>
 
-<section class="pad" style="padding-top:20px"><div class="acct">
-
-  <div class="acct-sec">
-    <div class="acct-head"><h2>Mes informations</h2><button class="btn" id="logout" style="padding:11px 22px">Se déconnecter</button></div>
-    <div class="pform">
-      <div class="field"><label>Nom complet</label><input id="p_nom"></div>
-      <div class="field"><label>Téléphone</label><input id="p_tel" type="tel"></div>
-      <div class="field full"><label>Adresse</label><input id="p_adr"></div>
-      <div class="field"><label>Code postal</label><input id="p_cp"></div>
-      <div class="field"><label>Ville</label><input id="p_ville"></div>
-      <div class="field"><label>Pays</label><input id="p_pays" value="France"></div>
-    </div>
-    <div style="margin-top:16px;display:flex;align-items:center;gap:16px">
-      <button class="btn solid" id="p_save" style="padding:13px 26px">Enregistrer mes informations</button>
-      <span class="authmsg" id="p_msg" style="margin:0"></span>
-    </div>
-  </div>
-
-  <div class="acct-sec">
-    <h2>Commandes en cours</h2>
-    <div id="enCours"></div>
-  </div>
-
-  <div class="acct-sec">
-    <h2>Commandes passées</h2>
-    <div id="passees"></div>
-  </div>
-
+  <main>
+    <section class="acct-panel active" id="encours"><h2>Mes commandes en cours</h2><div id="encoursList"></div></section>
+    <section class="acct-panel" id="terminees"><h2>Mes commandes terminées</h2><div id="termineesList"></div></section>
+    <section class="acct-panel" id="infos">
+      <h2>Mes informations</h2>
+      <div class="pform">
+        <div class="field"><label>Nom complet</label><input id="p_nom"></div>
+        <div class="field"><label>Téléphone</label><input id="p_tel" type="tel"></div>
+        <div class="field full"><label>Adresse</label><input id="p_adr"></div>
+        <div class="field"><label>Code postal</label><input id="p_cp"></div>
+        <div class="field"><label>Ville</label><input id="p_ville"></div>
+        <div class="field"><label>Pays</label><input id="p_pays" value="France"></div>
+      </div>
+      <div style="margin-top:18px;display:flex;align-items:center;gap:16px">
+        <button class="btn solid" id="p_save" style="padding:13px 26px">Enregistrer</button>
+        <span class="authmsg" id="p_msg" style="margin:0"></span>
+      </div>
+    </section>
+  </main>
 </div></section>
 
 <footer><div class="wrap"><div class="foot-bottom"><span>© 2026 ELLIA PARIS</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div></div></footer>
@@ -69,19 +93,27 @@
 <script src="app.js"></script>
 <script src="cart.js"></script>
 <script>
+/* Onglets */
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.navbtn').forEach(o=>o.classList.remove('active'));
+  document.querySelectorAll('.acct-panel').forEach(o=>o.classList.remove('active'));
+  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+}));
+
 (async function(){
   const { data:{ session } } = await SB.auth.getSession();
   if(!session){ location.href='connexion.html'; return; }
   const user=session.user;
   const f=id=>document.getElementById(id);
-  f('hello').textContent=(user.user_metadata&&user.user_metadata.nom?user.user_metadata.nom+' — ':'')+user.email;
+  const nom=(user.user_metadata&&user.user_metadata.nom)||'';
+  f('hello').textContent='Bonjour '+(nom?nom.split(' ')[0]:'').toUpperCase();
+  f('mail').textContent=user.email;
   const eur=n=>Number(n||0).toLocaleString('fr-FR')+' €';
 
   // Profil
-  let prof=null;
-  try{ const r=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle(); prof=r.data; }catch(e){}
+  let prof=null; try{ const r=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle(); prof=r.data; }catch(e){}
   if(prof){ f('p_nom').value=prof.nom||''; f('p_tel').value=prof.telephone||''; f('p_adr').value=prof.adresse||''; f('p_cp').value=prof.cp||''; f('p_ville').value=prof.ville||''; f('p_pays').value=prof.pays||'France'; }
-  else { f('p_nom').value=(user.user_metadata&&user.user_metadata.nom)||''; }
+  else { f('p_nom').value=nom; }
   f('p_save').addEventListener('click', async ()=>{
     const msg=f('p_msg'); msg.className='authmsg'; msg.textContent='Enregistrement…';
     const { error } = await SB.from('profiles').upsert({ id:user.id, nom:f('p_nom').value.trim(), telephone:f('p_tel').value.trim(), adresse:f('p_adr').value.trim(), cp:f('p_cp').value.trim(), ville:f('p_ville').value.trim(), pays:f('p_pays').value.trim()||'France' });
@@ -89,22 +121,18 @@
   });
 
   // Commandes
-  function trackUrl(t,n){ if(!n) return ''; t=(t||'').toLowerCase(); n=encodeURIComponent(n);
-    if(t.includes('colissimo')||t.includes('poste')) return 'https://www.laposte.fr/outils/suivre-vos-envois?code='+n;
-    if(t.includes('chrono')) return 'https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT='+n;
-    if(t.includes('ups')) return 'https://www.ups.com/track?tracknum='+n;
-    if(t.includes('dhl')) return 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id='+n;
-    if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n; return ''; }
-  const card=o=>{
-    return '<a href="commande.html?n='+encodeURIComponent(o.numero)+'" class="order-card" style="cursor:pointer;text-decoration:none">'+
-      '<div><div class="oid">'+o.numero+'</div><div class="meta">'+(o.created_at||'').slice(0,10)+(o.initiales?(' · '+o.initiales+' ('+(o.finition||'')+')'):'')+(o.suivi?' · 📦 Suivi disponible':'')+'</div></div>'+
-      '<div style="text-align:right"><div class="oid">'+eur(o.montant_total)+'</div><div class="st">'+o.statut+'  ›</div></div></a>'; };
-  let orders=[];
-  try{ const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false}); orders=r.data||[]; }catch(e){}
-  const enCours=[], passees=[];
-  orders.forEach(o=>{ const s=(o.statut||'').toLowerCase(); (s.includes('livr')||s.includes('annul')?passees:enCours).push(o); });
-  f('enCours').innerHTML = enCours.length?enCours.map(card).join(''):'<p style="color:var(--gris-txt)">Aucune commande en cours. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>';
-  f('passees').innerHTML = passees.length?passees.map(card).join(''):'<p style="color:var(--gris-txt)">Aucune commande passée.</p>';
+  function ocb(s){ s=(s||'').toLowerCase(); if(s.includes('nouv'))return'ocb-blue'; if(s.includes('prep')||s.includes('prép'))return'ocb-amber'; if(s.includes('exp'))return'ocb-grey'; if(s.includes('livr'))return'ocb-green'; if(s.includes('annul'))return'ocb-red'; return'ocb-grey'; }
+  const card=o=>'<a class="ocard" href="commande.html?n='+encodeURIComponent(o.numero)+'">'+
+      '<img src="assets/product-1.jpg" alt="Pochette">'+
+      '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+(o.created_at||'').slice(0,10)+'</div>'+
+      '<div class="ocard-name">La Pochette Ellia — Noir</div>'+
+      '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
+      '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+o.statut+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
+  let orders=[]; try{ const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false}); orders=r.data||[]; }catch(e){}
+  const enc=[], term=[];
+  orders.forEach(o=>{ const s=(o.statut||'').toLowerCase(); (s.includes('livr')||s.includes('annul')?term:enc).push(o); });
+  f('encoursList').innerHTML = enc.length?enc.map(card).join(''):'<p class="empty">Aucune commande en cours. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>';
+  f('termineesList').innerHTML = term.length?term.map(card).join(''):'<p class="empty">Aucune commande terminée.</p>';
 
   f('logout').addEventListener('click', async e=>{ e.preventDefault(); await SB.auth.signOut(); location.href='index.html'; });
 })();
