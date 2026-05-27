@@ -1,7 +1,7 @@
 /* ELLIA PARIS — interactions partagées (maquette) */
 (function(){
   /* Preloader */
-  window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),1900);});
+  window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),2300);});
 
   /* Header scroll state (only when a transparent hero is present) */
   const header=document.getElementById('header');

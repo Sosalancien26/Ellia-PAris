@@ -29,14 +29,17 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 /* Preloader */
 #preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s}
 #preloader.done{opacity:0;visibility:hidden}
-#preloader .pl-logo{width:114px;opacity:.28;animation:plReveal 1.7s var(--ease) forwards}
-#preloader .pl-line{margin-top:22px;font-family:var(--serif);font-size:13px;letter-spacing:.5em;text-transform:uppercase;color:var(--gris-txt);opacity:0;animation:plIn 1.2s var(--ease) 1.2s forwards}
-@keyframes plIn{to{opacity:1;transform:translateY(0)}}
-@keyframes plReveal{0%{opacity:.22}70%{opacity:.55}100%{opacity:1}}
-/* Ligne de scan facon empreinte digitale qui balaie le logo */
-#preloader::after{content:"";position:absolute;left:50%;width:150px;height:2px;transform:translateX(-50%);background:linear-gradient(90deg,rgba(20,20,20,0),rgba(20,20,20,.6),rgba(20,20,20,0));box-shadow:0 0 14px rgba(20,20,20,.22);top:calc(50% - 80px);opacity:0;animation:plScan .82s ease-in-out 2}
-@keyframes plScan{0%{top:calc(50% - 80px);opacity:0}15%{opacity:1}50%{top:calc(50% + 24px)}85%{opacity:1}100%{top:calc(50% - 80px);opacity:0}}
-#preloader.done::after{display:none}
+#preloader .pl-line{margin-top:26px;font-family:var(--serif);font-size:13px;letter-spacing:.5em;text-transform:uppercase;color:var(--gris-txt);opacity:0;animation:plIn 1s var(--ease) 1.7s forwards}
+@keyframes plIn{to{opacity:1}}
+/* Scan d'empreinte : le faisceau descend et revele le logo */
+.pl-scan{position:relative;width:120px;height:150px}
+.pl-scan img{position:absolute;left:0;top:50%;transform:translateY(-50%);width:120px}
+.pl-logo-base{opacity:.15;filter:grayscale(1)}
+.pl-logo-fill{opacity:1;clip-path:inset(0 0 100% 0);animation:plFill 2.2s cubic-bezier(.4,0,.2,1) forwards}
+.pl-beam{position:absolute;left:-10px;right:-10px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(20,20,20,0),rgba(20,20,20,.8),rgba(20,20,20,0));box-shadow:0 0 20px 4px rgba(30,30,30,.30);top:4px;opacity:0;animation:plBeam 2.2s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes plFill{0%{clip-path:inset(0 0 100% 0)}8%{clip-path:inset(0 0 100% 0)}62%{clip-path:inset(0 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
+@keyframes plBeam{0%{top:4px;opacity:0}8%{top:4px;opacity:1}62%{top:146px;opacity:1}74%{top:146px;opacity:0}100%{opacity:0}}
+#preloader.done .pl-beam{display:none}
 
 /* Cursor */
 .cursor,.cursor-dot{position:fixed;top:0;left:0;border-radius:50%;pointer-events:none;z-index:1500;mix-blend-mode:difference;will-change:transform}
