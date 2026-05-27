@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Espace Pro — ELLIA PARIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--noir:#0d0d0d;--ivoire:#f3f1ec;--blanc:#fff;--gris:#5c5852;--gris2:#8a857d;--ligne:rgba(0,0,0,.1);--serif:"Cormorant Garamond",Georgia,serif;--sans:"Jost",Arial,sans-serif;
+    --vert:#2f7d52;--vert-bg:#e6f1ea;--ambre:#9a6a14;--ambre-bg:#f6edda;--bleu:#2b5d86;--bleu-bg:#e4eef6;--gris-bg:#ececec}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);font-weight:400;background:var(--ivoire);color:var(--noir);-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.01em}
+  a{color:inherit;text-decoration:none}
+  .admin-top{display:flex;align-items:center;justify-content:space-between;padding:18px 34px;background:var(--blanc);border-bottom:1px solid var(--ligne);position:sticky;top:0;z-index:10}
+  .admin-top .brand{display:flex;align-items:center;gap:16px}
+  .admin-top img{height:34px}
+  .admin-top .tag{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gris)}
+  .admin-top .back{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris);border:1px solid var(--ligne);padding:9px 16px;transition:.3s}
+  .admin-top .back:hover{background:var(--noir);color:#fff;border-color:var(--noir)}
+  .shell{max-width:1200px;margin:0 auto;padding:36px 34px 80px}
+  .page-title{margin-bottom:6px;font-size:34px}
+  .page-sub{color:var(--gris);font-size:14px;margin-bottom:30px}
+  .tabs{display:flex;gap:8px;margin-bottom:34px;border-bottom:1px solid var(--ligne)}
+  .tab{padding:13px 20px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
+  .tab.active{color:var(--noir);border-bottom-color:var(--noir)}
+  .panel{display:none}.panel.active{display:block}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}
+  .kpi{background:var(--blanc);border:1px solid var(--ligne);padding:24px}
+  .kpi .l{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris2);margin-bottom:12px}
+  .kpi .v{font-family:var(--serif);font-size:38px;line-height:1}
+  .kpi .d{font-size:12px;color:var(--vert);margin-top:8px}
+  .card{background:var(--blanc);border:1px solid var(--ligne);padding:28px;margin-bottom:26px}
+  .card h3{font-size:22px;margin-bottom:4px}
+  .card .csub{font-size:12.5px;color:var(--gris);margin-bottom:24px}
+  .chart{display:flex;align-items:flex-end;gap:20px;height:220px;padding-top:10px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;height:100%;justify-content:flex-end}
+  .bar .col{width:60%;background:linear-gradient(180deg,#2a2a2a,#0d0d0d);border-radius:2px 2px 0 0;transition:height 1s cubic-bezier(.22,.61,.36,1)}
+  .bar .m{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gris)}
+  .bar .val{font-size:12px;color:var(--noir);font-family:var(--serif);font-size:15px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);font-weight:500;padding:0 14px 14px;border-bottom:1px solid var(--ligne)}
+  td{padding:16px 14px;border-bottom:1px solid var(--ligne);font-size:14px}
+  tr:last-child td{border-bottom:none}
+  .oid{font-family:var(--serif);font-size:16px}
+  .badge{display:inline-block;font-size:11px;letter-spacing:.08em;padding:5px 11px;border-radius:2px}
+  .b-nouvelle{background:var(--bleu-bg);color:var(--bleu)}
+  .b-prep{background:var(--ambre-bg);color:var(--ambre)}
+  .b-exp{background:var(--gris-bg);color:#555}
+  .b-livree{background:var(--vert-bg);color:var(--vert)}
+  select.statut{font-family:var(--sans);font-size:12px;padding:7px 10px;border:1px solid var(--ligne);background:#fff;color:var(--noir);cursor:pointer}
+  .stock-bad{color:#b1432f;font-weight:500}
+  .stock-ok{color:var(--vert)}
+  .note{background:#fbf6e8;border:1px solid #ecdfbd;color:#7a6320;font-size:12.5px;padding:14px 18px;margin-bottom:26px;letter-spacing:.02em}
+  .stock-inp{width:84px;padding:8px 10px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;color:var(--noir);background:#fff}
+  .admin-top .actions{display:flex;gap:10px;align-items:center}
+  @media (max-width:860px){.kpis{grid-template-columns:1fr 1fr}.shell{padding:24px 18px 60px}.admin-top{padding:14px 18px}.chart{gap:8px}}
+</style>
+</head>
+<body>
+
+<div class="admin-top">
+  <div class="brand"><img src="assets/logo_black_trim.png" alt="ELLIA PARIS" /><span class="tag">Espace Pro</span></div>
+  <div class="actions"><a class="back" href="index.html">← Voir la boutique</a><a class="back" href="#" id="logout">Déconnexion</a></div>
+</div>
+
+<div class="shell">
+  <h1 class="page-title">Tableau de bord</h1>
+  <div class="page-sub">Vue d'ensemble de votre boutique ELLIA PARIS.</div>
+
+  <div class="note">Données de démonstration — l'espace se connectera à votre base Supabase pour afficher vos vraies commandes, votre stock et votre chiffre d'affaires en temps réel.</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="dash">Tableau de bord</button>
+    <button class="tab" data-tab="orders">Commandes</button>
+    <button class="tab" data-tab="stock">Stock</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel active" id="dash">
+    <div class="kpis" id="kpis"></div>
+    <div class="card">
+      <h3>Chiffre d'affaires</h3>
+      <div class="csub">6 derniers mois</div>
+      <div class="chart" id="chart"></div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="panel" id="orders">
+    <div class="card">
+      <h3>Commandes</h3>
+      <div class="csub">Commandes reçues sur le site</div>
+      <table>
+        <thead><tr><th>N°</th><th>Date</th><th>Client</th><th>Gravure</th><th>Finition</th><th>Total</th><th>Statut</th></tr></thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="panel" id="stock">
+    <div class="card">
+      <h3>Stock</h3>
+      <div class="csub">Niveaux de stock et alertes</div>
+      <table>
+        <thead><tr><th>Produit</th><th>Référence</th><th>Prix</th><th>Stock</th><th>Seuil</th><th>État</th></tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

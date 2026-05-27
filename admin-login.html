@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Connexion — Espace Pro ELLIA PARIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Jost",Arial,sans-serif;background:#f3f1ec;color:#0d0d0d;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .box{width:100%;max-width:380px;text-align:center}
+  .box img{height:46px;margin-bottom:30px}
+  h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:30px;margin-bottom:8px}
+  p{color:#7c7872;font-size:13px;letter-spacing:.04em;margin-bottom:30px}
+  input{width:100%;background:#fff;border:1px solid rgba(0,0,0,.15);padding:15px 16px;font-family:inherit;font-size:15px;outline:none;margin-bottom:14px;transition:border-color .3s}
+  input:focus{border-color:#0d0d0d}
+  button{width:100%;background:#0d0d0d;color:#fff;border:none;padding:15px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:.3s}
+  button:hover{opacity:.85}
+  .err{color:#b1432f;font-size:13px;margin-top:14px;min-height:18px}
+  .back{display:inline-block;margin-top:24px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7c7872}
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="assets/logo_black_trim.png" alt="ELLIA PARIS" />
+    <h1>Espace Pro</h1>
+    <p>Accès réservé à l'administration</p>
+    <form id="f" onsubmit="return false">
+      <input type="password" id="pw" placeholder="Mot de passe" autofocus />
+      <button type="submit">Se connecter</button>
+      <div class="err" id="err"></div>
+    </form>
+    <a class="back" href="index.html">← Retour au site</a>
+  </div>
+<script>
+  document.getElementById('f').addEventListener('submit', async ()=>{
+    const err=document.getElementById('err'); err.textContent='';
+    try{
+      const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pw').value})});
+      if(r.ok){ location.href='/admin'; } else { err.textContent='Mot de passe incorrect.'; }
+    }catch(e){ err.textContent='Connexion impossible (lancez le serveur : npm start).'; }
+  });
+</script>
+</body>
+</html>

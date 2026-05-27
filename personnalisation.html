@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Personnalisation — ELLIA PARIS</title>
+<meta name="description" content="Gravez votre pochette ELLIA PARIS : jusqu'à 3 initiales, finitions Or, Or rose, Argent, Noir, Blanc, emplacement au choix." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="preloader"><img class="pl-logo" src="assets/picto_black_trim.png" alt="ELLIA PARIS" /><div class="pl-line">ELLIA&nbsp;&nbsp;PARIS</div></div>
+<div class="cursor"></div><div class="cursor-dot"></div>
+
+<header id="header" class="solid">
+  <div class="bar">
+    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <nav class="links">
+      <a href="index.html">Accueil</a>
+      <a href="pochette.html">La Pochette</a>
+      <a href="personnalisation.html" class="active">Personnalisation</a>
+      <a href="maison.html">Maison</a>
+    </nav>
+    <div class="nav-right"><span class="nav-ico account">Compte</span><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+  </div>
+</header>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a></div>
+
+<section class="page-hero page-top">
+  <div class="wrap">
+    <div class="breadcrumb reveal"><a href="index.html">Accueil</a> · Personnalisation</div>
+    <div class="reveal"><div class="eyebrow" style="margin-top:24px">Sur-mesure</div><h1>Gravée à votre nom</h1><p>Jusqu'à trois initiales, cinq finitions, plusieurs emplacements. Composez une pièce qui n'appartient qu'à vous.</p></div>
+  </div>
+</section>
+
+<section class="perso pad" style="padding-top:50px">
+  <div class="wrap">
+    <div class="perso-grid">
+      <div class="perso-preview reveal">
+        <div class="mono-label">Votre gravure</div>
+        <div class="engrave" id="engrave">A·B</div>
+        <div class="mono-finish" id="monoFinish">Finition Or</div>
+      </div>
+      <div class="perso-panel reveal">
+        <div class="block">
+          <span class="field-label">Vos initiales — 3 lettres max.</span>
+          <input class="initials-input" id="initials" maxlength="3" value="AB" placeholder="VOS INITIALES" />
+        </div>
+        <div class="block">
+          <span class="field-label">Finition</span>
+          <div class="swatches" id="swatches">
+            <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+            <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+            <div class="sw" data-color="noir"><div class="dot noir"></div><small>Noir</small></div>
+            <div class="sw" data-color="blanc"><div class="dot blanc"></div><small>Blanc</small></div>
+          </div>
+        </div>
+        <div class="block">
+          <span class="field-label">Emplacement</span>
+          <div class="placements" id="placements">
+            <button class="place-btn active" data-pos="centre">Centre</button>
+            <button class="place-btn" data-pos="bas">Bas</button>
+            <button class="place-btn" data-pos="coin">Coin</button>
+          </div>
+        </div>
+        <div class="perso-total"><span class="lab">Total</span><span class="val" id="total">218&nbsp;€</span></div>
+        <a href="#" id="addPerso" class="btn solid" style="width:100%;text-align:center">Ajouter au panier</a>
+        <p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px;letter-spacing:.04em">Aperçu indicatif — la version finale proposera un rendu 3D temps réel de votre pochette.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Finishes detail -->
+<section class="pad savoir" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal"><div class="eyebrow">Les finitions</div><h2>Cinq éclats, un seul nom</h2><p>Chaque gravure est réalisée à la main avec une précision d'orfèvre.</p></div>
+    <div class="cols">
+      <div class="col reveal"><div class="ic"></div><h3>Or & Or rose</h3><p>La chaleur d'un éclat précieux, pour une signature lumineuse et raffinée.</p></div>
+      <div class="col reveal"><div class="ic"></div><h3>Argent</h3><p>L'élégance froide et contemporaine, en parfait accord avec le zip gunmetal.</p></div>
+      <div class="col reveal"><div class="ic"></div><h3>Noir & Blanc</h3><p>Le ton sur ton ou le contraste pur, pour les amateurs de discrétion absolue.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><img class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
+      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="#">Livraison & retours</a></li></ul></div>
+      <div><h4>Suivez-nous</h4><ul><li><a href="#">Instagram</a></li><li><a href="#">Pinterest</a></li><li><a href="#">TikTok</a></li></ul></div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 ELLIA PARIS — Tous droits réservés</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div>
+  </div>
+</footer>
+
+<div class="mockup-flag">Maquette — personnalisation</div>
+<script src="app.js"></script>
+<script src="cart.js"></script>
+</body>
+</html>
