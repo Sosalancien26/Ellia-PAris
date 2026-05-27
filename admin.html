@@ -56,7 +56,20 @@
   .note{background:#fbf6e8;border:1px solid #ecdfbd;color:#7a6320;font-size:12.5px;padding:14px 18px;margin-bottom:26px;letter-spacing:.02em}
   .stock-inp{width:84px;padding:8px 10px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;color:var(--noir);background:#fff}
   .admin-top .actions{display:flex;gap:10px;align-items:center}
-  @media (max-width:860px){.kpis{grid-template-columns:1fr 1fr}.shell{padding:24px 18px 60px}.admin-top{padding:14px 18px}.chart{gap:8px}}
+  .ord-list{display:flex;flex-direction:column;gap:16px}
+  .ord-card{border:1px solid var(--ligne);padding:20px 22px}
+  .ord-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .ord-head .l{display:flex;align-items:center;gap:12px}
+  .ord-date{font-size:13px;color:var(--gris)}
+  .ord-body{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:14px 0;border-top:1px solid var(--ligne);border-bottom:1px solid var(--ligne)}
+  .ord-col{font-size:13.5px;color:var(--gris);line-height:1.5}
+  .ord-col .lbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px}
+  .ord-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+  .ord-actions select,.ord-actions input{font-family:var(--sans);font-size:13px;padding:9px 11px;border:1px solid var(--ligne);background:#fff;color:var(--noir)}
+  .ord-actions input{flex:1;min-width:150px}
+  .ord-save{background:var(--noir);color:#fff;border:none;padding:10px 18px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  .ord-saved{font-size:12px;color:var(--vert)}
+  @media (max-width:860px){.kpis{grid-template-columns:1fr 1fr}.shell{padding:24px 18px 60px}.admin-top{padding:14px 18px}.chart{gap:8px}.ord-body{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -70,7 +83,7 @@
   <h1 class="page-title">Tableau de bord</h1>
   <div class="page-sub">Vue d'ensemble de votre boutique ELLIA PARIS.</div>
 
-  <div class="note">Données de démonstration — l'espace se connectera à votre base Supabase pour afficher vos vraies commandes, votre stock et votre chiffre d'affaires en temps réel.</div>
+  <div class="note">Gérez vos commandes (statut, transporteur, numéro de suivi), votre stock et votre chiffre d'affaires en temps réel.</div>
 
   <div class="tabs">
     <button class="tab active" data-tab="dash">Tableau de bord</button>
@@ -93,10 +106,7 @@
     <div class="card">
       <h3>Commandes</h3>
       <div class="csub">Commandes reçues sur le site</div>
-      <table>
-        <thead><tr><th>N°</th><th>Date</th><th>Client</th><th>Gravure</th><th>Finition</th><th>Total</th><th>Statut</th></tr></thead>
-        <tbody id="ordersBody"></tbody>
-      </table>
+      <div id="ordersBody" class="ord-list"></div>
     </div>
   </div>
 

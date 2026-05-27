@@ -94,14 +94,27 @@ const STATUT_MSG = {
   'livree':'a été livrée. Nous espérons qu\'elle vous comble.',
   'annulee':'a été annulée. Pour toute question, répondez à cet e-mail.'
 };
+function trackUrl(transporteur, suivi){
+  if(!suivi) return '';
+  const t=(transporteur||'').toLowerCase(); const n=encodeURIComponent(suivi);
+  if(t.includes('colissimo')||t.includes('poste')) return 'https://www.laposte.fr/outils/suivre-vos-envois?code='+n;
+  if(t.includes('chrono')) return 'https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT='+n;
+  if(t.includes('ups')) return 'https://www.ups.com/track?tracknum='+n;
+  if(t.includes('dhl')) return 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id='+n;
+  if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n;
+  return '';
+}
 function notifyStatus(order, numero, statut){
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
   const recap = (order.montant_total!=null) ? `<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ${euro(order.montant_total)}${order.initiales?(' · Gravure '+order.initiales):''}</p>` : '';
+  const url = trackUrl(order.transporteur, order.suivi);
+  const track = order.suivi ? `<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ${order.transporteur||''} : <b>${order.suivi}</b>${url?` &nbsp;—&nbsp; <a href="${url}" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>`:''}</p>` : '';
   const inner = `<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ${numero}</h1>
     <p style="margin:0 0 8px">Bonjour ${order.client_nom||''},</p>
     <p style="margin:0 0 4px">Votre commande <b>${numero}</b> ${msg}</p>
     <p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">${statut}</span></p>
+    ${track}
     ${recap}
     <p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>`;
   sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner));
@@ -151,9 +164,11 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_nom,initiales,finition,montant_total,statut,created_at&order=created_at.desc');
-  return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10), client:r.client_nom||'—',
-    initiales:r.initiales||'—', finition:r.finition||'—', total:Number(r.montant_total), statut:r.statut }));
+  const rows = await sb('orders?select=numero,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,created_at&order=created_at.desc');
+  return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10), client:r.client_nom||'—', email:r.client_email||'', telephone:r.telephone||'',
+    initiales:r.initiales||'—', finition:r.finition||'—', emplacement:r.emplacement||'', total:Number(r.montant_total), statut:r.statut,
+    suivi:r.suivi||'', transporteur:r.transporteur||'',
+    adresse:[r.adresse_livraison,((r.cp_livraison||'')+' '+(r.ville_livraison||'')).trim(),r.pays_livraison].filter(x=>x&&String(x).trim()).join(' · ') }));
 }
 async function getStats(){
   if(!USE_DB) return MOCK_STATS;
@@ -223,8 +238,14 @@ const server = http.createServer(async (req, res) => {
         const numero = pathname.split('/').pop();
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
-        await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ statut:d.statut } });
-        try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom,montant_total,initiales'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
+        const upd = {};
+        if(d.statut!==undefined) upd.statut = d.statut;
+        if(d.suivi!==undefined) upd.suivi = d.suivi;
+        if(d.transporteur!==undefined) upd.transporteur = d.transporteur;
+        if(Object.keys(upd).length) await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
+        if(d.statut!==undefined){
+          try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom,montant_total,initiales,suivi,transporteur'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
+        }
         return sendJSON(res,{ ok:true });
       }
       /* MAJ stock d'un produit : PATCH /api/products/REF */
