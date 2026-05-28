@@ -43,7 +43,8 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 #preloader.done .pl-beam{display:none}
 
 /* Cursor */
-.cursor,.cursor-dot{position:fixed;top:0;left:0;border-radius:50%;pointer-events:none;z-index:1500;mix-blend-mode:difference;will-change:transform}
+.cursor,.cursor-dot{position:fixed;top:0;left:0;border-radius:50%;pointer-events:none;z-index:1500;mix-blend-mode:difference;will-change:transform;opacity:0;transition:opacity .3s}
+body.has-mouse .cursor,body.has-mouse .cursor-dot{opacity:1}
 .cursor{width:34px;height:34px;border:1px solid rgba(255,255,255,.8);transition:width .25s,height .25s,background .25s}
 .cursor-dot{width:5px;height:5px;background:#fff}
 .cursor.grow{width:64px;height:64px;background:rgba(255,255,255,.12)}
