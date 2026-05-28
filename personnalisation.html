@@ -49,7 +49,7 @@
   <div class="wrap">
     <div class="perso-grid">
       <div class="perso-preview reveal" id="persoPreview" style="background:transparent;border:none;box-shadow:none;padding:0">
-        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f7f3e8 0%,#d4c9b0 60%,#8a7d63 100%);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
+        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#ffffff 0%,#f3efe6 65%,#e6dfd1 100%);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
         <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px">Glissez pour tourner · molette pour zoomer</div>
         <div id="engrave" style="display:none">A·B</div>
         <div id="monoFinish" style="display:none">Finition Or</div>
@@ -145,7 +145,7 @@ function initConfigurator(){
   renderer.setSize(w(), h());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.0;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -164,16 +164,14 @@ function initConfigurator(){
   controls.maxPolarAngle = Math.PI*0.78;
   controls.target.set(0,0,0);
 
-  // === Studio lighting (3 softbox setup like luxury product photography) ===
-  scene.add(new THREE.AmbientLight(0xffffff, 0.08));
-  // Key light (top-front-right, warm white, softbox-like)
-  const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(0.8,1.4,0.9); scene.add(key);
-  // Fill light (cool blue, softer, opposite side)
-  const fill = new THREE.DirectionalLight(0xa8c0ff, 0.55); fill.position.set(-1.0,0.3,0.2); scene.add(fill);
-  // Rim/back light (warm, behind, separates from background)
-  const rim = new THREE.DirectionalLight(0xffd9a8, 1.4); rim.position.set(-0.2,0.7,-1.2); scene.add(rim);
-  // Bottom kicker (subtle ground bounce)
-  const kicker = new THREE.DirectionalLight(0xffeacc, 0.25); kicker.position.set(0,-0.8,0.3); scene.add(kicker);
+  // === Clean studio: one big neutral softbox + soft fill ===
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  // Main softbox above front (neutral white)
+  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(0.3,1.3,0.6); scene.add(key);
+  // Fill from opposite side (very subtle, neutral)
+  const fill = new THREE.DirectionalLight(0xffffff, 0.45); fill.position.set(-0.8,0.4,0.4); scene.add(fill);
+  // Very subtle rim to detach edges (neutral white, NOT warm)
+  const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-0.2,0.3,-1.0); scene.add(rim);
 
   const shadowTex = makeShadowTexture();
   const ground = new THREE.Mesh(
@@ -209,17 +207,14 @@ function initConfigurator(){
     const mat = new THREE.MeshPhysicalMaterial({
       map: leatherTex,
       normalMap: leatherNormal,
-      normalScale: new THREE.Vector2(1.15, 1.15),
-      color: 0x1d1b18,
-      metalness: 0.05,
-      roughness: 0.42,
-      clearcoat: 0.55,
-      clearcoatRoughness: 0.28,
-      reflectivity: 0.45,
-      envMapIntensity: 1.6,
-      sheen: 0.35,
-      sheenColor: new THREE.Color(0x5a4e3a),
-      sheenRoughness: 0.65
+      normalScale: new THREE.Vector2(0.7, 0.7),
+      color: 0x121110,
+      metalness: 0.0,
+      roughness: 0.78,
+      clearcoat: 0.15,
+      clearcoatRoughness: 0.65,
+      reflectivity: 0.20,
+      envMapIntensity: 0.85
     });
     // === Inject zip + biometric plate masks into the PBR shader ===
     mat.userData.uMetalColor = { value: new THREE.Color(0xb8b8b8) }; // default gunmetal
@@ -284,13 +279,13 @@ function initConfigurator(){
     const c = document.createElement('canvas'); c.width=W; c.height=H;
     const x = c.getContext('2d');
     // Deep black base
-    x.fillStyle='#16140f'; x.fillRect(0,0,W,H);
+    x.fillStyle='#0e0d0c'; x.fillRect(0,0,W,H);
     // Large pebble grains (3-6px)
     for(let i=0;i<14000;i++){
       const px=Math.random()*W, py=Math.random()*H;
       const r=3+Math.random()*5;
       const g=14+Math.random()*22;
-      x.fillStyle='rgb('+(g|0)+','+((g-1)|0)+','+((g-3)|0)+')';
+      x.fillStyle='rgb('+(g|0)+','+(g|0)+','+(g|0)+')';
       x.beginPath(); x.arc(px,py,r,0,Math.PI*2); x.fill();
     }
     // Highlights (lighter spots) for grain depth
@@ -298,7 +293,7 @@ function initConfigurator(){
       const px=Math.random()*W, py=Math.random()*H;
       const r=0.6+Math.random()*1.4;
       const g=50+Math.random()*30;
-      x.fillStyle='rgba('+(g|0)+','+((g-3)|0)+','+((g-8)|0)+',.55)';
+      x.fillStyle='rgba('+(g|0)+','+(g|0)+','+(g|0)+',.45)';
       x.beginPath(); x.arc(px,py,r,0,Math.PI*2); x.fill();
     }
     // Tiny pores
@@ -351,9 +346,8 @@ function initConfigurator(){
     if(!pochetteMesh) return;
     const mat = pochetteMesh.material;
     // Body (leather) color depends on chosen finish
-    if(state.finish==='noir'){       mat.color.set(0x141210); mat.roughness=0.48; mat.clearcoat=0.65; }
-    else if(state.finish==='blanc'){ mat.color.set(0xe8e2d6); mat.roughness=0.55; mat.clearcoat=0.45; }
-    else {                            mat.color.set(0x1d1b18); mat.roughness=0.42; mat.clearcoat=0.55; }
+    if(state.finish==='blanc'){ mat.color.set(0xeae5dc); mat.roughness=0.75; mat.clearcoat=0.18; }
+    else {                       mat.color.set(0x121110); mat.roughness=0.78; mat.clearcoat=0.15; }
     // Metal parts (zip + biometric plate): use the chosen finish color, but keep silver for noir/blanc
     if(mat.userData.uMetalColor){
       if(state.finish==='or')         mat.userData.uMetalColor.value.setHex(0xd4af37);
