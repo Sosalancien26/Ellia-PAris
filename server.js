@@ -10,6 +10,8 @@
      SUPABASE_URL          = https://wwzaqbpyojpzjacbjyqi.supabase.co
      SUPABASE_SERVICE_KEY  = (cle service_role SECRETE — vraies donnees)
      ADMIN_PASSWORD        = (mot de passe de l'espace admin ; defaut : ellia2026)
+     ADMIN_SECRET          = (secret HMAC pour le cookie de session)
+     SMTP_USER / SMTP_PASS = (e-mails transactionnels)
    Ne JAMAIS exposer la cle service_role cote navigateur.
    ============================================================ */
 const http   = require('http');
@@ -26,15 +28,48 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ellia2026';
 const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
-/* Rate-limit simple pour /api/login (anti-bruteforce, 5 tentatives / 5 min / IP) */
-const LOGIN_TRIES = new Map();
-function loginAllowed(ip){
-  const now = Date.now(); const win = 5*60*1000;
-  const arr = (LOGIN_TRIES.get(ip)||[]).filter(t => now - t < win);
-  arr.push(now); LOGIN_TRIES.set(ip, arr);
-  return arr.length <= 5;
+/* Rate-limit generique en memoire (par IP, par bucket) */
+const RATE = { login: new Map(), newsletter: new Map(), orders: new Map() };
+const RATE_LIMITS = {
+  login:      { max: 5,  window: 5*60*1000 },
+  newsletter: { max: 5,  window: 60*60*1000 },
+  orders:     { max: 10, window: 60*60*1000 }
+};
+function rateAllowed(bucket, ip){
+  const cfg = RATE_LIMITS[bucket]; if(!cfg) return true;
+  const now = Date.now();
+  const arr = (RATE[bucket].get(ip)||[]).filter(t => now - t < cfg.window);
+  arr.push(now); RATE[bucket].set(ip, arr);
+  return arr.length <= cfg.max;
 }
 function clientIp(req){ return (req.headers['x-forwarded-for']||'').split(',')[0].trim() || req.socket.remoteAddress || 'unknown'; }
+
+function isHttps(req){
+  if((req.headers['x-forwarded-proto']||'').toLowerCase()==='https') return true;
+  if(req.connection && req.connection.encrypted) return true;
+  return false;
+}
+
+function setSecurityHeaders(req, res){
+  if(isHttps(req)) res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self), interest-cohort=()');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' https: data: blob:",
+    "media-src 'self' https:",
+    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'"
+  ].join('; '));
+}
 
 /* ----- E-mails (SMTP Workspace via nodemailer, optionnel) ----- */
 let transporter = null;
@@ -53,50 +88,52 @@ const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_
 function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner){
-  return `<div style="margin:0;padding:30px 12px;background:#f3f1ec">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e6e3dc">
-    <div style="text-align:center;padding:30px 0 20px;border-bottom:1px solid #efece6">
-      <img src="${LOGO}" alt="ELLIA PARIS" style="height:44px;width:auto" />
-    </div>
-    <div style="padding:34px 40px;font-family:Georgia,'Times New Roman',serif;color:#0d0d0d;font-size:16px;line-height:1.6">${inner}</div>
-    <div style="padding:22px 40px;border-top:1px solid #efece6;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.06em;color:#8a857d">
-      ELLIA PARIS — Maison de maroquinerie · Paris<br/>
-      <a href="https://ellia-paris.fr" style="color:#8a857d;text-decoration:none">ellia-paris.fr</a>
-    </div>
-  </div>
-</div>`;
+  return '<div style="margin:0;padding:30px 12px;background:#f3f1ec">' +
+  '<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e6e3dc">' +
+    '<div style="text-align:center;padding:30px 0 20px;border-bottom:1px solid #efece6">' +
+      '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:44px;width:auto" />' +
+    '</div>' +
+    '<div style="padding:34px 40px;font-family:Georgia,\'Times New Roman\',serif;color:#0d0d0d;font-size:16px;line-height:1.6">' + inner + '</div>' +
+    '<div style="padding:22px 40px;border-top:1px solid #efece6;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.06em;color:#8a857d">' +
+      'ELLIA PARIS — Maison de maroquinerie · Paris<br/>' +
+      '<a href="https://ellia-paris.fr" style="color:#8a857d;text-decoration:none">ellia-paris.fr</a>' +
+    '</div>' +
+  '</div></div>';
 }
 function lineItems(items){
   if(!items || !items.length) return '';
-  const rows = items.map(it=>`<tr>
-    <td style="padding:12px 0;border-bottom:1px solid #efece6">${it.nom||'La Pochette Ellia'}${it.initiales?`<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d">Gravure ${it.initiales} · ${it.finition||''} · ${it.emplacement||''}</span>`:''}</td>
-    <td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap">${euro(it.prix)}</td></tr>`).join('');
-  return `<table style="width:100%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:18px 0">${rows}</table>`;
+  const rows = items.map(it => '<tr>' +
+    '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + (it.nom||'La Pochette Ellia') +
+    (it.initiales ? '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d">Gravure ' + it.initiales + ' · ' + (it.finition||'') + ' · ' + (it.emplacement||'') + '</span>' : '') +
+    '</td>' +
+    '<td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap">' + euro(it.prix) + '</td></tr>').join('');
+  return '<table style="width:100%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:18px 0">' + rows + '</table>';
 }
 function addressBlock(d){
   if(!d.adresse_livraison) return '';
-  return `<p style="font-family:Arial,sans-serif;font-size:13px;color:#56524c;line-height:1.6;margin:16px 0 0">
-    <b style="font-family:Georgia,serif;color:#0d0d0d;font-size:15px">Adresse de livraison</b><br/>
-    ${d.client_nom||''}<br/>${d.adresse_livraison}<br/>${(d.cp_livraison||'')} ${(d.ville_livraison||'')}<br/>${d.pays_livraison||'France'}${d.telephone?('<br/>'+d.telephone):''}</p>`;
+  return '<p style="font-family:Arial,sans-serif;font-size:13px;color:#56524c;line-height:1.6;margin:16px 0 0">' +
+    '<b style="font-family:Georgia,serif;color:#0d0d0d;font-size:15px">Adresse de livraison</b><br/>' +
+    (d.client_nom||'') + '<br/>' + d.adresse_livraison + '<br/>' + (d.cp_livraison||'') + ' ' + (d.ville_livraison||'') + '<br/>' + (d.pays_livraison||'France') +
+    (d.telephone ? ('<br/>'+d.telephone) : '') + '</p>';
 }
 function sendMail(to, subject, html){
   if (!transporter || !to) return;
   transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
 }
 function notifyNewOrder(d, numero){
-  const inner = `<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:18px"><img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/></div>
-    <h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>
-    <p style="margin:0 0 8px">Bonjour ${d.client_nom||''},</p>
-    <p style="margin:0 0 4px">Votre commande <b>${numero}</b> a bien été enregistrée. En voici le détail :</p>
-    ${lineItems(d.items)}
-    <table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>
-      <td><b style="font-family:Georgia,serif;font-size:17px">Total</b></td>
-      <td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">${euro(d.montant_total)}</b></td></tr></table>
-    ${addressBlock(d)}
-    <p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Le paiement et l'expédition vous seront confirmés par e-mail. Avec soin,<br/>ELLIA PARIS</p>`;
+  const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:18px"><img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/></div>' +
+    '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>' +
+    '<p style="margin:0 0 8px">Bonjour ' + (d.client_nom||'') + ',</p>' +
+    '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> a bien été enregistrée. En voici le détail :</p>' +
+    lineItems(d.items) +
+    '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>' +
+      '<td><b style="font-family:Georgia,serif;font-size:17px">Total</b></td>' +
+      '<td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">' + euro(d.montant_total) + '</b></td></tr></table>' +
+    addressBlock(d) +
+    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Le paiement et l\'expédition vous seront confirmés par e-mail. Avec soin,<br/>ELLIA PARIS</p>';
   sendMail(d.client_email, 'Votre commande ELLIA PARIS — '+numero, emailLayout(inner));
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    emailLayout(`<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ${numero}</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">${d.client_nom||''} — ${d.client_email||''}${d.telephone?(' — '+d.telephone):''}</p>${lineItems(d.items)}<p style="font-family:Georgia,serif"><b>Total ${euro(d.montant_total)}</b></p>${addressBlock(d)}`));
+    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + numero + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + (d.client_nom||'') + ' — ' + (d.client_email||'') + (d.telephone?(' — '+d.telephone):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d)));
 }
 const STATUT_MSG = {
   'nouvelle':'a bien été reçue et est en cours de traitement.',
@@ -116,18 +153,18 @@ function trackUrl(transporteur, suivi){
   return '';
 }
 function notifyStatus(order, numero, statut){
+  // Normalise + retire les diacritiques (à → a) avant lookup
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
-  const recap = (order.montant_total!=null) ? `<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ${euro(order.montant_total)}${order.initiales?(' · Gravure '+order.initiales):''}</p>` : '';
+  const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+order.initiales):'') + '</p>' : '';
   const url = trackUrl(order.transporteur, order.suivi);
-  const track = order.suivi ? `<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ${order.transporteur||''} : <b>${order.suivi}</b>${url?` &nbsp;—&nbsp; <a href="${url}" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>`:''}</p>` : '';
-  const inner = `<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ${numero}</h1>
-    <p style="margin:0 0 8px">Bonjour ${order.client_nom||''},</p>
-    <p style="margin:0 0 4px">Votre commande <b>${numero}</b> ${msg}</p>
-    <p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">${statut}</span></p>
-    ${track}
-    ${recap}
-    <p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>`;
+  const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + order.suivi + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+  const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
+    '<p style="margin:0 0 8px">Bonjour ' + (order.client_nom||'') + ',</p>' +
+    '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> ' + msg + '</p>' +
+    '<p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">' + statut + '</span></p>' +
+    track + recap +
+    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
   sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner));
 }
 
@@ -136,7 +173,10 @@ const TYPES = {
   '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8',
   '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg',
   '.svg':'image/svg+xml', '.webp':'image/webp', '.ico':'image/x-icon',
-  '.woff':'font/woff', '.woff2':'font/woff2', '.md':'text/plain; charset=utf-8'
+  '.woff':'font/woff', '.woff2':'font/woff2', '.md':'text/plain; charset=utf-8',
+  '.glb':'model/gltf-binary', '.gltf':'model/gltf+json',
+  '.mp4':'video/mp4', '.webm':'video/webm', '.xml':'application/xml; charset=utf-8',
+  '.txt':'text/plain; charset=utf-8'
 };
 
 /* ----- Donnees de demonstration (si Supabase non configure) ----- */
@@ -158,7 +198,8 @@ const MOCK_STATS = {
 const MOIS = ['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
 
 /* ----- Supabase REST ----- */
-async function sb(pathQuery, opts={}){
+async function sb(pathQuery, opts){
+  opts = opts || {};
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + pathQuery, {
     headers: { apikey:SERVICE_KEY, Authorization:'Bearer '+SERVICE_KEY,
                'Content-Type':'application/json', Prefer: opts.prefer || '' },
@@ -198,113 +239,159 @@ async function getStats(){
 }
 
 /* ----- Helpers ----- */
-function sendJSON(res, obj, code=200){ res.statusCode=code; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
-function readBody(req){ return new Promise(r=>{ let b=''; req.on('data',c=>b+=c); req.on('end',()=>r(b)); }); }
+const MAX_BODY = 64 * 1024;
+function sendJSON(res, obj, code){ if(code) res.statusCode=code; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
+function readBody(req){
+  return new Promise((resolve, reject)=>{
+    let b=''; let size=0;
+    req.on('data', c => {
+      size += c.length;
+      if(size > MAX_BODY){ reject(new Error('body_too_large')); req.destroy(); return; }
+      b += c;
+    });
+    req.on('end', ()=> resolve(b));
+    req.on('error', reject);
+  });
+}
 function cookies(req){ const o={}; (req.headers.cookie||'').split(';').forEach(c=>{ const i=c.indexOf('='); if(i>0)o[c.slice(0,i).trim()]=c.slice(i+1).trim(); }); return o; }
 function isAuthed(req){ return cookies(req)['ellia_session'] === TOKEN; }
 
+function clean(v, maxLen){
+  if(maxLen==null) maxLen = 200;
+  return String(v||'').replace(/[\x00-\x1f\x7f]/g,'').trim().slice(0, maxLen);
+}
+function isEmail(s){ return /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/.test(s) && s.length <= 254; }
+function validateOrder(d){
+  if(!d || typeof d!=='object') return 'invalid';
+  if(!d.client_email || !isEmail(String(d.client_email).toLowerCase())) return 'email';
+  if(!d.client_nom || String(d.client_nom).trim().length < 2) return 'nom';
+  if(!d.adresse_livraison || String(d.adresse_livraison).trim().length < 4) return 'adresse';
+  if(!d.cp_livraison || String(d.cp_livraison).trim().length < 3) return 'cp';
+  if(!d.ville_livraison || String(d.ville_livraison).trim().length < 2) return 'ville';
+  if(d.montant_total != null && (isNaN(Number(d.montant_total)) || Number(d.montant_total) < 0 || Number(d.montant_total) > 100000)) return 'montant';
+  if(d.items && !Array.isArray(d.items)) return 'items';
+  if(d.items && d.items.length > 20) return 'too_many_items';
+  return null;
+}
+
 const server = http.createServer(async (req, res) => {
+  setSecurityHeaders(req, res);
+
   const url = new URL(req.url, 'http://localhost');
   let pathname = decodeURIComponent(url.pathname);
+  const cookieSec = isHttps(req) ? ' Secure;' : '';
 
-  /* ---------- API ---------- */
   if (pathname.startsWith('/api/')) {
     try{
-      /* Auth */
       if (req.method==='POST' && pathname==='/api/login'){
-        if(!loginAllowed(clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
+        if(!rateAllowed('login', clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         if (d.password === ADMIN_PASSWORD){
-          res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly; Path=/; SameSite=Lax; Max-Age=86400');
+          res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
           return sendJSON(res,{ ok:true });
         }
         return sendJSON(res,{ ok:false, error:'Mot de passe incorrect' },401);
       }
       if (req.method==='POST' && pathname==='/api/logout'){
-        res.setHeader('Set-Cookie','ellia_session=; HttpOnly; Path=/; Max-Age=0');
+        res.setHeader('Set-Cookie','ellia_session=; HttpOnly;'+cookieSec+' Path=/; Max-Age=0');
         return sendJSON(res,{ ok:true });
       }
-      /* Inscription newsletter (publique) */
       if (req.method==='POST' && pathname==='/api/newsletter'){
+        if(!rateAllowed('newsletter', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         const email = String(d.email||'').trim().toLowerCase();
-        if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return sendJSON(res,{ ok:false, error:'invalid' }, 400);
+        if(!isEmail(email)) return sendJSON(res,{ ok:false, error:'invalid' }, 400);
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
-        try{ await sb('newsletters',{ method:'POST', body:{ email } }); }catch(e){ /* doublon : on ignore silencieusement */ }
+        try{ await sb('newsletters',{ method:'POST', body:{ email } }); }catch(e){}
         return sendJSON(res,{ ok:true });
       }
 
-      /* Public : catalogue + creation de commande (checkout) */
       if (req.method==='GET' && pathname==='/api/products') return sendJSON(res, await getProducts());
+
       if (req.method==='POST' && pathname==='/api/orders'){
+        if(!rateAllowed('orders', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
+        const err = validateOrder(d);
+        if(err) return sendJSON(res,{ ok:false, error:'validation', field:err }, 400);
         const numero = 'EP-'+Date.now().toString().slice(-6);
         const qte = (Array.isArray(d.items) && d.items.length) ? d.items.length : 1;
         if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
-        // Vérification du stock (sécurité serveur : bloque la vente si rupture)
         try{
           const sr = await sb('products?ref=eq.ELLIA-NOIR&select=stock');
           const stock = (sr && sr[0]) ? Number(sr[0].stock) : 0;
           if(stock < qte) return sendJSON(res,{ ok:false, error:'rupture', stock }, 409);
         }catch(_){}
         notifyNewOrder(d, numero);
-        const row = { numero, client_nom:d.client_nom, client_email:d.client_email, telephone:d.telephone,
-          initiales:d.initiales, finition:d.finition, emplacement:d.emplacement,
-          adresse_livraison:d.adresse_livraison, cp_livraison:d.cp_livraison, ville_livraison:d.ville_livraison, pays_livraison:d.pays_livraison||'France',
-          adresse_facturation:d.adresse_facturation, cp_facturation:d.cp_facturation, ville_facturation:d.ville_facturation, pays_facturation:d.pays_facturation||'France',
-          user_id:d.user_id||null, montant_total:d.montant_total||0, statut:'Nouvelle' };
+        const row = { numero,
+          client_nom: clean(d.client_nom, 120),
+          client_email: clean(String(d.client_email||'').toLowerCase(), 254),
+          telephone: clean(d.telephone, 30),
+          initiales: clean(d.initiales, 20),
+          finition: clean(d.finition, 40),
+          emplacement: clean(d.emplacement, 40),
+          adresse_livraison: clean(d.adresse_livraison, 200),
+          cp_livraison: clean(d.cp_livraison, 20),
+          ville_livraison: clean(d.ville_livraison, 80),
+          pays_livraison: clean(d.pays_livraison, 60) || 'France',
+          adresse_facturation: clean(d.adresse_facturation, 200),
+          cp_facturation: clean(d.cp_facturation, 20),
+          ville_facturation: clean(d.ville_facturation, 80),
+          pays_facturation: clean(d.pays_facturation, 60) || 'France',
+          user_id: d.user_id || null,
+          montant_total: Math.min(100000, Math.max(0, Number(d.montant_total) || 0)),
+          statut: 'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
-        // Décrément automatique du stock
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte } }); }catch(_){}
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
       }
 
-      /* Prive : tout le reste exige l'authentification admin */
       if (!isAuthed(req)) return sendJSON(res,{ error:'non autorise' },401);
 
       if (req.method==='GET' && pathname==='/api/stats')  return sendJSON(res, await getStats());
       if (req.method==='GET' && pathname==='/api/orders') return sendJSON(res, await getOrders());
 
-      /* MAJ statut d'une commande : PATCH /api/orders/EP-xxxx */
       if (req.method==='PATCH' && pathname.startsWith('/api/orders/')){
         const numero = pathname.split('/').pop();
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         const upd = {};
-        if(d.statut!==undefined) upd.statut = d.statut;
-        if(d.suivi!==undefined) upd.suivi = d.suivi;
-        if(d.transporteur!==undefined) upd.transporteur = d.transporteur;
+        if(d.statut!==undefined) upd.statut = clean(d.statut, 40);
+        if(d.suivi!==undefined) upd.suivi = clean(d.suivi, 60);
+        if(d.transporteur!==undefined) upd.transporteur = clean(d.transporteur, 40);
         if(Object.keys(upd).length) await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
         if(d.statut!==undefined){
           try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom,montant_total,initiales,suivi,transporteur'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
         }
         return sendJSON(res,{ ok:true });
       }
-      /* MAJ stock d'un produit : PATCH /api/products/REF */
+
       if (req.method==='PATCH' && pathname.startsWith('/api/products/')){
         const ref = pathname.split('/').pop();
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
-        await sb('products?ref=eq.'+encodeURIComponent(ref),{ method:'PATCH', body:{ stock:Number(d.stock) } });
+        const stock = Math.max(0, Math.min(99999, Number(d.stock)||0));
+        await sb('products?ref=eq.'+encodeURIComponent(ref),{ method:'PATCH', body:{ stock } });
         return sendJSON(res,{ ok:true });
       }
       return sendJSON(res,{ error:'route inconnue' },404);
-    }catch(e){ return sendJSON(res,{ error:String(e.message||e) },500); }
+    }catch(e){
+      const msg = String(e.message||e);
+      console.error('[API error]', req.method, pathname, '—', msg);
+      if(msg === 'body_too_large') return sendJSON(res,{ error:'payload_trop_volumineux' }, 413);
+      return sendJSON(res,{ error:'erreur_serveur' }, 500);
+    }
   }
 
-  /* ---------- Admin (protege) ---------- */
   if (pathname==='/admin' || pathname==='/admin/'){
     pathname = isAuthed(req) ? '/admin.html' : '/admin-login.html';
   }
 
-  /* ---------- Fichiers statiques ---------- */
   if (pathname === '/') pathname = '/index.html';
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
   fs.readFile(file, (err, buf) => {
     if (err) {
-      // Page 404 stylée si elle existe, sinon fallback simple
       fs.readFile(path.join(ROOT,'404.html'),(e2,html)=>{
         res.statusCode = 404;
         res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -313,9 +400,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const ext = path.extname(file).toLowerCase();
-    // Anti-cache : HTML/CSS/JS toujours frais ; images/polices mises en cache 1 jour
     if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
-    else res.setHeader('Cache-Control','public, max-age=86400');
+    else res.setHeader('Cache-Control','public, max-age=86400, immutable');
     res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
     res.end(buf);
   });

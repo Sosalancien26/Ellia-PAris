@@ -39,6 +39,8 @@
     .sheet{border:none;padding:24px 24px}
   }
 </style>
+<meta name="description" content="Facture ELLIA PARIS." />
+<meta name="robots" content="noindex,nofollow" />
 </head>
 <body>
 
@@ -72,7 +74,7 @@
   const adresse = [o.adresse_livraison,((o.cp_livraison||'')+' '+(o.ville_livraison||'')).trim(),o.pays_livraison].filter(Boolean).join('<br>');
   sheet.innerHTML =
     '<div class="top">'+
-      '<div class="brand"><img src="assets/logo_black_trim.png" alt="ELLIA PARIS"><small>Maison de maroquinerie · Paris</small></div>'+
+      '<div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png" alt="ELLIA PARIS"><small>Maison de maroquinerie · Paris</small></div>'+
       '<div class="doc"><h1>Facture</h1><div class="meta">N° '+o.numero+'<br>Émise le '+date+'</div></div>'+
     '</div>'+
     '<div class="parties">'+

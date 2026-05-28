@@ -1,5 +1,28 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-login.html
+Disallow: /admin.html
 Disallow: /api
+Disallow: /api/
+Disallow: /panier.html
+Disallow: /checkout.html
+Disallow: /confirmation.html
+Disallow: /connexion.html
+Disallow: /inscription.html
+Disallow: /compte.html
+Disallow: /commande.html
+Disallow: /facture.html
+Disallow: /404.html
+
+# Bloque les bots agressifs / scrapers IA non désirés
+User-agent: CCBot
+Disallow: /
+User-agent: GPTBot
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+
 Sitemap: https://ellia-paris.fr/sitemap.xml
+</content>

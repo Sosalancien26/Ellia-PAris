@@ -1,0 +1,9 @@
+# Local & temporaires
+test_sync.txt
+*.log
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+.env.*
+.vscode/
