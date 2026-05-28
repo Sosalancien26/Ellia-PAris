@@ -1,7 +1,13 @@
 /* ELLIA PARIS — interactions partagées (maquette) */
 (function(){
-  /* Preloader — court (1s) pour ne pas bloquer le first paint */
-  window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),1000);});
+  /* Preloader — masqué de manière fiable (plusieurs garde-fous) */
+  function hidePreloader(){const p=document.getElementById('preloader');if(p)p.classList.add('done');}
+  // Garde-fou 1 : 1.2s après DOMContentLoaded (ne dépend pas du chargement des images)
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(hidePreloader,1200));
+  // Garde-fou 2 : juste après l'event load (toutes ressources chargées)
+  window.addEventListener('load',()=>setTimeout(hidePreloader,150));
+  // Garde-fou 3 : timeout absolu après 3.5s, peu importe ce qui se passe
+  setTimeout(hidePreloader,3500);
 
   /* Bandeau cookies (RGPD - cookies strictement necessaires) */
   if(localStorage.getItem('ellia_cookies')!=='ok'){
