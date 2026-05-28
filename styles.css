@@ -684,3 +684,37 @@ html{overflow-x:hidden}
 
 /* === Custom cursor désactivé définitivement === */
 .cursor,.cursor-dot{display:none !important}
+
+/* ============ HERO MOBILE OPTIMISÉ ============ */
+@media (max-width:768px){
+  .hero-cinema{
+    padding:140px 24px 110px;
+    min-height:100vh;
+    align-items:flex-end;
+    justify-content:flex-start;
+  }
+  .hero-cinema .bg img{
+    object-position:30% center; /* pochette visible à gauche */
+    animation:heroKenMobile 22s ease-in-out infinite alternate;
+  }
+  @keyframes heroKenMobile{
+    0%{transform:scale(1.05) translateX(0)}
+    100%{transform:scale(1.18) translateX(-3%)}
+  }
+  .hero-cinema .veil{
+    background:
+      linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(0,0,0,0) 25%,rgba(0,0,0,.45) 55%,rgba(0,0,0,.85) 100%),
+      radial-gradient(60% 50% at 20% 35%,rgba(0,0,0,0) 0%,rgba(0,0,0,.35) 100%);
+  }
+  .hero-cinema .content{padding-bottom:0}
+  .hero-cinema h1{font-size:clamp(48px,12vw,72px);line-height:.95;margin:14px 0 8px}
+  .hero-cinema .sub{font-size:15px;margin-top:18px;max-width:100%}
+  .hero-cinema .cta-row{margin-top:32px;flex-direction:column;gap:12px}
+  .hero-cinema .cta-row .btn{width:100%;text-align:center;justify-content:center}
+  .hero-cinema .scroll-cue{display:none}
+}
+@media (max-width:480px){
+  .hero-cinema{padding:130px 20px 90px}
+  .hero-cinema h1{font-size:clamp(44px,13vw,64px)}
+  .hero-cinema .bg img{object-position:35% center}
+}
