@@ -335,3 +335,148 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .campaign{height:74vh}
   .cursor,.cursor-dot{display:none}
 }
+
+/* ============ POLISH MOBILE COMPLET ============ */
+
+/* Tablette portrait + grands smartphones (max 768px) */
+@media (max-width:768px){
+  /* Typo plus aérée */
+  .hero-text{padding:0 8px}
+  .hero-text h1{font-size:clamp(44px,11vw,68px);line-height:.96}
+  .hero-text p.sub{font-size:15px;max-width:100%}
+  .hero{padding:130px 28px 70px;gap:40px}
+  .hero-visual .frame{max-width:88vw;margin:0 auto}
+
+  /* Marquee adaptatif */
+  .marquee span{font-size:18px;margin:0 22px}
+  .marquee{padding:18px 0}
+
+  /* Sections + padding */
+  .pad{padding:72px 0}
+  .split .txt{padding:48px 28px}
+  .split .media{min-height:360px}
+  .split .txt h2{font-size:clamp(30px,7.5vw,46px)}
+  .split .txt p{max-width:100%}
+  .section-head h2{font-size:clamp(30px,7vw,48px)}
+
+  /* Tailles tactiles 44px minimum (recommandation Apple/Google) */
+  .btn{padding:15px 26px;font-size:11px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .cta-row{gap:14px;flex-wrap:wrap}
+  .cta-row .btn{flex:1 1 auto;min-width:160px}
+  .nav-ico{padding:8px 4px;min-height:44px;display:inline-flex;align-items:center}
+  .burger{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+
+  /* Fiche produit */
+  .product{gap:36px}
+  .pg-thumbs{grid-template-columns:repeat(4,1fr);gap:8px}
+  .pg-info h1{font-size:clamp(34px,8vw,52px)}
+
+  /* Personnalisation */
+  .perso-grid{gap:32px}
+  #swatches{flex-wrap:wrap;gap:10px}
+  .sw{min-width:44px;min-height:44px}
+  #placements{flex-wrap:wrap;gap:10px}
+  .place-btn{min-height:44px;padding:10px 16px}
+
+  /* Lookbook */
+  .lb-grid{grid-template-columns:1fr;gap:18px}
+  .look-mid{padding:36px 24px}
+  .look-mid h3{font-size:clamp(28px,7vw,40px)}
+
+  /* Biométrie */
+  .bio-text h2{font-size:clamp(28px,7vw,44px)}
+  .bio-points li{font-size:14px}
+
+  /* Campagne */
+  .campaign{height:60vh;min-height:420px}
+  .campaign .c-txt .q{font-size:clamp(24px,5.5vw,38px);padding:0 24px}
+
+  /* Footer */
+  .foot-grid{grid-template-columns:1fr 1fr;gap:30px}
+  .foot-grid > div:first-child{grid-column:1/-1}
+  .foot-bottom{flex-direction:column;gap:12px;text-align:center}
+
+  /* Page hero */
+  .page-hero{padding:120px 28px 56px}
+  .page-hero h1{font-size:clamp(38px,9vw,64px)}
+
+  /* News */
+  .news form{flex-direction:column;gap:12px}
+  .news form input,.news form button{width:100%;min-height:48px}
+
+  /* FAQ */
+  .faq .q{font-size:15px;padding:18px 0}
+  .faq .a{font-size:14px}
+
+  /* Trust */
+  .trust{gap:18px}
+
+  /* Page Compte / Connexion / Inscription / Checkout */
+  form input,form textarea,form select{min-height:48px;font-size:16px} /* 16px évite le zoom auto iOS */
+  label{font-size:13px}
+
+  /* Préloader proportionné */
+  #preloader .pl-scan{width:120px;height:120px}
+  #preloader .pl-line{font-size:11px;letter-spacing:.4em}
+}
+
+/* Smartphones standard (max 480px) */
+@media (max-width:480px){
+  .wrap{padding:0 18px}
+  .hero{padding:120px 18px 60px}
+  .hero-text h1{font-size:clamp(40px,12vw,56px)}
+  .hero-text p.sub{font-size:14.5px}
+  .pad{padding:60px 0}
+  .split .txt{padding:42px 22px}
+  .split .media{min-height:300px}
+  .marquee span{font-size:16px;margin:0 18px}
+  .marquee{padding:14px 0}
+  .gallery{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr;gap:28px;text-align:center}
+  .foot-grid > div:first-child{grid-column:auto}
+  .foot-logo{margin:0 auto}
+  .news h2{font-size:clamp(26px,7vw,38px)}
+  .page-hero{padding:110px 18px 48px}
+  .page-hero h1{font-size:clamp(34px,10vw,52px)}
+  .price{font-size:32px}
+  .bio-visual{padding:0}
+  .bio-points li{padding:14px 0}
+  .pg-thumbs{grid-template-columns:repeat(4,1fr);gap:6px}
+
+  /* Bandeau cookies mobile : boutons empilés */
+  #cookieBar{flex-direction:column;align-items:stretch;padding:14px 18px;font-size:13px}
+  #cookieBar button{width:100%;padding:12px 16px;font-size:11px;min-height:44px}
+
+  /* Logo header un peu plus petit */
+  .nav-logo{height:26px}
+  header .bar{padding:14px 18px}
+
+  /* Mobile menu : items plus aérés */
+  .mobile-menu a{font-size:26px;padding:14px 0}
+}
+
+/* Très petits écrans (iPhone SE 1ère gen, 320px) */
+@media (max-width:360px){
+  .wrap{padding:0 14px}
+  .hero{padding:110px 14px 50px}
+  .hero-text h1{font-size:38px}
+  .cta-row .btn{min-width:140px;font-size:10.5px;padding:14px 20px}
+  .marquee span{font-size:15px;margin:0 14px}
+  .page-hero h1{font-size:32px}
+  .section-head h2{font-size:28px}
+}
+
+/* Orientation paysage smartphone : éviter le hero qui prend tout l'écran */
+@media (max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .hero{min-height:auto;padding:90px 28px 50px}
+  .hero-text h1{font-size:42px}
+  .hero-visual .frame{max-width:280px}
+  .scroll-cue{display:none}
+}
+
+/* Améliorations universelles tactile */
+@media (hover:none){
+  a,button,.btn,.nav-ico,.burger,.sw,.place-btn{-webkit-tap-highlight-color:rgba(13,13,13,.08)}
+  /* Évite le délai de 300ms sur certains anciens browsers mobile */
+  body{touch-action:manipulation}
+}
