@@ -70,12 +70,16 @@
       b.classList.add('active');
     }));
     const addBtn=document.getElementById('addPerso');
-    if(addBtn) addBtn.addEventListener('click',e=>{
+    if(addBtn) addBtn.addEventListener('click', async e=>{
       e.preventDefault();
       const ini=fmt(input.value||'');
       const place=(document.querySelector('#placements .place-btn.active')||{}).textContent||'Centre';
-      if(window.Cart) Cart.add({ref:'ELLIA-NOIR-PERSO',nom:'La Pochette Ellia — Noir',prix:218,initiales:ini||null,finition:names[color],emplacement:place});
-      location.href='panier.html';
+      const item={ref:'ELLIA-NOIR-PERSO',nom:'La Pochette Ellia — Noir',prix:218,initiales:ini||null,finition:names[color],emplacement:place};
+      let ok=true;
+      if(window.Cart && Cart.tryAdd){ const r=await Cart.tryAdd(item); ok=r.ok; }
+      else if(window.Cart){ Cart.add(item); }
+      if(ok){ location.href='panier.html'; }
+      else { const old=addBtn.textContent; addBtn.textContent='Stock insuffisant'; setTimeout(()=>{ addBtn.textContent=old; }, 1800); }
     });
     paint();
   }

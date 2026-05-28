@@ -18,18 +18,35 @@
     document.querySelectorAll('[data-cart-count]').forEach(el=>{ el.textContent='Panier ('+n+')'; });
   }
 
+  /* Vérification de stock avant ajout (sécurité côté serveur aussi) */
+  async function tryAdd(item){
+    const ref='ELLIA-NOIR';
+    const cur = read().filter(i=>(i.ref||'').startsWith(ref)).length;
+    let stock = Infinity;
+    try{
+      const r = await fetch('/api/products');
+      if(r.ok){ const list=await r.json(); const p=(list||[]).find(x=>x.ref===ref); if(p) stock=Number(p.stock); }
+    }catch(e){ /* hors-ligne : on laisse passer, le serveur bloquera */ }
+    if(cur+1 > stock) return { ok:false, stock };
+    Cart.add(item); return { ok:true, stock };
+  }
+  window.Cart.tryAdd = tryAdd;
+
   /* Boutons simples : <button data-add data-ref data-nom data-prix> */
-  document.addEventListener('click', e=>{
+  document.addEventListener('click', async e=>{
     const b = e.target.closest('[data-add]');
-    if(!b) return;
+    if(!b || b.dataset.busy==='1') return;
     e.preventDefault();
-    Cart.add({ ref:b.dataset.ref, nom:b.dataset.nom, prix:Number(b.dataset.prix), perso:false });
-    toast(b);
+    b.dataset.busy='1';
+    const res = await tryAdd({ ref:b.dataset.ref, nom:b.dataset.nom, prix:Number(b.dataset.prix), perso:false });
+    if(res.ok) toast(b,'✓ Ajouté au panier');
+    else toast(b, res.stock<=0 ? 'Épuisé' : 'Stock insuffisant');
+    setTimeout(()=>{ delete b.dataset.busy; }, 50);
   });
 
-  function toast(b){
-    const old=b.textContent; b.textContent='✓ Ajouté au panier';
-    setTimeout(()=>{ b.textContent=old; }, 1400);
+  function toast(b,txt){
+    const old=b.textContent; b.textContent=txt;
+    setTimeout(()=>{ b.textContent=old; }, 1700);
   }
 
   document.addEventListener('DOMContentLoaded', updateCount);
