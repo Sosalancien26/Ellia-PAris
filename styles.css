@@ -36,7 +36,8 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 .pl-scan img{position:absolute;left:0;top:50%;transform:translateY(-50%);width:120px}
 .pl-logo-base{opacity:.15;filter:grayscale(1)}
 .pl-logo-fill{opacity:1;clip-path:inset(0 0 100% 0);animation:plFill 2.9s cubic-bezier(.4,0,.2,1) forwards}
-.pl-beam{position:absolute;left:-10px;right:-10px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(77,141,240,0),rgba(77,141,240,.95),rgba(77,141,240,0));box-shadow:0 0 22px 5px rgba(77,141,240,.5),0 0 6px 1px rgba(150,190,255,.7);top:4px;opacity:0;animation:plBeam 2.9s cubic-bezier(.4,0,.2,1) forwards}
+.pl-beam{position:absolute;left:-14px;right:-14px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(77,141,240,0) 0%,rgba(120,180,255,.6) 18%,rgba(200,225,255,1) 45%,#ffffff 50%,rgba(200,225,255,1) 55%,rgba(120,180,255,.6) 82%,rgba(77,141,240,0) 100%);box-shadow:0 0 4px 1px rgba(255,255,255,.95),0 0 12px 2px rgba(180,210,255,.9),0 0 26px 6px rgba(77,141,240,.7),0 0 52px 14px rgba(77,141,240,.38),0 0 90px 26px rgba(40,90,200,.22);top:4px;opacity:0;animation:plBeam 2.9s cubic-bezier(.4,0,.2,1) forwards}
+.pl-beam::after{content:"";position:absolute;left:50%;top:50%;width:170px;height:90px;transform:translate(-50%,-50%);background:radial-gradient(ellipse 90px 45px at center,rgba(77,141,240,.45),rgba(77,141,240,0) 70%);pointer-events:none;filter:blur(6px)}
 @keyframes plFill{0%{clip-path:inset(0 0 100% 0)}8%{clip-path:inset(0 0 100% 0)}62%{clip-path:inset(0 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
 @keyframes plBeam{0%{top:4px;opacity:0}8%{top:4px;opacity:1}62%{top:146px;opacity:1}74%{top:146px;opacity:0}100%{opacity:0}}
 #preloader.done .pl-beam{display:none}
