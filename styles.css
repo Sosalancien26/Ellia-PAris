@@ -480,3 +480,77 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   /* Évite le délai de 300ms sur certains anciens browsers mobile */
   body{touch-action:manipulation}
 }
+
+/* ============ POLISH HERO + IMAGES DESKTOP ============ */
+
+/* Hero : Ken Burns lent + floating subtil = luxe en mouvement */
+.hero-visual .frame{animation:heroFloat 8s ease-in-out infinite}
+.hero-visual img{animation:heroZoom 18s ease-in-out infinite alternate;transform-origin:center 55%}
+@keyframes heroFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
+}
+@keyframes heroZoom{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.06)}
+}
+/* Halo qui respire */
+.hero-visual .halo{animation:haloPulse 6s ease-in-out infinite}
+@keyframes haloPulse{
+  0%,100%{opacity:.9;transform:scale(1)}
+  50%{opacity:1;transform:scale(1.04)}
+}
+/* Hero text : l'eyebrow brille lentement */
+.hero-text .eyebrow{position:relative}
+
+/* Limiter hauteurs images sur grand écran (évite le scroll infini sur desktop) */
+@media (min-width:1025px){
+  .split .media{max-height:760px;min-height:520px}
+  .split .media img{max-height:760px}
+
+  /* Lookbook maison.html : photos plein cadre limitées */
+  .lookbook img{max-height:78vh;object-fit:cover}
+
+  /* Lookbook grid 4 photos : carré 1:1 forcé */
+  section.lookbook > .wrap > div[style*="grid-template-columns:repeat(2"] > div img{
+    aspect-ratio:4/5;height:auto;max-height:640px;object-fit:cover
+  }
+
+  /* Image écrin pleine largeur : max 70vh */
+  section.savoir > .wrap > div[style*="margin-top:70px"] img{max-height:70vh;object-fit:cover}
+
+  /* Hero campagne : pas plus de 84vh mais on ne dépasse pas 720px */
+  .campaign{max-height:720px}
+
+  /* Image atelier dans split */
+  .split .media img.atelier{max-height:680px}
+}
+
+/* Préloader : empreinte plus visible + scan plus dramatique */
+.pl-scan{width:160px;height:200px}
+.pl-scan img{width:160px}
+.pl-logo-base{opacity:.18}
+/* Ralentir le fill pour qu'on voit bien l'empreinte se charger */
+.pl-logo-fill{animation:plFill 2.8s cubic-bezier(.4,0,.2,1) .2s forwards}
+.pl-beam{animation:plBeam 2.8s cubic-bezier(.4,0,.2,1) .2s forwards}
+@keyframes plBeam{
+  0%{top:6px;opacity:0}
+  8%{top:6px;opacity:1}
+  62%{top:194px;opacity:1}
+  74%{top:194px;opacity:0}
+  100%{opacity:0}
+}
+#preloader .pl-line{animation:plIn 1s var(--ease) 2.6s forwards}
+
+/* Mobile : préloader proportionné */
+@media (max-width:768px){
+  .pl-scan{width:130px;height:160px}
+  .pl-scan img{width:130px}
+  @keyframes plBeam{
+    0%{top:6px;opacity:0}
+    8%{top:6px;opacity:1}
+    62%{top:154px;opacity:1}
+    74%{top:154px;opacity:0}
+    100%{opacity:0}
+  }
+}

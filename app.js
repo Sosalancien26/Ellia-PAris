@@ -1,10 +1,10 @@
 /* ELLIA PARIS — interactions partagees */
 (function(){
-  /* Preloader — masque de maniere fiable (plusieurs garde-fous) */
+  /* Preloader — laisse voir l'animation de scan d'empreinte (2.9s) */
   function hidePreloader(){var p=document.getElementById('preloader');if(p)p.classList.add('done');}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,1200);});
-  window.addEventListener('load',function(){setTimeout(hidePreloader,150);});
-  setTimeout(hidePreloader,3500);
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,3100);});
+  window.addEventListener('load',function(){setTimeout(hidePreloader,3100);});
+  setTimeout(hidePreloader,5000);
 
   /* Bandeau cookies (RGPD) */
   if(localStorage.getItem('ellia_cookies')!=='ok'){
