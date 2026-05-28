@@ -1,7 +1,7 @@
 /* ELLIA PARIS — interactions partagées (maquette) */
 (function(){
-  /* Preloader */
-  window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),3000);});
+  /* Preloader — court (1s) pour ne pas bloquer le first paint */
+  window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),1000);});
 
   /* Bandeau cookies (RGPD - cookies strictement necessaires) */
   if(localStorage.getItem('ellia_cookies')!=='ok'){
