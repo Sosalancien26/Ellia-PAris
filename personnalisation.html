@@ -48,10 +48,12 @@
 <section class="perso pad" style="padding-top:50px">
   <div class="wrap">
     <div class="perso-grid">
-      <div class="perso-preview reveal">
-        <div class="mono-label">Votre gravure</div>
-        <div class="engrave" id="engrave">A·B</div>
+      <div class="perso-preview reveal" id="persoPreview">
+        <div class="mono-label">Aperçu 3D en temps réel</div>
+        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#fafaf7 0%,#ece8df 70%,#d9d3c5 100%);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
+        <div class="engrave" id="engrave" style="font-size:18px;margin-top:10px;letter-spacing:.18em">A·B</div>
         <div class="mono-finish" id="monoFinish">Finition Or</div>
+        <div style="font-size:11px;color:var(--gris-txt);letter-spacing:.18em;text-transform:uppercase;margin-top:4px">Glissez pour tourner · molette pour zoomer</div>
       </div>
       <div class="perso-panel reveal">
         <div class="block">
@@ -78,13 +80,12 @@
         </div>
         <div class="perso-total"><span class="lab">Total</span><span class="val" id="total">218&nbsp;€</span></div>
         <a href="#" id="addPerso" class="btn solid" style="width:100%;text-align:center">Ajouter au panier</a>
-        <p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px;letter-spacing:.04em">Aperçu indicatif — la version finale proposera un rendu 3D temps réel de votre pochette.</p>
+        <p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px;letter-spacing:.04em">Rendu 3D temps réel — la finition et la gravure choisies s'appliquent instantanément sur votre pochette.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Finishes detail -->
 <section class="pad savoir" style="padding-top:0">
   <div class="wrap">
     <div class="section-head reveal"><div class="eyebrow">Les finitions</div><h2>Cinq éclats, un seul nom</h2><p>Chaque gravure est réalisée à la main avec une précision d'orfèvre.</p></div>
@@ -111,5 +112,258 @@
 <div class="mockup-flag">Maquette — personnalisation</div>
 <script src="app.js"></script>
 <script src="cart.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const FINISHES = {
+  or:     { name:'Or',     hex:0xd4af37 },
+  orrose: { name:'Or rose',hex:0xc98e86 },
+  argent: { name:'Argent', hex:0xc7c7c7 },
+  noir:   { name:'Noir',   hex:0x232323 },
+  blanc:  { name:'Blanc',  hex:0xf4f1ea }
+};
+
+const container = document.getElementById('viewer3d');
+if (container && window.WebGLRenderingContext) initConfigurator();
+
+function initConfigurator(){
+  const w = ()=>container.clientWidth, h = ()=>container.clientHeight||container.clientWidth;
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(w(), h());
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+  const camera = new THREE.PerspectiveCamera(35, w()/h(), 0.05, 50);
+  camera.position.set(0.45, 0.18, 0.55);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 0.30;
+  controls.maxDistance = 1.10;
+  controls.minPolarAngle = Math.PI*0.20;
+  controls.maxPolarAngle = Math.PI*0.78;
+  controls.target.set(0,0,0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.20));
+  const key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(0.6,1.0,0.8); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xc8d8ff, 0.35); fill.position.set(-0.8,0.4,-0.3); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffe8c8, 0.5); rim.position.set(0,0.3,-1.0); scene.add(rim);
+
+  const shadowTex = makeShadowTexture();
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.6, 0.6),
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent:true, opacity:0.55, depthWrite:false })
+  );
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -0.085;
+  scene.add(ground);
+
+  const leatherTex   = makeLeatherTexture(1024, 1024);
+  const leatherNormal = makeLeatherNormalTexture(1024, 1024);
+  leatherTex.wrapS = leatherTex.wrapT = THREE.RepeatWrapping;
+  leatherNormal.wrapS = leatherNormal.wrapT = THREE.RepeatWrapping;
+  leatherTex.repeat.set(8,8);
+  leatherNormal.repeat.set(8,8);
+  leatherTex.colorSpace = THREE.SRGBColorSpace;
+
+  const engraveCanvas = document.createElement('canvas');
+  engraveCanvas.width = 1024; engraveCanvas.height = 1024;
+  const engraveTex = new THREE.CanvasTexture(engraveCanvas);
+  engraveTex.colorSpace = THREE.SRGBColorSpace;
+
+  const state = { initials:'AB', finish:'or', placement:'centre' };
+
+  let pochetteMesh = null;
+  const loader = new GLTFLoader();
+  loader.load('assets/pochette.glb', (gltf)=>{
+    const obj = gltf.scene;
+    const bbox = new THREE.Box3().setFromObject(obj);
+    const center = bbox.getCenter(new THREE.Vector3());
+    obj.position.sub(center);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: leatherTex,
+      normalMap: leatherNormal,
+      normalScale: new THREE.Vector2(0.85, 0.85),
+      color: 0x2a2826,
+      metalness: 0.15,
+      roughness: 0.62,
+      clearcoat: 0.18,
+      clearcoatRoughness: 0.55,
+      envMapIntensity: 1.1
+    });
+    obj.traverse(o=>{
+      if(o.isMesh){
+        o.material = mat;
+        if(!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+        if(!o.geometry.attributes.uv){
+          const pos = o.geometry.attributes.position;
+          const uv = new Float32Array(pos.count*2);
+          const b = new THREE.Box3().setFromBufferAttribute(pos);
+          const sz = new THREE.Vector3(); b.getSize(sz);
+          for(let i=0;i<pos.count;i++){
+            uv[i*2]   = (pos.getX(i)-b.min.x)/sz.x;
+            uv[i*2+1] = (pos.getY(i)-b.min.y)/sz.y;
+          }
+          o.geometry.setAttribute('uv', new THREE.BufferAttribute(uv,2));
+        }
+        pochetteMesh = o;
+      }
+    });
+    scene.add(obj);
+    paint();
+  }, undefined, (err)=>{
+    console.error('GLB load error', err);
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#7a7363;font-family:Jost,sans-serif;font-size:13px;letter-spacing:.1em">Chargement du modèle 3D impossible.<br>Vérifiez la connexion.</div>';
+  });
+
+  function makeLeatherTexture(W,H){
+    const c = document.createElement('canvas'); c.width=W; c.height=H;
+    const x = c.getContext('2d');
+    x.fillStyle='#2a2724'; x.fillRect(0,0,W,H);
+    for(let i=0;i<20000;i++){
+      const px=Math.random()*W, py=Math.random()*H;
+      const r=2+Math.random()*4;
+      const g=22+Math.random()*22;
+      x.fillStyle='rgb('+(g|0)+','+(g|0)+','+((g-2)|0)+')';
+      x.beginPath(); x.arc(px,py,r,0,Math.PI*2); x.fill();
+    }
+    for(let i=0;i<8000;i++){
+      const px=Math.random()*W, py=Math.random()*H;
+      const r=0.8+Math.random()*1.5;
+      const g=48+Math.random()*16;
+      x.fillStyle='rgba('+(g|0)+','+((g-2)|0)+','+((g-4)|0)+',.6)';
+      x.beginPath(); x.arc(px,py,r,0,Math.PI*2); x.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    return t;
+  }
+  function makeLeatherNormalTexture(W,H){
+    const c = document.createElement('canvas'); c.width=W; c.height=H;
+    const x = c.getContext('2d');
+    x.fillStyle='rgb(128,128,255)'; x.fillRect(0,0,W,H);
+    for(let i=0;i<6000;i++){
+      const px=Math.random()*W, py=Math.random()*H;
+      const r=4+Math.random()*7;
+      const g = x.createRadialGradient(px-r*0.3, py-r*0.3, 0, px, py, r);
+      g.addColorStop(0,'rgba(180,180,255,.9)');
+      g.addColorStop(0.6,'rgba(128,128,255,.55)');
+      g.addColorStop(1,'rgba(80,80,255,0)');
+      x.fillStyle=g;
+      x.beginPath(); x.arc(px,py,r,0,Math.PI*2); x.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    return t;
+  }
+  function makeShadowTexture(){
+    const c = document.createElement('canvas'); c.width=512; c.height=512;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(256,256,30, 256,256, 220);
+    g.addColorStop(0,'rgba(0,0,0,.65)');
+    g.addColorStop(0.6,'rgba(0,0,0,.18)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=g; x.fillRect(0,0,512,512);
+    return new THREE.CanvasTexture(c);
+  }
+
+  function paint(){
+    if(!pochetteMesh) return;
+    const mat = pochetteMesh.material;
+    if(state.finish==='noir'){ mat.color.set(0x141312); mat.metalness=0.10; mat.roughness=0.70; }
+    else if(state.finish==='blanc'){ mat.color.set(0xeae5dc); mat.metalness=0.05; mat.roughness=0.70; }
+    else { mat.color.set(0x232120); mat.metalness=0.18; mat.roughness=0.58; }
+    mat.needsUpdate = true;
+    drawEngraving();
+  }
+
+  function drawEngraving(){
+    const ctx = engraveCanvas.getContext('2d');
+    const W = engraveCanvas.width, H = engraveCanvas.height;
+    ctx.clearRect(0,0,W,H);
+    const txt = (state.initials||'').split('').join('·');
+    if(!txt) return;
+    const f = FINISHES[state.finish];
+    const placements = { centre:[W/2, H/2, 'center'], bas:[W/2, H*0.78, 'center'], coin:[W*0.18, H*0.18, 'left'] };
+    const p = placements[state.placement] || placements.centre;
+    ctx.font = '600 110px "Cormorant Garamond", serif';
+    ctx.textBaseline='middle';
+    ctx.textAlign = p[2];
+    const col = '#'+f.hex.toString(16).padStart(6,'0');
+    ctx.shadowColor = col; ctx.shadowBlur = 18;
+    ctx.fillStyle = col;
+    ctx.fillText(txt, p[0], p[1]);
+    engraveTex.needsUpdate = true;
+  }
+
+  const initialsInput = document.getElementById('initials');
+  if(initialsInput){
+    initialsInput.addEventListener('input',()=>{
+      state.initials = initialsInput.value.replace(/[^a-zA-Z]/g,'').toUpperCase();
+      initialsInput.value = state.initials;
+      paint();
+    });
+    state.initials = (initialsInput.value||'AB').toUpperCase();
+  }
+  document.querySelectorAll('#swatches .sw').forEach(s=>{
+    s.addEventListener('click',()=>{
+      document.querySelectorAll('#swatches .sw').forEach(o=>o.classList.remove('active'));
+      s.classList.add('active');
+      state.finish = s.dataset.color;
+      const mf = document.getElementById('monoFinish');
+      if(mf) mf.textContent = 'Finition '+FINISHES[state.finish].name;
+      paint();
+    });
+  });
+  document.querySelectorAll('#placements .place-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#placements .place-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.placement = b.dataset.pos;
+      paint();
+    });
+  });
+
+  function resize(){
+    renderer.setSize(w(), h());
+    camera.aspect = w()/h();
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  let auto = true;
+  let lastInteract = 0;
+  controls.addEventListener('start', ()=>{ auto=false; lastInteract=Date.now(); });
+  function tick(){
+    if(!auto && Date.now()-lastInteract > 5000) auto=true;
+    if(auto && pochetteMesh){ pochetteMesh.rotation.y += 0.0035; }
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+</script>
 </body>
 </html>
