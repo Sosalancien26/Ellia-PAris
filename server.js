@@ -26,6 +26,16 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ellia2026';
 const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
+/* Rate-limit simple pour /api/login (anti-bruteforce, 5 tentatives / 5 min / IP) */
+const LOGIN_TRIES = new Map();
+function loginAllowed(ip){
+  const now = Date.now(); const win = 5*60*1000;
+  const arr = (LOGIN_TRIES.get(ip)||[]).filter(t => now - t < win);
+  arr.push(now); LOGIN_TRIES.set(ip, arr);
+  return arr.length <= 5;
+}
+function clientIp(req){ return (req.headers['x-forwarded-for']||'').split(',')[0].trim() || req.socket.remoteAddress || 'unknown'; }
+
 /* ----- E-mails (SMTP Workspace via nodemailer, optionnel) ----- */
 let transporter = null;
 try {
@@ -74,7 +84,8 @@ function sendMail(to, subject, html){
   transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
 }
 function notifyNewOrder(d, numero){
-  const inner = `<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>
+  const inner = `<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:18px"><img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/></div>
+    <h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>
     <p style="margin:0 0 8px">Bonjour ${d.client_nom||''},</p>
     <p style="margin:0 0 4px">Votre commande <b>${numero}</b> a bien été enregistrée. En voici le détail :</p>
     ${lineItems(d.items)}
@@ -201,6 +212,7 @@ const server = http.createServer(async (req, res) => {
     try{
       /* Auth */
       if (req.method==='POST' && pathname==='/api/login'){
+        if(!loginAllowed(clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         if (d.password === ADMIN_PASSWORD){
           res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly; Path=/; SameSite=Lax; Max-Age=86400');
@@ -210,6 +222,15 @@ const server = http.createServer(async (req, res) => {
       }
       if (req.method==='POST' && pathname==='/api/logout'){
         res.setHeader('Set-Cookie','ellia_session=; HttpOnly; Path=/; Max-Age=0');
+        return sendJSON(res,{ ok:true });
+      }
+      /* Inscription newsletter (publique) */
+      if (req.method==='POST' && pathname==='/api/newsletter'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        const email = String(d.email||'').trim().toLowerCase();
+        if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return sendJSON(res,{ ok:false, error:'invalid' }, 400);
+        if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
+        try{ await sb('newsletters',{ method:'POST', body:{ email } }); }catch(e){ /* doublon : on ignore silencieusement */ }
         return sendJSON(res,{ ok:true });
       }
 
@@ -282,7 +303,15 @@ const server = http.createServer(async (req, res) => {
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
   fs.readFile(file, (err, buf) => {
-    if (err) { res.statusCode=404; res.setHeader('Content-Type','text/html; charset=utf-8'); return res.end('<h1 style="font-family:serif">404 — page introuvable</h1>'); }
+    if (err) {
+      // Page 404 stylée si elle existe, sinon fallback simple
+      fs.readFile(path.join(ROOT,'404.html'),(e2,html)=>{
+        res.statusCode = 404;
+        res.setHeader('Content-Type','text/html; charset=utf-8');
+        res.end(e2 ? '<h1 style="font-family:serif">404 — page introuvable</h1>' : html);
+      });
+      return;
+    }
     const ext = path.extname(file).toLowerCase();
     // Anti-cache : HTML/CSS/JS toujours frais ; images/polices mises en cache 1 jour
     if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');

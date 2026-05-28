@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Facture — ELLIA PARIS</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--noir:#0d0d0d;--gris:#5c5852;--ligne:rgba(0,0,0,.18)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Jost",Arial,sans-serif;color:var(--noir);background:#f3f1ec;padding:30px 16px}
+  .sheet{max-width:780px;margin:0 auto;background:#fff;padding:48px 56px;border:1px solid var(--ligne)}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;flex-wrap:wrap;gap:18px}
+  .brand img{height:46px;display:block;margin-bottom:8px}
+  .brand small{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gris)}
+  .doc{text-align:right}
+  .doc h1{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:34px;line-height:1;margin-bottom:6px}
+  .doc .meta{font-size:13px;color:var(--gris);line-height:1.6}
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin:30px 0 26px}
+  .party h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris);margin-bottom:8px;font-weight:500}
+  .party p{font-size:14px;line-height:1.6}
+  table{width:100%;border-collapse:collapse;margin-top:22px;font-size:14px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris);padding:10px 0;border-bottom:1px solid var(--ligne);font-weight:500}
+  td{padding:12px 0;border-bottom:1px solid var(--ligne)}
+  th.r,td.r{text-align:right}
+  .totals{margin-top:22px;margin-left:auto;width:280px;font-size:14px}
+  .totals .row{display:flex;justify-content:space-between;padding:7px 0}
+  .totals .row.tot{border-top:1px solid var(--ligne);padding-top:14px;margin-top:6px;font-family:"Cormorant Garamond",serif;font-size:22px}
+  .legal{margin-top:38px;font-size:11.5px;color:var(--gris);line-height:1.6}
+  .actions{max-width:780px;margin:18px auto 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .actions a,.actions button{font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 18px;border:1px solid var(--ligne);background:#fff;color:var(--noir);cursor:pointer;text-decoration:none;font-family:inherit}
+  .actions .primary{background:var(--noir);color:#fff;border-color:var(--noir)}
+  @media print{
+    body{background:#fff;padding:0}
+    .actions{display:none}
+    .sheet{border:none;padding:24px 24px}
+  }
+</style>
+</head>
+<body>
+
+<div class="actions">
+  <a href="compte.html">← Mon compte</a>
+  <button class="primary" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+</div>
+
+<div class="sheet" id="sheet">
+  <p style="color:var(--gris);margin-top:30px">Chargement…</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+(async function(){
+  const numero = new URLSearchParams(location.search).get('n');
+  const sheet = document.getElementById('sheet');
+  if(!numero){ sheet.innerHTML='<p>Facture introuvable. <a href="compte.html">Retour</a></p>'; return; }
+  const { data:{ session } } = await SB.auth.getSession();
+  if(!session){ location.href='connexion.html'; return; }
+  const { data:o, error } = await SB.from('orders').select('*').eq('numero',numero).maybeSingle();
+  if(error || !o){ sheet.innerHTML='<p>Facture introuvable.</p>'; return; }
+  const eur = n => Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const ttc = Number(o.montant_total||0);
+  const ht = ttc/1.2; const tva = ttc - ht;
+  const date = (o.created_at||'').slice(0,10).split('-').reverse().join('/');
+  const lignes = [];
+  const grav = o.initiales ? ' — Gravure '+o.initiales+' ('+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')+')' : '';
+  lignes.push({nom:'La Pochette Ellia — Noir'+grav, prix:ttc});
+  const adresse = [o.adresse_livraison,((o.cp_livraison||'')+' '+(o.ville_livraison||'')).trim(),o.pays_livraison].filter(Boolean).join('<br>');
+  sheet.innerHTML =
+    '<div class="top">'+
+      '<div class="brand"><img src="assets/logo_black_trim.png" alt="ELLIA PARIS"><small>Maison de maroquinerie · Paris</small></div>'+
+      '<div class="doc"><h1>Facture</h1><div class="meta">N° '+o.numero+'<br>Émise le '+date+'</div></div>'+
+    '</div>'+
+    '<div class="parties">'+
+      '<div class="party"><h3>Vendeur</h3><p><b>ELLIA PARIS</b><br>[Forme juridique]<br>[Adresse]<br>SIRET : [à compléter]<br>ellia-paris.fr</p></div>'+
+      '<div class="party"><h3>Acheteur</h3><p><b>'+(o.client_nom||'')+'</b><br>'+(o.client_email||'')+(o.telephone?('<br>'+o.telephone):'')+'<br><br>'+adresse+'</p></div>'+
+    '</div>'+
+    '<table><thead><tr><th>Article</th><th class="r">Prix TTC</th></tr></thead><tbody>'+
+      lignes.map(l=>'<tr><td>'+l.nom+'</td><td class="r">'+eur(l.prix)+'</td></tr>').join('')+
+    '</tbody></table>'+
+    '<div class="totals">'+
+      '<div class="row"><span>Total HT</span><span>'+eur(ht)+'</span></div>'+
+      '<div class="row"><span>TVA 20 %</span><span>'+eur(tva)+'</span></div>'+
+      '<div class="row tot"><span>Total TTC</span><span>'+eur(ttc)+'</span></div>'+
+    '</div>'+
+    '<div class="legal">Document à valeur de facture. Conditions de vente et politique de retours disponibles sur ellia-paris.fr/cgv. TVA non applicable, art. 293 B du CGI (si auto-entreprise — à ajuster).</div>';
+})();
+</script>
+</body>
+</html>

@@ -51,7 +51,7 @@
 
   const TRANSPORTEURS=['','Colissimo','Chronopost','Mondial Relay','UPS','DHL','Autre'];
   function gravure(o){ return (o.initiales && o.initiales!=='—') ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure'; }
-  let ORDERS=[], FILTER='';
+  let ORDERS=[], FILTER='', SEARCH='';
   function ocard(o){
     return '<div class="ord-row" data-id="'+o.id+'">'+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
@@ -60,17 +60,43 @@
     '</div>';
   }
   function applyFilter(){
-    const list = FILTER ? ORDERS.filter(o=>norm(o.statut).includes(FILTER)) : ORDERS;
+    let list = FILTER ? ORDERS.filter(o=>norm(o.statut).includes(FILTER)) : ORDERS.slice();
+    if(SEARCH){
+      const q=SEARCH.toLowerCase();
+      list = list.filter(o => (o.id||'').toLowerCase().includes(q) || (o.client||'').toLowerCase().includes(q) || (o.email||'').toLowerCase().includes(q));
+    }
     const box=document.getElementById('ordersBody');
     box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
     box.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
   }
-  function renderOrders(list){ ORDERS=list; applyFilter(); }
+  function updateCounts(){
+    const c=k=>ORDERS.filter(o=>norm(o.statut).includes(k)).length;
+    const map={'':ORDERS.length,'nouvelle':c('nouvelle'),'prep':c('prep'),'exped':c('exped'),'livr':c('livr')};
+    document.querySelectorAll('#ordFilters .of').forEach(b=>{
+      const base = b.dataset.label || b.textContent.replace(/\s*\(\d+\)$/,'');
+      b.dataset.label = base;
+      const n = map[b.dataset.f||''] || 0;
+      b.textContent = base + ' (' + n + ')';
+    });
+  }
+  function exportCsv(){
+    const head = ['N°','Date','Client','Email','Téléphone','Initiales','Finition','Emplacement','Adresse','Total','Statut','Transporteur','Suivi'];
+    const esc = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
+    const rows = ORDERS.map(o => [o.id,o.date,o.client,o.email,o.telephone,o.initiales,o.finition,o.emplacement,o.adresse,o.total,o.statut,o.transporteur,o.suivi].map(esc).join(','));
+    const csv = '﻿' + head.map(esc).join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'ellia-commandes-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0);
+  }
+  function renderOrders(list){ ORDERS=list; updateCounts(); applyFilter(); }
   (function(){
     document.querySelectorAll('#ordFilters .of').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#ordFilters .of').forEach(o=>o.classList.remove('active'));
       b.classList.add('active'); FILTER=b.dataset.f||''; applyFilter();
     }));
+    const s=document.getElementById('ordSearch'); if(s) s.addEventListener('input',()=>{ SEARCH=s.value||''; applyFilter(); });
+    const x=document.getElementById('ordExport'); if(x) x.addEventListener('click', exportCsv);
   })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   function openOrder(id){

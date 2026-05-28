@@ -112,17 +112,27 @@
   const same=document.getElementById('sameAddr'), billing=document.getElementById('billing');
   same.addEventListener('change',()=>{ billing.style.display = same.checked ? 'none' : 'block'; });
 
-  // Pré-remplir si connecté
+  // Pré-remplir si connecté (compte + profil enregistré)
   let userId=null;
   (async function(){
     try{
       const { data:{ session } } = await SB.auth.getSession();
-      if(session){ userId=session.user.id;
-        const e=document.getElementById('email'); if(!e.value) e.value=session.user.email;
-        const nm=session.user.user_metadata && session.user.user_metadata.nom;
-        document.getElementById('acctNote').innerHTML='Connecté : <b>'+session.user.email+'</b>';
-        if(nm){ const parts=nm.split(' '); document.getElementById('prenom').value=parts[0]||''; document.getElementById('nom').value=parts.slice(1).join(' ')||''; }
-      }
+      if(!session) return;
+      userId = session.user.id;
+      const e=document.getElementById('email'); if(!e.value) e.value=session.user.email;
+      const nm = session.user.user_metadata && session.user.user_metadata.nom;
+      document.getElementById('acctNote').innerHTML='Connecté : <b>'+session.user.email+'</b>';
+      if(nm){ const parts=nm.split(' '); document.getElementById('prenom').value=parts[0]||''; document.getElementById('nom').value=parts.slice(1).join(' ')||''; }
+      try{
+        const { data:prof } = await SB.from('profiles').select('*').eq('id',userId).maybeSingle();
+        if(prof){
+          if(prof.telephone) document.getElementById('telephone').value = prof.telephone;
+          if(prof.adresse) document.getElementById('l_adresse').value = prof.adresse;
+          if(prof.cp) document.getElementById('l_cp').value = prof.cp;
+          if(prof.ville) document.getElementById('l_ville').value = prof.ville;
+          if(prof.pays) document.getElementById('l_pays').value = prof.pays;
+        }
+      }catch(_){}
     }catch(e){}
   })();
 
@@ -148,6 +158,10 @@
       if(r.status===409){ err.textContent='Désolé, La Pochette est actuellement en rupture de stock.'; return; }
       if(r.ok){ const dd=await r.json(); if(dd&&dd.numero) numero=dd.numero; }
     }catch(e){}
+    // Si connecté, on enregistre l'adresse dans le profil pour le pré-remplissage la prochaine fois
+    if(userId && window.SB){
+      try{ await SB.from('profiles').upsert({ id:userId, nom:v('prenom')+' '+v('nom'), telephone:v('telephone'), adresse:v('l_adresse'), cp:v('l_cp'), ville:v('l_ville'), pays:v('l_pays')||'France' }); }catch(_){}
+    }
     Cart.clear();
     location.href='confirmation.html?n='+encodeURIComponent(numero);
   });

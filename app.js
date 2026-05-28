@@ -3,6 +3,39 @@
   /* Preloader */
   window.addEventListener('load',()=>{const p=document.getElementById('preloader');if(p)setTimeout(()=>p.classList.add('done'),2300);});
 
+  /* Bandeau cookies (RGPD - cookies strictement necessaires) */
+  if(localStorage.getItem('ellia_cookies')!=='ok'){
+    const showBar=()=>{
+      if(document.getElementById('cookieBar')) return;
+      const b=document.createElement('div'); b.id='cookieBar';
+      b.innerHTML='<span style="flex:1;min-width:260px">Ce site utilise uniquement des cookies nécessaires (panier, session). <a href="confidentialite.html" style="color:#fff;text-decoration:underline">En savoir plus</a>.</span><button>J\'ai compris</button>';
+      Object.assign(b.style,{position:'fixed',bottom:'0',left:'0',right:'0',background:'rgba(13,13,13,.94)',color:'#fff',padding:'14px 22px',display:'flex',gap:'18px',alignItems:'center',justifyContent:'space-between',zIndex:'1300',fontFamily:'Jost,Arial,sans-serif',fontSize:'13.5px',flexWrap:'wrap'});
+      const btn=b.querySelector('button');
+      Object.assign(btn.style,{background:'#fff',color:'#0d0d0d',border:'none',padding:'9px 16px',fontSize:'11px',letterSpacing:'.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'});
+      btn.addEventListener('click',()=>{ localStorage.setItem('ellia_cookies','ok'); b.remove(); });
+      document.body.appendChild(b);
+    };
+    if(document.body) showBar(); else document.addEventListener('DOMContentLoaded',showBar);
+  }
+
+  /* Newsletter (formulaires dans les sections .news) */
+  document.addEventListener('submit', async e=>{
+    const f = e.target;
+    if(!f.matches || !f.matches('.news form')) return;
+    e.preventDefault();
+    const input = f.querySelector('input[type="email"]'); const btn = f.querySelector('button[type="submit"]');
+    if(!input || !btn) return;
+    const email = (input.value||'').trim();
+    if(!email) return;
+    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Envoi…';
+    try{
+      const r = await fetch('/api/newsletter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      btn.textContent = r.ok ? '✓ Inscrit' : 'Erreur';
+      if(r.ok) input.value='';
+    }catch(_){ btn.textContent = 'Erreur'; }
+    setTimeout(()=>{ btn.textContent = old; btn.disabled = false; }, 2500);
+  });
+
   /* Header scroll state (only when a transparent hero is present) */
   const header=document.getElementById('header');
   if(header){

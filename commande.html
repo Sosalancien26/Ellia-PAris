@@ -110,7 +110,8 @@
       '<div class="cmd-row"><span class="k">Livraison</span><span class="v">'+(adr||'—')+'</span></div>'+
       '<div class="cmd-row"><span class="k">Total</span><span class="v" style="font-family:var(--serif);font-size:18px">'+eur(o.montant_total)+'</span></div>'+
     '</div>'+
-    suiviBlock;
+    suiviBlock +
+    '<a href="facture.html?n='+encodeURIComponent(o.numero)+'" class="btn" style="display:block;text-align:center;margin-top:14px">Télécharger la facture</a>';
 })();
 </script>
 </body>

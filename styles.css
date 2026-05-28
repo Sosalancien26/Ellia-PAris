@@ -286,6 +286,23 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 .order-card .meta{font-size:13px;color:var(--gris-txt);margin-top:4px}
 .order-card .st{font-size:12px;letter-spacing:.08em;color:var(--gris-clair)}
 
+/* Trust signals (fiche produit) */
+.trust{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;margin-top:24px;padding-top:22px;border-top:1px solid var(--ligne)}
+.trust .t{display:flex;gap:12px;align-items:flex-start;font-size:13px;color:var(--gris-clair);line-height:1.55}
+.trust .t svg{width:24px;height:24px;flex-shrink:0;color:var(--noir);stroke:currentColor;fill:none}
+.trust .t b{display:block;font-family:var(--serif);color:var(--noir);font-size:15px;font-weight:500;margin-bottom:2px}
+@media(max-width:680px){.trust{grid-template-columns:1fr}}
+
+/* FAQ */
+.faq{max-width:780px;margin:0 auto}
+.faq details{border-top:1px solid var(--ligne);padding:18px 0}
+.faq details:last-of-type{border-bottom:1px solid var(--ligne)}
+.faq summary{font-family:var(--serif);font-size:19px;list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--noir);gap:14px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-size:24px;font-weight:300;color:var(--gris-clair)}
+.faq details[open] summary::after{content:"–"}
+.faq .a{padding:14px 0 4px;color:var(--gris-clair);font-size:14.5px;line-height:1.75}
+
 /* Responsive */
 @media (max-width:1024px){
   .hero{grid-template-columns:1fr;text-align:center;padding:140px 40px 80px;min-height:auto;gap:50px}

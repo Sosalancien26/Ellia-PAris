@@ -128,6 +128,10 @@
         <button class="of" data-f="exped">Expédiées</button>
         <button class="of" data-f="livr">Livrées</button>
       </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:-6px 0 18px">
+        <input id="ordSearch" type="search" placeholder="Rechercher (n° de commande, nom ou e-mail)…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:13px;background:#fff;color:var(--noir);outline:none">
+        <button id="ordExport" style="padding:10px 16px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Exporter CSV</button>
+      </div>
       <div id="ordersBody" class="ord-list"></div>
     </div>
   </div>
