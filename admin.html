@@ -85,6 +85,36 @@
   .om-actions select,.om-actions input{font-family:var(--sans);font-size:13px;padding:10px 12px;border:1px solid var(--ligne);background:#fff;color:var(--noir)}
   .om-actions input{flex:1;min-width:160px}
   @media (max-width:860px){.kpis{grid-template-columns:1fr 1fr}.shell{padding:24px 18px 60px}.admin-top{padding:14px 18px}.chart{gap:8px}}
+  /* Formulaire nouvelle commande */
+  .nc-form{display:grid;gap:22px}
+  .nc-section{border:1px solid var(--ligne);background:#fff;padding:24px 28px}
+  .nc-section h4{font-family:var(--serif);font-size:19px;margin:0 0 4px;font-weight:600}
+  .nc-section .nc-sub{font-size:12px;color:var(--gris);margin-bottom:18px;letter-spacing:.04em}
+  .nc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  .nc-grid.full{grid-template-columns:1fr}
+  .nc-grid.three{grid-template-columns:1fr 1fr 1fr}
+  .nc-field{display:flex;flex-direction:column;gap:6px}
+  .nc-field label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);font-weight:500}
+  .nc-field input,.nc-field select,.nc-field textarea{font-family:var(--sans);font-size:14px;padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;color:var(--noir);outline:none;transition:border-color .2s,background .2s}
+  .nc-field input:focus,.nc-field select:focus,.nc-field textarea:focus{border-color:var(--noir);background:#fff}
+  .nc-field textarea{resize:vertical;min-height:80px;font-family:var(--sans)}
+  .nc-field .hint{font-size:11px;color:var(--gris2);font-style:italic}
+  .nc-recap{background:#0d0d0d;color:#fff;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px}
+  .nc-recap .l{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#8a857d;margin-bottom:6px}
+  .nc-recap .v{font-family:var(--serif);font-size:32px;line-height:1}
+  .nc-recap .ht{font-size:12px;color:#bdb8af;margin-top:6px}
+  .nc-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .nc-btn{font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:14px 22px;border:none;cursor:pointer;transition:.25s}
+  .nc-btn.primary{background:#fff;color:#0d0d0d}
+  .nc-btn.primary:hover{background:var(--ivoire)}
+  .nc-btn.ghost{background:transparent;color:#bdb8af;border:1px solid #393834}
+  .nc-btn.ghost:hover{color:#fff;border-color:#fff}
+  .nc-msg{font-size:13.5px;padding:14px 18px;margin-top:14px;display:none}
+  .nc-msg.ok{display:block;background:var(--vert-bg);color:var(--vert);border-left:3px solid var(--vert)}
+  .nc-msg.err{display:block;background:#fbeae6;color:#b1432f;border-left:3px solid #b1432f}
+  .nc-msg.info{display:block;background:var(--bleu-bg);color:var(--bleu);border-left:3px solid var(--bleu)}
+  .nc-tag{display:inline-block;background:var(--noir);color:#fff;font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;margin-left:8px;vertical-align:middle}
+  @media (max-width:720px){.nc-grid,.nc-grid.three{grid-template-columns:1fr}.nc-recap{flex-direction:column;align-items:flex-start}}
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
@@ -105,6 +135,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="dash">Tableau de bord</button>
     <button class="tab" data-tab="orders">Commandes</button>
+    <button class="tab" data-tab="newOrder">Nouvelle commande</button>
     <button class="tab" data-tab="stock">Stock</button>
   </div>
 
@@ -135,6 +166,140 @@
         <button id="ordExport" style="padding:10px 16px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Exporter CSV</button>
       </div>
       <div id="ordersBody" class="ord-list"></div>
+    </div>
+  </div>
+
+  <!-- NOUVELLE COMMANDE -->
+  <div class="panel" id="newOrder">
+    <div class="card" style="padding:0;background:transparent;border:none">
+      <form id="ncForm" class="nc-form" novalidate>
+
+        <div class="nc-section">
+          <h4>Client</h4>
+          <div class="nc-sub">Coordonnées de la personne qui passe commande.</div>
+          <div class="nc-grid">
+            <div class="nc-field"><label>Prénom *</label><input name="client_prenom" type="text" required maxlength="80" autocomplete="off"></div>
+            <div class="nc-field"><label>Nom *</label><input name="client_nom" type="text" required maxlength="120" autocomplete="off"></div>
+            <div class="nc-field"><label>E-mail</label><input name="client_email" type="email" maxlength="254" autocomplete="off"><span class="hint">Si renseigné, la facture lui est envoyée par mail.</span></div>
+            <div class="nc-field"><label>Téléphone</label><input name="telephone" type="tel" maxlength="30" autocomplete="off"></div>
+          </div>
+        </div>
+
+        <div class="nc-section">
+          <h4>Adresse de livraison</h4>
+          <div class="nc-sub">Là où la pochette sera expédiée.</div>
+          <div class="nc-grid full">
+            <div class="nc-field"><label>Adresse</label><input name="adresse_livraison" type="text" maxlength="200" autocomplete="off"></div>
+          </div>
+          <div class="nc-grid three">
+            <div class="nc-field"><label>Code postal</label><input name="cp_livraison" type="text" maxlength="20" autocomplete="off"></div>
+            <div class="nc-field"><label>Ville</label><input name="ville_livraison" type="text" maxlength="80" autocomplete="off"></div>
+            <div class="nc-field"><label>Pays</label><input name="pays_livraison" type="text" value="France" maxlength="60" autocomplete="off"></div>
+          </div>
+          <div class="nc-grid full">
+            <label style="display:flex;gap:9px;align-items:center;font-size:13px;color:var(--gris);cursor:pointer">
+              <input type="checkbox" id="ncSameAddr" checked> Utiliser cette adresse aussi pour la facturation
+            </label>
+          </div>
+          <div id="ncFactBlock" style="display:none;margin-top:14px;border-top:1px solid var(--ligne);padding-top:18px">
+            <h4 style="font-size:16px;margin-bottom:12px">Adresse de facturation</h4>
+            <div class="nc-grid full">
+              <div class="nc-field"><label>Adresse</label><input name="adresse_facturation" type="text" maxlength="200" autocomplete="off"></div>
+            </div>
+            <div class="nc-grid three">
+              <div class="nc-field"><label>Code postal</label><input name="cp_facturation" type="text" maxlength="20" autocomplete="off"></div>
+              <div class="nc-field"><label>Ville</label><input name="ville_facturation" type="text" maxlength="80" autocomplete="off"></div>
+              <div class="nc-field"><label>Pays</label><input name="pays_facturation" type="text" value="France" maxlength="60" autocomplete="off"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nc-section">
+          <h4>La Pochette &amp; personnalisation</h4>
+          <div class="nc-sub">Détails du produit commandé.</div>
+          <div class="nc-grid three">
+            <div class="nc-field"><label>Quantité</label><input name="quantite" type="number" min="1" max="100" value="1"></div>
+            <div class="nc-field"><label>Prix Pochette TTC (€)</label><input name="prix_pochette" type="number" min="0" max="100000" step="0.01" value="159"></div>
+            <div class="nc-field"><label>Frais de port TTC (€)</label><input name="frais_port" type="number" min="0" max="1000" step="0.01" value="0"></div>
+          </div>
+          <div class="nc-grid three" style="margin-top:14px">
+            <div class="nc-field"><label>Initiales</label><input name="initiales" type="text" maxlength="3" placeholder="3 lettres max" style="text-transform:uppercase"></div>
+            <div class="nc-field"><label>Finition gravure</label>
+              <select name="finition">
+                <option value="">— Aucune —</option>
+                <option value="Or">Or</option>
+                <option value="Argent">Argent</option>
+                <option value="Or rose">Or rose</option>
+                <option value="Noir">Noir</option>
+              </select>
+            </div>
+            <div class="nc-field"><label>Emplacement gravure</label>
+              <select name="emplacement">
+                <option value="">— Aucun —</option>
+                <option value="Plaque chromée">Plaque chromée</option>
+                <option value="Sous-rabat">Sous-rabat</option>
+                <option value="Intérieur">Intérieur</option>
+              </select>
+            </div>
+          </div>
+          <div class="nc-grid full" style="margin-top:14px">
+            <div class="nc-field"><label>Prix personnalisation TTC (€)</label><input name="prix_personnalisation" type="number" min="0" max="100000" step="0.01" value="0"><span class="hint">59 € si gravure (la valeur s'ajuste automatiquement).</span></div>
+          </div>
+        </div>
+
+        <div class="nc-section">
+          <h4>Paiement</h4>
+          <div class="nc-sub">Mode et statut du règlement.</div>
+          <div class="nc-grid">
+            <div class="nc-field"><label>Mode de paiement</label>
+              <select name="payment_method">
+                <option value="">— Choisir —</option>
+                <option value="Virement bancaire">Virement bancaire</option>
+                <option value="Chèque">Chèque</option>
+                <option value="Espèces">Espèces</option>
+                <option value="Carte bancaire (en main)">Carte bancaire (en main)</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div class="nc-field"><label>Statut paiement</label>
+              <select name="payment_status">
+                <option value="En attente">En attente</option>
+                <option value="Payé" selected>Payé</option>
+                <option value="Partiel">Partiel</option>
+                <option value="Annulé">Annulé</option>
+              </select>
+            </div>
+            <div class="nc-field"><label>TVA (%)</label><input name="tva_rate" type="number" min="0" max="100" step="0.1" value="20"><span class="hint">Mets 0 si tu es en franchise de TVA.</span></div>
+            <div class="nc-field"><label>Statut commande</label>
+              <select name="statut">
+                <option selected>Nouvelle</option>
+                <option>En préparation</option>
+                <option>Expédiée</option>
+                <option>Livrée</option>
+              </select>
+              <span class="hint">La facture est envoyée automatiquement au passage en "Expédiée".</span>
+            </div>
+          </div>
+          <div class="nc-grid full" style="margin-top:14px">
+            <div class="nc-field"><label>Notes internes</label><textarea name="notes_admin" maxlength="500" placeholder="Notes visibles uniquement sur la facture (optionnel)"></textarea></div>
+          </div>
+        </div>
+
+        <div class="nc-recap">
+          <div>
+            <div class="l">Récapitulatif</div>
+            <div class="v" id="ncTotalTTC">0,00 €</div>
+            <div class="ht"><span id="ncTotalHT">0,00 € HT</span> · <span id="ncTotalTVA">+ 0,00 € TVA</span></div>
+          </div>
+          <div class="nc-actions">
+            <button type="button" class="nc-btn ghost" id="ncReset">Réinitialiser</button>
+            <button type="submit" class="nc-btn primary" id="ncSubmit">Créer la commande</button>
+          </div>
+        </div>
+
+        <div id="ncMsg" class="nc-msg"></div>
+      </form>
     </div>
   </div>
 

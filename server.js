@@ -18,6 +18,9 @@ const http   = require('http');
 const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
+let invoiceMod = null;
+try { invoiceMod = require('./invoice'); }
+catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -125,6 +128,12 @@ function sendMail(to, subject, html){
   if (!transporter || !to) return;
   transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
 }
+function sendMailWithAttachment(to, subject, html, attachments){
+  if (!transporter || !to) return Promise.resolve(false);
+  return transporter.sendMail({ from: MAIL_FROM, to, subject, html, attachments })
+    .then(()=>true)
+    .catch(e=>{ console.warn('Mail+PJ KO :', e.message); return false; });
+}
 function notifyNewOrder(d, numero){
   const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:18px"><img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/></div>' +
     '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>' +
@@ -157,6 +166,65 @@ function trackUrl(transporteur, suivi){
   if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n;
   return '';
 }
+/* Envoi de la facture PDF au client + archivage interne.
+   Appelé uniquement quand la commande passe à "Expédiée". */
+async function sendInvoiceForOrder(order){
+  if (!invoiceMod || !transporter) return { client:false, archive:false };
+  // 1) S'assurer qu'on a un numero de facture (creation web : pas encore)
+  if (!order.invoice_number) {
+    try {
+      const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
+      order.invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || ('F-EP-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4));
+      await sb('orders?numero=eq.'+encodeURIComponent(order.numero),{ method:'PATCH', body:{ invoice_number: order.invoice_number } });
+    } catch(e){ console.warn('next_invoice_number KO :', e.message); }
+  }
+  let mailSent = false, archiveSent = false;
+  try {
+    const pdfBuf = await invoiceMod.generateInvoicePDF({ ...order, invoice_date: order.created_at || new Date() });
+    const archiveTo = process.env.INVOICE_ARCHIVE_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+    const fname = (order.invoice_number || order.numero) + '.pdf';
+    const fullName = ((order.client_prenom||'')+' '+(order.client_nom||'')).trim() || (order.client_nom||'');
+    const url = trackUrl(order.transporteur, order.suivi);
+    const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + order.suivi + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+
+    if (order.client_email) {
+      const innerCli = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande est en route</h1>' +
+        '<p style="margin:0 0 8px">Bonjour ' + (order.client_prenom || order.client_nom || '') + ',</p>' +
+        '<p style="margin:0 0 4px">Votre commande <b>' + order.numero + '</b> a été expédiée. Vous trouverez ci-joint la facture <b>' + order.invoice_number + '</b> correspondante.</p>' +
+        track +
+        '<p style="margin:16px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant total : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(order.montant_total) + '</b></p>' +
+        '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+      mailSent = await sendMailWithAttachment(
+        order.client_email,
+        'Votre commande ELLIA PARIS — expédiée · facture ' + order.invoice_number,
+        emailLayout(innerCli),
+        [{ filename: fname, content: pdfBuf, contentType:'application/pdf' }]
+      );
+    }
+    if (archiveTo) {
+      const innerArch = '<h2 style="font-weight:normal;font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Facture émise — ' + order.invoice_number + '</h2>' +
+        '<table style="width:100%;font-family:Arial,sans-serif;font-size:14px;border-collapse:collapse">' +
+          '<tr><td style="padding:6px 0;color:#666;width:160px">Client</td><td style="padding:6px 0;color:#0d0d0d"><b>' + fullName + '</b>' + (order.client_email?(' &lt;' + order.client_email + '&gt;'):'') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">N° commande</td><td style="padding:6px 0;color:#0d0d0d">' + order.numero + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">Mode paiement</td><td style="padding:6px 0;color:#0d0d0d">' + (order.payment_method||'—') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">Statut paiement</td><td style="padding:6px 0;color:#0d0d0d">' + (order.payment_status||'—') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">Total TTC</td><td style="padding:6px 0"><b style="font-family:Georgia,serif;font-size:16px">' + euro(order.montant_total) + '</b></td></tr>' +
+        '</table>' +
+        '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#8a857d">PDF en pièce jointe — archivé automatiquement par le filtre Gmail "Factures Ellia".</p>';
+      archiveSent = await sendMailWithAttachment(
+        archiveTo,
+        '[Facture Ellia] ' + order.invoice_number + ' — ' + fullName + ' — ' + euro(order.montant_total),
+        emailLayout(innerArch),
+        [{ filename: fname, content: pdfBuf, contentType:'application/pdf' }]
+      );
+    }
+    if (archiveSent || mailSent) {
+      try { await sb('orders?numero=eq.'+encodeURIComponent(order.numero),{ method:'PATCH', body:{ invoice_sent_at: new Date().toISOString() } }); } catch(_){}
+    }
+  } catch(e){ console.warn('Facture PDF/mail KO :', e.message); }
+  return { client:mailSent, archive:archiveSent };
+}
+
 function notifyStatus(order, numero, statut){
   // Normalise + retire les diacritiques (à → a) avant lookup
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
@@ -221,11 +289,15 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,created_at&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,created_at&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
-  return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10), client:r.client_nom||'—', email:r.client_email||'', telephone:r.telephone||'',
+  return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
+    client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
+    email:r.client_email||'', telephone:r.telephone||'',
     initiales:r.initiales||'—', finition:r.finition||'—', emplacement:r.emplacement||'', total:Number(r.montant_total), statut:r.statut,
     suivi:r.suivi||'', transporteur:r.transporteur||'',
+    invoice_number:r.invoice_number||'', manual:!!r.manual_order,
+    payment_method:r.payment_method||'', payment_status:r.payment_status||'',
     adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
     adresseFact:j(r.adresse_facturation,r.cp_facturation,r.ville_facturation,r.pays_facturation) }));
 }
@@ -438,10 +510,26 @@ const server = http.createServer(async (req, res) => {
         if(d.suivi!==undefined) upd.suivi = clean(d.suivi, 60);
         if(d.transporteur!==undefined) upd.transporteur = clean(d.transporteur, 40);
         if(Object.keys(upd).length) await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
+
+        let invoice_sent_now = false;
         if(d.statut!==undefined){
-          try{ const rows=await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=client_email,client_nom,montant_total,initiales,suivi,transporteur'); if(rows&&rows[0]) notifyStatus(rows[0], numero, d.statut); }catch(_){}
+          try {
+            const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=*');
+            const ord = rows && rows[0];
+            if (ord) {
+              const key = (d.statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+              // Statut "Expediee" + facture pas encore envoyee → genere et envoie la facture
+              if (key.startsWith('expedi') && !ord.invoice_sent_at) {
+                await sendInvoiceForOrder({ ...ord, numero });
+                invoice_sent_now = true;
+              } else {
+                // Email simple de changement de statut (pas de PDF)
+                notifyStatus(ord, numero, d.statut);
+              }
+            }
+          } catch(_){}
         }
-        return sendJSON(res,{ ok:true });
+        return sendJSON(res,{ ok:true, invoice_sent: invoice_sent_now });
       }
 
       if (req.method==='PATCH' && pathname.startsWith('/api/products/')){
@@ -452,6 +540,111 @@ const server = http.createServer(async (req, res) => {
         await sb('products?ref=eq.'+encodeURIComponent(ref),{ method:'PATCH', body:{ stock } });
         return sendJSON(res,{ ok:true });
       }
+
+      /* ----- Creation manuelle de commande (admin uniquement) -----
+         Saisie d'un client en direct (vente offline, telephone, etc.)
+         + generation de la facture PDF + envoi auto par mail. */
+      if (req.method==='POST' && pathname==='/api/admin/orders'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        if(!d.client_nom || String(d.client_nom).trim().length < 2) return sendJSON(res,{ ok:false, error:'nom' }, 400);
+        if(d.client_email && !isEmail(String(d.client_email).toLowerCase())) return sendJSON(res,{ ok:false, error:'email' }, 400);
+        if(!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
+
+        // 1) Numero commande + numero facture
+        const numero = 'EP-'+Date.now().toString().slice(-6);
+        let invoice_number = null;
+        try {
+          const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
+          invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
+        } catch(_) {
+          invoice_number = 'F-EP-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4);
+        }
+
+        // 2) Calcul montants (saisie en TTC, on stocke HT/TVA aussi)
+        const tva = Number(d.tva_rate != null ? d.tva_rate : 20);
+        const prix_pochette         = Math.max(0, Math.min(100000, Number(d.prix_pochette||159)));
+        const prix_personnalisation = Math.max(0, Math.min(100000, Number(d.prix_personnalisation||0)));
+        const frais_port            = Math.max(0, Math.min(1000,   Number(d.frais_port||0)));
+        const quantite              = Math.max(1, Math.min(100,    Number(d.quantite||1)));
+        const totalTTC = (prix_pochette + prix_personnalisation) * quantite + frais_port;
+        const totalHT  = totalTTC / (1 + tva/100);
+        const totalTVA = totalTTC - totalHT;
+
+        // 3) Insert
+        const row = {
+          numero,
+          invoice_number,
+          manual_order: true,
+          client_prenom:        clean(d.client_prenom, 80),
+          client_nom:           clean(d.client_nom, 120),
+          client_email:         clean(String(d.client_email||'').toLowerCase(), 254),
+          telephone:            clean(d.telephone, 30),
+          initiales:            clean(d.initiales, 20),
+          finition:             clean(d.finition, 40),
+          emplacement:          clean(d.emplacement, 40),
+          adresse_livraison:    clean(d.adresse_livraison, 200),
+          cp_livraison:         clean(d.cp_livraison, 20),
+          ville_livraison:      clean(d.ville_livraison, 80),
+          pays_livraison:       clean(d.pays_livraison, 60) || 'France',
+          adresse_facturation:  clean(d.adresse_facturation || d.adresse_livraison, 200),
+          cp_facturation:       clean(d.cp_facturation || d.cp_livraison, 20),
+          ville_facturation:    clean(d.ville_facturation || d.ville_livraison, 80),
+          pays_facturation:     clean(d.pays_facturation || d.pays_livraison, 60) || 'France',
+          quantite,
+          prix_pochette,
+          prix_personnalisation,
+          frais_port,
+          tva_rate: tva,
+          montant_ht:  Number(totalHT.toFixed(2)),
+          montant_tva: Number(totalTVA.toFixed(2)),
+          montant_total: Number(totalTTC.toFixed(2)),
+          payment_method: clean(d.payment_method, 40) || null,
+          payment_status: clean(d.payment_status, 30) || 'En attente',
+          payment_date: d.payment_status === 'Payé' ? new Date().toISOString() : null,
+          notes_admin: clean(d.notes_admin, 500) || null,
+          statut: clean(d.statut, 40) || 'Nouvelle'
+        };
+
+        let created = null;
+        try {
+          const ins = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
+          created = (ins && ins[0]) || null;
+        } catch(e){
+          return sendJSON(res,{ ok:false, error:'db', detail:String(e.message||e) }, 500);
+        }
+
+        // 4) Envoi facture UNIQUEMENT si la commande est creee en statut "Expediee"
+        //    (sinon, l'envoi se declenchera au changement de statut)
+        let mailSent = false, archiveSent = false;
+        const statutKey = (row.statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+        if (statutKey.startsWith('expedi')) {
+          const res2 = await sendInvoiceForOrder({ ...row });
+          mailSent = res2.client; archiveSent = res2.archive;
+        }
+
+        return sendJSON(res,{ ok:true, numero, invoice_number, mail_client:mailSent, mail_archive:archiveSent, order: created });
+      }
+
+      /* ----- Téléchargement / reimpression de la facture PDF ----- */
+      if (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && pathname.endsWith('/invoice')){
+        if(!invoiceMod) return sendJSON(res,{ error:'pdf_indisponible' }, 500);
+        const numero = pathname.split('/')[4];
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=*');
+        const o = rows && rows[0];
+        if(!o) return sendJSON(res,{ error:'introuvable' }, 404);
+        try {
+          const pdfBuf = await invoiceMod.generateInvoicePDF({ ...o, invoice_date: o.created_at });
+          res.setHeader('Content-Type','application/pdf');
+          res.setHeader('Content-Disposition','inline; filename="'+(o.invoice_number||numero)+'.pdf"');
+          res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
+          return res.end(pdfBuf);
+        } catch(e){
+          console.warn('PDF KO :', e.message);
+          return sendJSON(res,{ error:'pdf_failed' }, 500);
+        }
+      }
+
       return sendJSON(res,{ error:'route inconnue' },404);
     }catch(e){
       const msg = String(e.message||e);

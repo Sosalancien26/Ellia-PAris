@@ -103,12 +103,16 @@
     const o=ORDERS.find(x=>x.id===id); if(!o) return;
     const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
     const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+((o.transporteur||'')===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
+    const manualTag = o.manual ? '<span style="display:inline-block;background:#0d0d0d;color:#fff;font-size:9.5px;letter-spacing:.16em;padding:3px 8px;text-transform:uppercase;margin-left:10px;vertical-align:middle">Manuelle</span>' : '';
+    const invoiceRow = o.invoice_number ? ('<div class="om-row"><span class="k">Facture</span><span class="v"><b>'+o.invoice_number+'</b> &nbsp; <a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Ouvrir PDF</a></span></div>') : ('<div class="om-row"><span class="k">Facture</span><span class="v"><a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Générer / Télécharger PDF</a></span></div>');
+    const payRow = (o.payment_method || o.payment_status) ? ('<div class="om-row"><span class="k">Paiement</span><span class="v">'+(o.payment_method||'—')+' &middot; '+(o.payment_status||'—')+'</span></div>') : '';
     document.getElementById('ordModalBox').innerHTML=
       '<button class="om-close" id="omClose">×</button>'+
-      '<h3>Commande '+o.id+'</h3><div style="color:var(--gris);font-size:13px;margin-bottom:16px">'+o.date+'</div>'+
+      '<h3>Commande '+o.id+manualTag+'</h3><div style="color:var(--gris);font-size:13px;margin-bottom:16px">'+o.date+'</div>'+
       omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
       omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
       omRow('Personnalisation',gravure(o))+omRow('Total','<b>'+eur(o.total)+'</b>')+
+      payRow+invoiceRow+
       '<div style="margin:20px 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Gestion de la commande</div>'+
       '<div class="om-actions">'+
         '<select class="om-statut">'+sOpts+'</select>'+
@@ -156,6 +160,113 @@
     document.getElementById(t.dataset.tab).classList.add('active');
   }));
 
+  /* ============================================================
+     NOUVELLE COMMANDE — saisie manuelle + facture
+     ============================================================ */
+  (function(){
+    const f = document.getElementById('ncForm'); if(!f) return;
+    const $ = s => f.querySelector(s);
+    const msg = document.getElementById('ncMsg');
+    const btn = document.getElementById('ncSubmit');
+    const sameAddr = document.getElementById('ncSameAddr');
+    const factBlock = document.getElementById('ncFactBlock');
+    const totTTC = document.getElementById('ncTotalTTC');
+    const totHT  = document.getElementById('ncTotalHT');
+    const totTVA = document.getElementById('ncTotalTVA');
+
+    function fmt(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+
+    function recalc(){
+      const q   = Math.max(1, Number($('[name="quantite"]').value)||1);
+      const pP  = Math.max(0, Number($('[name="prix_pochette"]').value)||0);
+      const pX  = Math.max(0, Number($('[name="prix_personnalisation"]').value)||0);
+      const pT  = Math.max(0, Number($('[name="frais_port"]').value)||0);
+      const tva = Math.max(0, Number($('[name="tva_rate"]').value)||0);
+      const ttc = (pP + pX) * q + pT;
+      const ht  = ttc / (1 + tva/100);
+      const t   = ttc - ht;
+      totTTC.textContent = fmt(ttc);
+      totHT.textContent  = fmt(ht) + ' HT';
+      totTVA.textContent = '+ ' + fmt(t) + ' TVA';
+    }
+
+    // Auto-fill 59€ perso si initiales remplies
+    $('[name="initiales"]').addEventListener('input', e=>{
+      const v = e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+      e.target.value = v;
+      const inp = $('[name="prix_personnalisation"]');
+      if (v.length>0 && Number(inp.value)===0) inp.value = 59;
+      if (v.length===0 && Number(inp.value)===59) inp.value = 0;
+      recalc();
+    });
+
+    // Live recalc sur tout changement de prix/quantité
+    ['quantite','prix_pochette','prix_personnalisation','frais_port','tva_rate'].forEach(n=>{
+      const el = $('[name="'+n+'"]'); if(el) el.addEventListener('input', recalc);
+    });
+
+    // Toggle adresse de facturation
+    sameAddr.addEventListener('change', ()=>{
+      factBlock.style.display = sameAddr.checked ? 'none' : 'block';
+    });
+
+    // Reset
+    document.getElementById('ncReset').addEventListener('click', ()=>{
+      f.reset(); $('[name="pays_livraison"]').value='France'; $('[name="pays_facturation"]').value='France';
+      $('[name="prix_pochette"]').value=159; $('[name="prix_personnalisation"]').value=0;
+      $('[name="quantite"]').value=1; $('[name="tva_rate"]').value=20; $('[name="frais_port"]').value=0;
+      $('[name="payment_status"]').value='Payé'; $('[name="statut"]').value='Nouvelle';
+      sameAddr.checked=true; factBlock.style.display='none';
+      msg.className='nc-msg'; msg.textContent=''; recalc();
+    });
+
+    // Submit
+    f.addEventListener('submit', async function(e){
+      e.preventDefault();
+      msg.className='nc-msg'; msg.textContent='';
+      const data = {};
+      new FormData(f).forEach((v,k)=>{ data[k] = (typeof v==='string' ? v.trim() : v); });
+      // Si adresse identique, on copie
+      if (sameAddr.checked){
+        data.adresse_facturation = data.adresse_livraison;
+        data.cp_facturation = data.cp_livraison;
+        data.ville_facturation = data.ville_livraison;
+        data.pays_facturation = data.pays_livraison;
+      }
+      if(!data.client_nom || data.client_nom.length<2){
+        msg.className='nc-msg err'; msg.textContent='Le nom du client est obligatoire.'; return;
+      }
+      const old = btn.textContent; btn.disabled=true; btn.textContent='Création en cours…';
+      try{
+        const r = await fetch('/api/admin/orders',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+        const j = await r.json().catch(()=>({}));
+        if(r.ok && j.ok){
+          const inv = j.invoice_number || '—';
+          const num = j.numero || '—';
+          const sentMsg = (j.mail_client || j.mail_archive)
+            ? ('Facture <b>'+inv+'</b> envoyée'
+                + (j.mail_client ? ' au client' : '')
+                + (j.mail_archive ? ' · archivée sur contact@ellia-paris.fr' : '') + '.')
+            : ('N° de facture <b>'+inv+'</b> réservé. La facture sera envoyée automatiquement quand tu passeras la commande en <b>"Expédiée"</b>.');
+          msg.className='nc-msg ok';
+          msg.innerHTML = '✓ Commande <b>'+num+'</b> créée. '+sentMsg+
+            ' <a href="/api/admin/orders/'+encodeURIComponent(num)+'/invoice" target="_blank" style="color:inherit;text-decoration:underline;font-weight:bold">Aperçu PDF</a>';
+          // Recharger la liste des commandes
+          try{ const o=await get('/api/orders',[]); renderOrders(o); }catch(_){}
+        } else {
+          msg.className='nc-msg err';
+          msg.textContent = 'Erreur : '+(j.error||'inconnue')+(j.detail?(' — '+j.detail):'');
+        }
+      }catch(err){
+        msg.className='nc-msg err';
+        msg.textContent = 'Connexion impossible : '+err.message;
+      }
+      btn.disabled=false; btn.textContent=old;
+    });
+
+    recalc();
+  })();
+
   /* Deconnexion */
   const lo=document.getElementById('logout');
   if(lo) lo.addEventListener('click',async e=>{ e.preventDefault(); try{await fetch('/api/logout',{method:'POST'});}catch(_){} location.href='/admin'; });
@@ -163,6 +274,12 @@
   /* Init */
   (async function(){
     const s=await get('/api/stats',MOCK.stats);
+    const o=await get('/api/orders',MOCK.orders);
+    const p=await get('/api/products',MOCK.products);
+    renderKPIs(s);renderChart(s.ca_mois);renderOrders(o);renderStock(p);
+  })();
+})();
+t('/api/stats',MOCK.stats);
     const o=await get('/api/orders',MOCK.orders);
     const p=await get('/api/products',MOCK.products);
     renderKPIs(s);renderChart(s.ca_mois);renderOrders(o);renderStock(p);
