@@ -89,6 +89,14 @@
     <div class="co-summary">
       <h3>Récapitulatif</h3>
       <div id="coItems"></div>
+      <div id="coPromoBlock" style="margin:14px 0;padding:14px 0;border-top:1px dashed rgba(0,0,0,.08)">
+        <div style="display:flex;gap:8px;align-items:stretch">
+          <input id="coPromoCode" type="text" placeholder="Code promo" autocomplete="off" style="flex:1;padding:11px 13px;border:1px solid rgba(0,0,0,.12);font-family:var(--sans);font-size:13.5px;text-transform:uppercase;letter-spacing:1px;background:#fafaf7;outline:none">
+          <button type="button" id="coPromoApply" style="font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 18px;border:1px solid var(--noir,#0d0d0d);background:#fff;cursor:pointer">Appliquer</button>
+        </div>
+        <div id="coPromoMsg" style="font-size:12.5px;margin-top:8px;min-height:18px"></div>
+      </div>
+      <div id="coDiscount" style="display:none;justify-content:space-between;padding:6px 0;font-size:13.5px;color:#2f7d52"><span>Réduction <span id="coDiscountCode"></span></span><span id="coDiscountAmount">-0 €</span></div>
       <div class="co-tot"><span class="eyebrow">Total</span><span class="v" id="coTotal">0 €</span></div>
       <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte · Retours sous 30 jours</p>
     </div>
@@ -167,5 +175,79 @@
   });
 })();
 </script>
+
+<script>
+(function(){
+  // ===== Code promo =====
+  let appliedPromo = null;
+  const $code = document.getElementById('coPromoCode');
+  const $btn = document.getElementById('coPromoApply');
+  const $msg = document.getElementById('coPromoMsg');
+  const $disc = document.getElementById('coDiscount');
+  const $discCode = document.getElementById('coDiscountCode');
+  const $discAmt = document.getElementById('coDiscountAmount');
+  const $tot = document.getElementById('coTotal');
+  function fmtEur(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+  function updateTotal(){
+    const base = (typeof Cart !== 'undefined') ? Cart.total() : 0;
+    const disc = appliedPromo ? appliedPromo.discount : 0;
+    $tot.textContent = fmtEur(Math.max(0, base - disc));
+    if(appliedPromo){
+      $disc.style.display = 'flex';
+      $discCode.textContent = '('+appliedPromo.code+')';
+      $discAmt.textContent = '-' + fmtEur(disc);
+    } else {
+      $disc.style.display = 'none';
+    }
+  }
+  if($btn) $btn.addEventListener('click', async function(){
+    const code = ($code.value||'').trim().toUpperCase();
+    if(!code){ $msg.textContent=''; appliedPromo=null; updateTotal(); return; }
+    $btn.disabled = true; $btn.textContent = '…';
+    try {
+      const r = await fetch('/api/promo/validate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code, amount: Cart.total() }) });
+      const j = await r.json();
+      if(j.valid){
+        appliedPromo = j;
+        $msg.style.color = '#2f7d52';
+        $msg.textContent = '✓ Code appliqué — économie de ' + fmtEur(j.discount) + (j.description ? ' · ' + j.description : '');
+      } else {
+        appliedPromo = null;
+        $msg.style.color = '#b1432f';
+        const msgs = { 'not_found':'Code inconnu','expired':'Code expiré','used_up':'Code épuisé','min_order':'Minimum '+fmtEur(j.min_order)+' requis','empty':'Saisis un code' };
+        $msg.textContent = msgs[j.error] || 'Code invalide';
+      }
+    } catch(e){ $msg.style.color='#b1432f'; $msg.textContent = 'Erreur réseau'; }
+    $btn.disabled = false; $btn.textContent = 'Appliquer';
+    updateTotal();
+  });
+  // Expose for order submission
+  window.elliaPromoApplied = function(){ return appliedPromo; };
+  window.elliaUpdateTotal = updateTotal;
+
+  // ===== Capture panier abandonné =====
+  const $email = document.getElementById('email');
+  let captured = false;
+  if($email) $email.addEventListener('blur', async function(){
+    const email = ($email.value||'').trim().toLowerCase();
+    if(!email || captured) return;
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    captured = true;
+    try {
+      const items = (typeof Cart !== 'undefined' && Cart.list) ? Cart.list() : [];
+      if(items.length === 0) return;
+      const data = {
+        email,
+        client_prenom: (document.getElementById('prenom')||{}).value || '',
+        client_nom: (document.getElementById('nom')||{}).value || '',
+        cart_total: Cart.total(),
+        cart_data: items
+      };
+      await fetch('/api/abandoned-cart', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    } catch(_){}
+  });
+})();
+</script>
+
 </body>
 </html>

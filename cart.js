@@ -10,6 +10,7 @@
     removeAt(i){ const a=read(); a.splice(i,1); write(a); },
     clear(){ write([]); },
     total(){ return read().reduce((s,i)=>s+Number(i.prix||0),0); },
+    list(){ return read(); },
     count(){ return read().length; }
   };
 

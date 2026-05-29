@@ -545,6 +545,8 @@ const server = http.createServer(async (req, res) => {
           statut: 'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte } }); }catch(_){}
+        // Mark abandoned cart as converted
+        try{ if(d.client_email){ await sb('abandoned_carts?email=eq.'+encodeURIComponent(String(d.client_email).toLowerCase())+'&converted_at=is.null',{ method:'PATCH', body:{ converted_at: new Date().toISOString() } }); } }catch(_){}
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
       }
 
@@ -555,6 +557,34 @@ const server = http.createServer(async (req, res) => {
           return sendJSON(res, r);
         } catch(e){ return sendJSON(res,{ valid:false, error:'failed' },500); }
       }
+      /* ----- PANIER ABANDONNE (capture) ----- */
+      if (USE_DB && req.method==='POST' && pathname==='/api/abandoned-cart'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        const email = String(d.email||'').toLowerCase().trim();
+        if(!isEmail(email)) return sendJSON(res,{ ok:false, error:'invalid_email' }, 400);
+        try {
+          // Si meme email recent (<30 min) on update au lieu de creer
+          const recent = await sb('abandoned_carts?email=eq.'+encodeURIComponent(email)+'&converted_at=is.null&created_at=gte.'+encodeURIComponent(new Date(Date.now()-30*60*1000).toISOString())+'&select=id');
+          if (recent && recent.length) {
+            await sb('abandoned_carts?id=eq.'+recent[0].id, { method:'PATCH', body:{
+              cart_total: Number(d.cart_total||0),
+              cart_data: d.cart_data || [],
+              client_nom: clean(d.client_nom, 120),
+              client_prenom: clean(d.client_prenom, 80)
+            }});
+          } else {
+            await sb('abandoned_carts', { method:'POST', body:{
+              email,
+              cart_total: Number(d.cart_total||0),
+              cart_data: d.cart_data || [],
+              client_nom: clean(d.client_nom, 120),
+              client_prenom: clean(d.client_prenom, 80)
+            }});
+          }
+          return sendJSON(res,{ ok:true });
+        } catch(e){ return sendJSON(res,{ ok:false, error:'failed' }, 500); }
+      }
+
       if (!isAuthed(req)) return sendJSON(res,{ error:'non autorise' },401);
 
       if (req.method==='GET' && pathname==='/api/stats')  return sendJSON(res, await getStats());
@@ -874,6 +904,29 @@ const server = http.createServer(async (req, res) => {
     res.end(buf);
   });
 });
+
+
+/* ----- CRON INTERNE — relance panier abandonne (toutes les 10 min) ----- */
+async function processAbandonedCarts(){
+  if (!USE_DB || !transporter) return;
+  try {
+    const cutoff = new Date(Date.now() - 60*60*1000).toISOString(); // 1h
+    const recent = new Date(Date.now() - 24*60*60*1000).toISOString(); // pas au-delà 24h
+    const rows = await sb('abandoned_carts?reminder_sent_at=is.null&converted_at=is.null&created_at=lte.'+encodeURIComponent(cutoff)+'&created_at=gte.'+encodeURIComponent(recent)+'&select=*&limit=20');
+    for (const c of (rows||[])) {
+      const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous attend</h1>' +
+        '<p style="margin:0 0 12px">Bonjour ' + (c.client_prenom || '') + ',</p>' +
+        '<p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande ?</p>' +
+        '<p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(c.cart_total) + '</b></p>' +
+        '<p style="margin:24px 0"><a href="https://ellia-paris.fr/panier.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Reprendre ma commande</a></p>' +
+        '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+      sendMail(c.email, 'Votre pochette vous attend — ELLIA PARIS', emailLayout(inner));
+      try { await sb('abandoned_carts?id=eq.'+c.id, { method:'PATCH', body:{ reminder_sent_at: new Date().toISOString() } }); } catch(_){}
+    }
+  } catch(e){ console.warn('Abandoned cart cron KO :', e.message); }
+}
+if (USE_DB) setInterval(processAbandonedCarts, 10*60*1000); // toutes les 10 min
+
 
 server.listen(PORT, () => {
   console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]'));

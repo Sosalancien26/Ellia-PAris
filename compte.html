@@ -63,6 +63,7 @@
       <button class="navbtn active" data-tab="encours">En cours</button>
       <button class="navbtn" data-tab="terminees">Terminées</button>
       <div class="grp">Mon compte</div>
+      <button class="navbtn" data-tab="favoris">Mes favoris</button>
       <button class="navbtn" data-tab="infos">Mes informations</button>
       <a class="navi" href="cgv.html">Livraison & retours</a>
       <a class="navi" href="maison.html">Contact</a>
@@ -73,6 +74,7 @@
   <main>
     <section class="acct-panel active" id="encours"><h2>Mes commandes en cours</h2><div id="encoursList"></div></section>
     <section class="acct-panel" id="terminees"><h2>Mes commandes terminées</h2><div id="termineesList"></div></section>
+    <section class="acct-panel" id="favoris"><h2>Mes favoris</h2><div id="favorisList" style="margin-top:14px"></div></section>
     <section class="acct-panel" id="infos">
       <h2>Mes informations</h2>
       <div class="pform">
@@ -95,6 +97,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="wishlist.js?v=1"></script>
 <script src="app.js?v=23"></script>
 <script src="cart.js?v=23"></script>
 <script>

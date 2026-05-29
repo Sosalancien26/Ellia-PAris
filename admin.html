@@ -118,6 +118,10 @@
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 </head>
 <body>
 
@@ -404,5 +408,10 @@
 <div class="ord-modal" id="ordModal"><div class="ord-modal-box" id="ordModalBox"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="admin.js?v=26"></script>
+
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
+</script>
+
 </body>
 </html>
