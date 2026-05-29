@@ -1210,3 +1210,9 @@ html{overflow-x:hidden}
   .reviews-form{padding:28px 22px}
   .review-card{padding:24px 22px}
 }
+
+/* ============ FIX page-hero rogné par header ============ */
+.page-hero.page-top{padding-top:160px !important}
+@media (max-width:1024px){.page-hero.page-top{padding-top:140px !important}}
+@media (max-width:768px){.page-hero.page-top{padding-top:130px !important}}
+@media (max-width:480px){.page-hero.page-top{padding-top:120px !important}}
