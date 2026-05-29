@@ -941,3 +941,104 @@ html{overflow-x:hidden}
   .hero-cinema .cta-row{flex-direction:column !important;gap:12px !important}
   .hero-cinema .cta-row .btn{width:100%}
 }
+
+/* ============ HERO V6 — photo plein cadre sans zoom + texte sur espace noir droit ============ */
+.hero-cinema{
+  min-height:100vh !important;
+  background:#000 !important;
+  display:block !important;
+  position:relative !important;
+  padding:0 !important;
+  overflow:hidden;
+}
+/* Photo plein cadre SANS zoom : object-fit contain */
+.hero-cinema .bg{
+  position:absolute !important;
+  inset:0 !important;
+  width:100%;
+  height:100%;
+  z-index:1 !important;
+}
+.hero-cinema .bg img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  object-position:left center !important;
+  animation:heroBreath 30s ease-in-out infinite alternate !important;
+}
+@keyframes heroBreath{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.025)}
+}
+/* Voile : juste une ombre douce à droite pour démarquer le texte */
+.hero-cinema .veil{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:2 !important;
+  display:block !important;
+  background:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 50%,rgba(0,0,0,.35) 75%,rgba(0,0,0,.55) 100%) !important;
+  pointer-events:none;
+}
+/* Texte en position absolute à droite, centré vertical */
+.hero-cinema .content{
+  position:absolute !important;
+  right:7% !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  max-width:440px !important;
+  width:auto !important;
+  text-align:left !important;
+  z-index:3 !important;
+  padding:0 !important;
+}
+.hero-cinema .eyebrow{
+  text-align:left !important;
+  margin:0 0 18px !important;
+  color:rgba(255,255,255,.7) !important;
+}
+.hero-cinema h1{
+  font-size:clamp(46px,4.4vw,76px) !important;
+  text-align:left !important;
+  margin:0 0 18px !important;
+  line-height:1.02 !important;
+}
+.hero-cinema h1 .l1,.hero-cinema h1 .l2{display:block !important;margin-left:0 !important}
+.hero-cinema .sub{
+  text-align:left !important;
+  margin:0 0 34px !important;
+  max-width:380px !important;
+  font-size:15.5px !important;
+  line-height:1.65 !important;
+  color:rgba(255,255,255,.82) !important;
+}
+.hero-cinema .cta-row{justify-content:flex-start !important;margin:0 !important;gap:12px !important}
+.hero-cinema .scroll-cue{display:none !important}
+
+/* Tablette : photo dessus, texte dessous (stack vertical) */
+@media (max-width:1024px){
+  .hero-cinema{display:flex !important;flex-direction:column !important;align-items:stretch !important}
+  .hero-cinema .bg{position:relative !important;height:55vh;flex-shrink:0}
+  .hero-cinema .bg img{object-position:center !important;object-fit:cover !important}
+  .hero-cinema .veil{
+    background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 70%,rgba(0,0,0,.5) 100%) !important;
+  }
+  .hero-cinema .content{
+    position:relative !important;
+    right:auto !important;top:auto !important;transform:none !important;
+    max-width:600px !important;width:100% !important;
+    margin:0 auto !important;
+    padding:50px 40px 70px !important;
+    text-align:center !important;
+  }
+  .hero-cinema .eyebrow,.hero-cinema h1,.hero-cinema .sub,.hero-cinema .cta-row{text-align:center !important;justify-content:center !important}
+  .hero-cinema .sub{margin-left:auto !important;margin-right:auto !important}
+  .hero-cinema h1{font-size:clamp(38px,7vw,56px) !important}
+}
+@media (max-width:768px){
+  .hero-cinema .bg{height:50vh}
+  .hero-cinema .content{padding:40px 24px 60px !important}
+  .hero-cinema h1{font-size:clamp(38px,10vw,52px) !important}
+  .hero-cinema .sub{font-size:14.5px !important}
+  .hero-cinema .cta-row{flex-direction:column !important;gap:12px !important}
+  .hero-cinema .cta-row .btn{width:100%}
+}
