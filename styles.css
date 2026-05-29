@@ -718,3 +718,49 @@ html{overflow-x:hidden}
   .hero-cinema h1{font-size:clamp(44px,13vw,64px)}
   .hero-cinema .bg img{object-position:35% center}
 }
+
+/* ============ HERO — RAFFINEMENT (pochette moins zoomée + texte plus léger) ============ */
+/* Réduire le zoom Ken Burns drastiquement */
+.hero-cinema .bg img{
+  animation:heroKenSubtle 28s ease-in-out infinite alternate;
+  object-position:25% center; /* pochette décalée à gauche, plus de respiration */
+}
+@keyframes heroKenSubtle{
+  0%{transform:scale(1) translateX(0)}
+  100%{transform:scale(1.04) translateX(-1%)}
+}
+
+/* Texte hero : moins "gros paquet", plus aéré */
+.hero-cinema{padding:120px 60px 100px 50%}
+.hero-cinema .content{max-width:480px}
+.hero-cinema h1{
+  font-size:clamp(46px,5.4vw,84px);
+  line-height:1;
+  margin:18px 0 6px;
+  letter-spacing:-.01em;
+}
+.hero-cinema .sub{
+  font-size:15.5px;
+  line-height:1.65;
+  max-width:380px;
+  margin-top:22px;
+  color:rgba(255,255,255,.78);
+}
+.hero-cinema .cta-row{margin-top:38px;gap:12px}
+.hero-cinema .btn{padding:14px 28px;font-size:10.5px;letter-spacing:.22em}
+.hero-cinema .eyebrow{font-size:11px;letter-spacing:.32em}
+
+@media (max-width:1100px){
+  .hero-cinema{padding:120px 50px 90px}
+  .hero-cinema .content{max-width:520px}
+  .hero-cinema h1{font-size:clamp(44px,7vw,72px)}
+}
+@media (max-width:768px){
+  .hero-cinema .bg img{object-position:35% center}
+  @keyframes heroKenSubtle{
+    0%{transform:scale(1) translateX(0)}
+    100%{transform:scale(1.06) translateX(-2%)}
+  }
+  .hero-cinema h1{font-size:clamp(42px,10vw,60px)}
+  .hero-cinema .sub{font-size:14.5px;max-width:100%}
+}
