@@ -381,6 +381,81 @@
     recalc();
   })();
 
+  
+
+  /* ============================================================
+     COMPTABILITE — exports CSV + dashboard CA + seuils
+     ============================================================ */
+  (function(){
+    const yearSel = document.getElementById('comptaYear');
+    if(!yearSel) return;
+    const cur = new Date().getFullYear();
+    const years = [cur, cur-1, cur-2];
+    yearSel.innerHTML = years.map(y => '<option value="'+y+'">'+y+'</option>').join('');
+    function fmtEur(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+    function fmtPct(n){ return Number(n||0).toFixed(1).replace('.',',')+' %'; }
+    const MOIS_COURT = ['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+
+    async function loadCompta(){
+      const y = yearSel.value;
+      try {
+        const r = await fetch('/api/admin/compta?year='+y,{cache:'no-store'});
+        const d = await r.json();
+        if(d.error){ throw new Error(d.error); }
+        renderCompta(d);
+        document.getElementById('comptaExportRecettes').href = '/api/admin/export/recettes.csv?year='+y;
+        document.getElementById('comptaExportRecettes').setAttribute('download', 'livre-recettes-'+y+'.csv');
+        document.getElementById('comptaExportFactures').href = '/api/admin/export/factures.csv?year='+y;
+        document.getElementById('comptaExportFactures').setAttribute('download', 'factures-'+y+'.csv');
+      } catch(e) {
+        document.getElementById('comptaKpis').innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fbeae6;color:#b1432f;border-left:3px solid #b1432f">Impossible de charger les données comptables : '+e.message+'</div>';
+      }
+    }
+
+    function renderCompta(d){
+      // KPIs
+      document.getElementById('comptaKpis').innerHTML =
+        kpiCard('CA TTC '+d.year, fmtEur(d.ca_ttc), d.nb_commandes+' commandes')+
+        kpiCard('CA HT', fmtEur(d.ca_ht), 'Hors taxes')+
+        kpiCard('TVA collectée', fmtEur(d.tva_collectee), 'Si redevable')+
+        kpiCard('Panier moyen', fmtEur(d.panier_moyen), d.nb_factures_emises+' factures');
+
+      // Seuils
+      const pctMicro = Math.min(100, d.pct_micro);
+      const pctTVA = Math.min(100, d.pct_franchise_tva);
+      const colMicro = pctMicro >= 90 ? '#b1432f' : (pctMicro >= 70 ? '#9a6a14' : '#2f7d52');
+      const colTVA = pctTVA >= 90 ? '#b1432f' : (pctTVA >= 70 ? '#9a6a14' : '#2f7d52');
+      document.getElementById('comptaSeuils').innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0 12px">'+
+        '  <div style="background:#fff;border:1px solid var(--ligne);padding:20px">'+
+        '    <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);margin-bottom:10px">Seuil micro-entreprise (vente de biens)</div>'+
+        '    <div style="font-family:var(--serif);font-size:24px;color:'+colMicro+'">'+fmtPct(d.pct_micro)+'</div>'+
+        '    <div style="font-size:12px;color:var(--gris);margin-top:6px">'+fmtEur(d.ca_ttc)+' / '+fmtEur(d.seuil_micro)+'</div>'+
+        '    <div style="height:6px;background:#eee;margin-top:10px;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pctMicro+'%;background:'+colMicro+'"></div></div>'+
+        '  </div>'+
+        '  <div style="background:#fff;border:1px solid var(--ligne);padding:20px">'+
+        '    <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);margin-bottom:10px">Seuil franchise TVA</div>'+
+        '    <div style="font-family:var(--serif);font-size:24px;color:'+colTVA+'">'+fmtPct(d.pct_franchise_tva)+'</div>'+
+        '    <div style="font-size:12px;color:var(--gris);margin-top:6px">'+fmtEur(d.ca_ttc)+' / '+fmtEur(d.seuil_franchise_tva)+'</div>'+
+        '    <div style="height:6px;background:#eee;margin-top:10px;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pctTVA+'%;background:'+colTVA+'"></div></div>'+
+        '  </div>'+
+        '</div>';
+
+      // Chart mensuel
+      const max = Math.max.apply(null, d.by_month) || 1;
+      document.getElementById('comptaChart').innerHTML = d.by_month.map((v,i)=>
+        '<div class="bar"><div class="val">'+(v ? fmtEur(v).replace(',00','') : '—')+'</div>'+
+        '<div class="col" style="height:'+Math.round(v/max*100)+'%;min-height:'+(v>0?2:0)+'px"></div>'+
+        '<div class="m">'+MOIS_COURT[i]+'</div></div>').join('');
+    }
+    function kpiCard(l,v,d){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="d">'+(d||'')+'</div></div>'; }
+
+    yearSel.addEventListener('change', loadCompta);
+    document.getElementById('comptaRefresh').addEventListener('click', loadCompta);
+    // Lazy load au premier affichage de l'onglet
+    document.querySelector('.tab[data-tab="compta"]')?.addEventListener('click', loadCompta);
+  })();
+
   /* Deconnexion */
   const lo=document.getElementById('logout');
   if(lo) lo.addEventListener('click',async e=>{ e.preventDefault(); try{await fetch('/api/logout',{method:'POST'});}catch(_){} location.href='/admin'; });

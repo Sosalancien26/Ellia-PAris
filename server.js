@@ -21,6 +21,9 @@ const crypto = require('crypto');
 let invoiceMod = null;
 try { invoiceMod = require('./invoice'); }
 catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
+let comptaMod = null;
+try { comptaMod = require('./compta'); }
+catch(e){ console.warn('Module compta.js indisponible :', e.message); }
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -369,6 +372,12 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname.startsWith('/api/')) {
     try{
+      if (req.method==='GET' && pathname==='/api/health'){
+        const ok = USE_DB && SUPABASE_URL && SERVICE_KEY;
+        res.setHeader('Content-Type','application/json; charset=utf-8');
+        return res.end(JSON.stringify({ status:'ok', db: !!ok, smtp: !!transporter, ts: new Date().toISOString() }));
+      }
+
       if (req.method==='POST' && pathname==='/api/login'){
         if(!rateAllowed('login', clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
@@ -706,6 +715,41 @@ const server = http.createServer(async (req, res) => {
           console.warn('PDF KO :', e.message);
           return sendJSON(res,{ error:'pdf_failed' }, 500);
         }
+      }
+
+      /* ----- COMPTABILITE — stats + exports CSV (auth admin) ----- */
+      if (req.method==='GET' && pathname==='/api/admin/compta'){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        if(!comptaMod) return sendJSON(res,{ error:'no_module' }, 500);
+        const year = Number(url.searchParams.get('year')) || new Date().getFullYear();
+        try {
+          const data = await comptaMod.getCompta(sb, year);
+          const { orders, ...stats } = data;
+          stats.nb_factures_emises = orders.filter(o => o.invoice_number).length;
+          return sendJSON(res, stats);
+        } catch(e){ return sendJSON(res,{ error:'compta_failed', detail:String(e.message||e) }, 500); }
+      }
+      if (req.method==='GET' && pathname==='/api/admin/export/recettes.csv'){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        if(!comptaMod) return sendJSON(res,{ error:'no_module' }, 500);
+        const year = Number(url.searchParams.get('year')) || new Date().getFullYear();
+        try {
+          const csv = await comptaMod.exportRecettesCSV(sb, year);
+          res.setHeader('Content-Type','text/csv; charset=utf-8');
+          res.setHeader('Content-Disposition','attachment; filename="livre-recettes-' + year + '.csv"');
+          return res.end(csv);
+        } catch(e){ return sendJSON(res,{ error:'csv_failed', detail:String(e.message||e) }, 500); }
+      }
+      if (req.method==='GET' && pathname==='/api/admin/export/factures.csv'){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        if(!comptaMod) return sendJSON(res,{ error:'no_module' }, 500);
+        const year = Number(url.searchParams.get('year')) || new Date().getFullYear();
+        try {
+          const csv = await comptaMod.exportFacturesCSV(sb, year);
+          res.setHeader('Content-Type','text/csv; charset=utf-8');
+          res.setHeader('Content-Disposition','attachment; filename="factures-' + year + '.csv"');
+          return res.end(csv);
+        } catch(e){ return sendJSON(res,{ error:'csv_failed', detail:String(e.message||e) }, 500); }
       }
 
       return sendJSON(res,{ error:'route inconnue' },404);
