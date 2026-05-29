@@ -853,3 +853,91 @@ html{overflow-x:hidden}
   .hero-cinema .sub{font-size:14.5px !important;max-width:100% !important}
   .hero-cinema h1 .l1,.hero-cinema h1 .l2{display:block !important;margin-left:0}
 }
+
+/* ============ HERO V5 — propre, photo entière, texte propre à droite ============ */
+.hero-cinema{
+  min-height:100vh !important;
+  background:#0a0908 !important;
+  display:grid !important;
+  grid-template-columns:1.2fr 1fr !important;
+  align-items:center !important;
+  justify-content:initial !important;
+  padding:100px 50px 60px !important;
+  gap:50px !important;
+  position:relative;
+}
+/* Photo dans son propre conteneur, jamais zoomée */
+.hero-cinema .bg{
+  position:relative !important;
+  inset:auto !important;
+  width:100%;
+  height:100%;
+  min-height:60vh;
+  z-index:1 !important;
+}
+.hero-cinema .bg img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  animation:heroSubtle 30s ease-in-out infinite alternate !important;
+}
+@keyframes heroSubtle{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.015)}
+}
+/* Voile : aucun voile dans ce layout, photo libre */
+.hero-cinema .veil{display:none !important}
+
+/* Bloc texte propre à droite, centré vertical */
+.hero-cinema .content{
+  max-width:100% !important;
+  width:100%;
+  text-align:left !important;
+  z-index:2 !important;
+  padding:0 !important;
+}
+.hero-cinema .eyebrow{text-align:left !important;margin-bottom:18px;color:rgba(255,255,255,.6) !important}
+.hero-cinema h1{
+  font-size:clamp(46px,4.6vw,76px) !important;
+  text-align:left !important;
+  margin:0 0 18px !important;
+  line-height:1.02 !important;
+}
+.hero-cinema h1 .l1,.hero-cinema h1 .l2{display:block !important;margin-left:0 !important}
+.hero-cinema .sub{
+  text-align:left !important;
+  margin:0 0 36px !important;
+  max-width:420px !important;
+  font-size:15.5px !important;
+  line-height:1.65 !important;
+  color:rgba(255,255,255,.78) !important;
+}
+.hero-cinema .cta-row{justify-content:flex-start !important;margin:0 !important}
+
+/* Scroll cue : caché — il polluait la composition */
+.hero-cinema .scroll-cue{display:none !important}
+
+/* Tablette : empile photo en haut + texte en bas */
+@media (max-width:1024px){
+  .hero-cinema{
+    grid-template-columns:1fr !important;
+    grid-template-rows:1fr auto !important;
+    padding:110px 40px 60px !important;
+    gap:40px !important;
+  }
+  .hero-cinema .bg{min-height:42vh}
+  .hero-cinema h1{font-size:clamp(40px,7vw,60px) !important}
+  .hero-cinema .content,.hero-cinema .eyebrow,.hero-cinema h1,.hero-cinema .sub,.hero-cinema .cta-row{text-align:center !important;justify-content:center !important}
+  .hero-cinema .sub{margin-left:auto !important;margin-right:auto !important}
+}
+
+/* Mobile : photo plus petite + texte propre */
+@media (max-width:768px){
+  .hero-cinema{padding:100px 24px 50px !important;gap:30px !important}
+  .hero-cinema .bg{min-height:36vh}
+  .hero-cinema h1{font-size:clamp(40px,10vw,56px) !important}
+  .hero-cinema .sub{font-size:14.5px !important;max-width:100% !important}
+  .hero-cinema .cta-row{flex-direction:column !important;gap:12px !important}
+  .hero-cinema .cta-row .btn{width:100%}
+}
