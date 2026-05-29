@@ -53,33 +53,34 @@ function generateInvoicePDF(order){
     const logoPath = path.join(__dirname, 'assets', 'logo_black_trim.png');
     try {
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 55, 50, { height: 58 });
+        doc.image(logoPath, 55, 50, { height: 54 });
       } else {
-        doc.font('Helvetica-Bold').fontSize(28).fillColor(NOIR).text('ELLIA  PARIS', 55, 58);
+        doc.font('Helvetica-Bold').fontSize(26).fillColor(NOIR).text('ELLIA  PARIS', 55, 58);
       }
     } catch(_) {
-      doc.font('Helvetica-Bold').fontSize(28).fillColor(NOIR).text('ELLIA  PARIS', 55, 58);
+      doc.font('Helvetica-Bold').fontSize(26).fillColor(NOIR).text('ELLIA  PARIS', 55, 58);
     }
 
     doc.font('Helvetica').fontSize(8).fillColor(GRIS2)
-       .text('MAISON DE MAROQUINERIE  ·  PARIS', 55, 118, { characterSpacing: 1.6 });
+       .text('MAISON DE MAROQUINERIE  ·  PARIS', 55, 114, { characterSpacing: 1.6 });
 
-    // FACTURE bloc droite
+    // FACTURE bloc droite — colonne large pour ne PAS wrap
+    const rcolX = 340, rcolW = 200; // 540-340 = 200 pt
     doc.font('Helvetica').fontSize(9).fillColor(GRIS2)
-       .text('FACTURE', 400, 60, { width:140, align:'right', characterSpacing:3 });
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(NOIR)
-       .text(s(order.invoice_number) || '—', 400, 75, { width:140, align:'right' });
+       .text('FACTURE', rcolX, 60, { width:rcolW, align:'right', characterSpacing:3 });
+    doc.font('Helvetica-Bold').fontSize(17).fillColor(NOIR)
+       .text(s(order.invoice_number) || '—', rcolX, 76, { width:rcolW, align:'right', lineBreak:false });
     doc.font('Helvetica').fontSize(9).fillColor(GRIS)
-       .text('Date : ' + dateFr(order.invoice_date || new Date()), 400, 102, { width:140, align:'right' });
+       .text('Date : ' + dateFr(order.invoice_date || new Date()), rcolX, 102, { width:rcolW, align:'right' });
     if(order.numero){
-      doc.text('Commande : ' + order.numero, 400, 116, { width:140, align:'right' });
+      doc.text('Commande : ' + order.numero, rcolX, 116, { width:rcolW, align:'right' });
     }
 
     // Ligne separation
-    doc.moveTo(55, 148).lineTo(540, 148).strokeColor(LIGNE).lineWidth(0.8).stroke();
+    doc.moveTo(55, 140).lineTo(540, 140).strokeColor(LIGNE).lineWidth(0.8).stroke();
 
     /* ---------- VENDEUR / CLIENT ---------- */
-    const yBlocks = 168;
+    const yBlocks = 160;
     // VENDEUR
     doc.font('Helvetica').fontSize(8).fillColor(GRIS2)
        .text('VENDEUR', 55, yBlocks, { characterSpacing:1.8 });
@@ -208,6 +209,13 @@ function generateInvoicePDF(order){
     doc.text(legal, 55, footY+10, { width:485, align:'center', lineGap:2 });
     doc.font('Helvetica-Bold').fontSize(8).fillColor(NOIR)
        .text('Merci de votre confiance', 55, footY+44, { width:485, align:'center', characterSpacing:1.4 });
+
+    doc.end();
+  });
+}
+
+module.exports = { generateInvoicePDF, eur, dateFr };
+:485, align:'center', characterSpacing:1.4 });
 
     doc.end();
   });

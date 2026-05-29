@@ -293,13 +293,22 @@ async function getOrders(){
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
+    client_prenom:r.client_prenom||'', client_nom:r.client_nom||'',
     email:r.client_email||'', telephone:r.telephone||'',
     initiales:r.initiales||'—', finition:r.finition||'—', emplacement:r.emplacement||'', total:Number(r.montant_total), statut:r.statut,
     suivi:r.suivi||'', transporteur:r.transporteur||'',
     invoice_number:r.invoice_number||'', manual:!!r.manual_order,
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
+    adresse_livraison:r.adresse_livraison||'', cp_livraison:r.cp_livraison||'', ville_livraison:r.ville_livraison||'', pays_livraison:r.pays_livraison||'France',
+    adresse_facturation:r.adresse_facturation||'', cp_facturation:r.cp_facturation||'', ville_facturation:r.ville_facturation||'', pays_facturation:r.pays_facturation||'France',
     adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
     adresseFact:j(r.adresse_facturation,r.cp_facturation,r.ville_facturation,r.pays_facturation) }));
+}
+
+async function getOrderFull(numero){
+  if(!USE_DB) return null;
+  const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=*');
+  return (rows && rows[0]) || null;
 }
 async function getStats(){
   if(!USE_DB) return MOCK_STATS;
@@ -506,9 +515,55 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         const upd = {};
+        // Statut + livraison
         if(d.statut!==undefined) upd.statut = clean(d.statut, 40);
         if(d.suivi!==undefined) upd.suivi = clean(d.suivi, 60);
         if(d.transporteur!==undefined) upd.transporteur = clean(d.transporteur, 40);
+        // Client
+        if(d.client_prenom!==undefined) upd.client_prenom = clean(d.client_prenom, 80);
+        if(d.client_nom!==undefined)    upd.client_nom    = clean(d.client_nom, 120);
+        if(d.client_email!==undefined)  upd.client_email  = clean(String(d.client_email||'').toLowerCase(), 254);
+        if(d.telephone!==undefined)     upd.telephone     = clean(d.telephone, 30);
+        // Adresses
+        if(d.adresse_livraison!==undefined) upd.adresse_livraison = clean(d.adresse_livraison, 200);
+        if(d.cp_livraison!==undefined)      upd.cp_livraison      = clean(d.cp_livraison, 20);
+        if(d.ville_livraison!==undefined)   upd.ville_livraison   = clean(d.ville_livraison, 80);
+        if(d.pays_livraison!==undefined)    upd.pays_livraison    = clean(d.pays_livraison, 60) || 'France';
+        if(d.adresse_facturation!==undefined) upd.adresse_facturation = clean(d.adresse_facturation, 200);
+        if(d.cp_facturation!==undefined)      upd.cp_facturation      = clean(d.cp_facturation, 20);
+        if(d.ville_facturation!==undefined)   upd.ville_facturation   = clean(d.ville_facturation, 80);
+        if(d.pays_facturation!==undefined)    upd.pays_facturation    = clean(d.pays_facturation, 60) || 'France';
+        // Personnalisation
+        if(d.initiales!==undefined)   upd.initiales   = clean(d.initiales, 20);
+        if(d.finition!==undefined)    upd.finition    = clean(d.finition, 40);
+        if(d.emplacement!==undefined) upd.emplacement = clean(d.emplacement, 40);
+        // Paiement + notes
+        if(d.payment_method!==undefined) upd.payment_method = clean(d.payment_method, 40);
+        if(d.payment_status!==undefined) upd.payment_status = clean(d.payment_status, 30);
+        if(d.notes_admin!==undefined)    upd.notes_admin    = clean(d.notes_admin, 500);
+        // Montants (optionnels — pour ajustements manuels)
+        if(d.prix_pochette!==undefined)         upd.prix_pochette = Math.max(0, Math.min(100000, Number(d.prix_pochette)||0));
+        if(d.prix_personnalisation!==undefined) upd.prix_personnalisation = Math.max(0, Math.min(100000, Number(d.prix_personnalisation)||0));
+        if(d.frais_port!==undefined)            upd.frais_port = Math.max(0, Math.min(1000, Number(d.frais_port)||0));
+        if(d.tva_rate!==undefined)              upd.tva_rate = Math.max(0, Math.min(100, Number(d.tva_rate)||0));
+        if(d.quantite!==undefined)              upd.quantite = Math.max(1, Math.min(100, Number(d.quantite)||1));
+        // Recalcul total TTC si les composantes ont change
+        if (upd.prix_pochette!==undefined || upd.prix_personnalisation!==undefined || upd.frais_port!==undefined || upd.quantite!==undefined || upd.tva_rate!==undefined){
+          try {
+            const cur = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=prix_pochette,prix_personnalisation,frais_port,quantite,tva_rate');
+            const o = (cur && cur[0]) || {};
+            const pP = upd.prix_pochette!=null ? upd.prix_pochette : Number(o.prix_pochette||0);
+            const pX = upd.prix_personnalisation!=null ? upd.prix_personnalisation : Number(o.prix_personnalisation||0);
+            const pT = upd.frais_port!=null ? upd.frais_port : Number(o.frais_port||0);
+            const qte= upd.quantite!=null ? upd.quantite : Number(o.quantite||1);
+            const tva= upd.tva_rate!=null ? upd.tva_rate : Number(o.tva_rate!=null?o.tva_rate:20);
+            const ttc = (pP + pX) * qte + pT;
+            const ht  = ttc / (1 + tva/100);
+            upd.montant_total = Number(ttc.toFixed(2));
+            upd.montant_ht    = Number(ht.toFixed(2));
+            upd.montant_tva   = Number((ttc - ht).toFixed(2));
+          } catch(_){}
+        }
         if(Object.keys(upd).length) await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
 
         let invoice_sent_now = false;
@@ -625,6 +680,14 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res,{ ok:true, numero, invoice_number, mail_client:mailSent, mail_archive:archiveSent, order: created });
       }
 
+      /* ----- Fetch d'une commande complete pour edition ----- */
+      if (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && !pathname.endsWith('/invoice')){
+        const numero = pathname.split('/').pop();
+        const o = await getOrderFull(numero);
+        if(!o) return sendJSON(res,{ error:'introuvable' }, 404);
+        return sendJSON(res, o);
+      }
+
       /* ----- Téléchargement / reimpression de la facture PDF ----- */
       if (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && pathname.endsWith('/invoice')){
         if(!invoiceMod) return sendJSON(res,{ error:'pdf_indisponible' }, 500);
@@ -682,4 +745,105 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]'));
   console.log('Admin : http://localhost:' + PORT + '/admin   (mot de passe : ' + (process.env.ADMIN_PASSWORD ? '****' : 'ellia2026 — a changer') + ')');
+});
+          prix_pochette,
+          prix_personnalisation,
+          frais_port,
+          tva_rate: tva,
+          montant_ht:  Number(totalHT.toFixed(2)),
+          montant_tva: Number(totalTVA.toFixed(2)),
+          montant_total: Number(totalTTC.toFixed(2)),
+          payment_method: clean(d.payment_method, 40) || null,
+          payment_status: clean(d.payment_status, 30) || 'En attente',
+          payment_date: d.payment_status === 'Payé' ? new Date().toISOString() : null,
+          notes_admin: clean(d.notes_admin, 500) || null,
+          statut: clean(d.statut, 40) || 'Nouvelle'
+        };
+
+        let created = null;
+        try {
+          const ins = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
+          created = (ins && ins[0]) || null;
+        } catch(e){
+          return sendJSON(res,{ ok:false, error:'db', detail:String(e.message||e) }, 500);
+        }
+
+        // 4) Envoi facture UNIQUEMENT si la commande est creee en statut "Expediee"
+        let mailSent = false, archiveSent = false;
+        const statutKey = (row.statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+        if (statutKey.startsWith('expedi')) {
+          const res2 = await sendInvoiceForOrder({ ...row });
+          mailSent = res2.client; archiveSent = res2.archive;
+        }
+
+        return sendJSON(res,{ ok:true, numero, invoice_number, mail_client:mailSent, mail_archive:archiveSent, order: created });
+      }
+
+      /* ----- Fetch d'une commande complete pour edition ----- */
+      if (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && !pathname.endsWith('/invoice')){
+        const numero = pathname.split('/').pop();
+        const o = await getOrderFull(numero);
+        if(!o) return sendJSON(res,{ error:'introuvable' }, 404);
+        return sendJSON(res, o);
+      }
+
+      /* ----- Téléchargement / reimpression de la facture PDF ----- */
+      if (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && pathname.endsWith('/invoice')){
+        if(!invoiceMod) return sendJSON(res,{ error:'pdf_indisponible' }, 500);
+        const numero = pathname.split('/')[4];
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=*');
+        const o = rows && rows[0];
+        if(!o) return sendJSON(res,{ error:'introuvable' }, 404);
+        try {
+          const pdfBuf = await invoiceMod.generateInvoicePDF({ ...o, invoice_date: o.created_at });
+          res.setHeader('Content-Type','application/pdf');
+          res.setHeader('Content-Disposition','inline; filename="'+(o.invoice_number||numero)+'.pdf"');
+          res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
+          return res.end(pdfBuf);
+        } catch(e){
+          console.warn('PDF KO :', e.message);
+          return sendJSON(res,{ error:'pdf_failed' }, 500);
+        }
+      }
+
+      return sendJSON(res,{ error:'route inconnue' },404);
+    }catch(e){
+      const msg = String(e.message||e);
+      console.error('[API error]', req.method, pathname, '—', msg);
+      if(msg === 'body_too_large') return sendJSON(res,{ error:'payload_trop_volumineux' }, 413);
+      return sendJSON(res,{ error:'erreur_serveur' }, 500);
+    }
+  }
+
+  if (pathname==='/admin' || pathname==='/admin/'){
+    pathname = isAuthed(req) ? '/admin.html' : '/admin-login.html';
+  }
+
+  if (pathname === '/') pathname = '/index.html';
+  const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
+  const file = path.join(ROOT, safe);
+  if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
+  fs.readFile(file, (err, buf) => {
+    if (err) {
+      fs.readFile(path.join(ROOT,'404.html'),(e2,html)=>{
+        res.statusCode = 404;
+        res.setHeader('Content-Type','text/html; charset=utf-8');
+        res.end(e2 ? '<h1 style="font-family:serif">404 — page introuvable</h1>' : html);
+      });
+      return;
+    }
+    const ext = path.extname(file).toLowerCase();
+    if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
+    else res.setHeader('Cache-Control','public, max-age=86400, immutable');
+    res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
+    res.end(buf);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]'));
+  console.log('Admin : http://localhost:' + PORT + '/admin   (mot de passe : ' + (process.env.ADMIN_PASSWORD ? '****' : 'ellia2026 — a changer') + ')');
+});
+nv.ADMIN_PASSWORD ? '****' : 'ellia2026— a changer') + ')');
 });
