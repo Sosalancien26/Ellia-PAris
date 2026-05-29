@@ -138,6 +138,8 @@
     <button class="tab" data-tab="newOrder">Nouvelle commande</button>
     <button class="tab" data-tab="stock">Stock</button>
     <button class="tab" data-tab="compta">Comptabilité</button>
+    <button class="tab" data-tab="promo">Codes promo</button>
+    <button class="tab" data-tab="securite">Sécurité</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -343,7 +345,64 @@
     </div>
   </div>
 
+
+  <!-- CODES PROMO -->
+  <div class="panel" id="promo">
+    <div class="card">
+      <h3>Codes promotionnels</h3>
+      <div class="csub">Crée et gère des codes de réduction pour tes campagnes (Instagram, influencer, ventes flash).</div>
+      <form id="promoForm" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;align-items:end">
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Code (max 40 car.)</label><input name="code" type="text" required maxlength="40" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;text-transform:uppercase;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Type</label><select name="discount_type" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"><option value="percent">Pourcentage (%)</option><option value="fixed">Montant fixe (€)</option><option value="shipping">Livraison offerte</option></select></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Valeur</label><input name="discount_value" type="number" min="0" step="0.01" value="10" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Commande min. (€)</label><input name="min_order" type="number" min="0" step="0.01" value="0" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Nb utilisations max</label><input name="max_uses" type="number" min="1" placeholder="∞ (illimité)" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Expire le</label><input name="expires_at" type="date" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Description (interne)</label><input name="description" type="text" maxlength="200" placeholder="Ex : Influencer Marie, lancement Noël..." style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="grid-column:1/-1;display:flex;gap:12px;align-items:center">
+          <button type="submit" style="font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;border:none;background:var(--noir);color:#fff;cursor:pointer">Créer le code</button>
+          <span id="promoMsg" style="font-size:13px"></span>
+        </div>
+      </form>
+      <h4 style="font-family:var(--serif);font-size:18px;margin:20px 0 14px">Codes actifs</h4>
+      <div id="promoList"></div>
+    </div>
+  </div>
+
+  <!-- SECURITE -->
+  <div class="panel" id="securite">
+    <div class="card">
+      <h3>Sécurité de l'admin</h3>
+      <div class="csub">Active la double authentification (2FA) pour protéger ton back-office.</div>
+      <div id="sec2faStatus" style="padding:16px 18px;background:#fbf6e8;color:#7a6320;border-left:3px solid #ecdfbd;margin-bottom:18px;font-size:13.5px">Chargement…</div>
+      <div id="sec2faSetup" style="display:none;background:#fff;border:1px solid var(--ligne);padding:24px">
+        <h4 style="font-family:var(--serif);font-size:18px;margin-bottom:10px">Activer la double authentification</h4>
+        <p style="font-size:13.5px;color:var(--gris);line-height:1.6;margin-bottom:18px">1. Télécharge <b>Google Authenticator</b>, <b>Microsoft Authenticator</b> ou <b>1Password</b> sur ton téléphone.<br>2. Scanne le QR code ci-dessous (ou saisis manuellement la clé secrète).<br>3. Entre le code à 6 chiffres généré pour confirmer.</p>
+        <div id="sec2faQrZone" style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px">
+          <div id="sec2faQr"></div>
+          <div style="flex:1;min-width:240px">
+            <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:8px">Clé secrète manuelle</div>
+            <code id="sec2faSecret" style="display:block;padding:10px 12px;background:var(--ivoire);font-family:monospace;font-size:13px;word-break:break-all;margin-bottom:14px"></code>
+            <input id="sec2faCode" type="text" inputmode="numeric" maxlength="6" placeholder="Code à 6 chiffres" style="width:100%;padding:11px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:18px;text-align:center;letter-spacing:6px;background:#fafaf7;margin-bottom:10px">
+            <button id="sec2faEnable" style="width:100%;font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px;border:none;background:var(--noir);color:#fff;cursor:pointer">Activer la 2FA</button>
+            <div id="sec2faSetupMsg" style="font-size:13px;margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+      <div id="sec2faDisable" style="display:none;background:#fff;border:1px solid var(--ligne);padding:24px">
+        <h4 style="font-family:var(--serif);font-size:18px;margin-bottom:10px;color:var(--vert)">✓ 2FA activée</h4>
+        <p style="font-size:13.5px;color:var(--gris);line-height:1.6;margin-bottom:18px">À chaque connexion à l'admin, tu devras saisir un code à 6 chiffres généré par ton application.</p>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <input id="sec2faCodeDisable" type="text" inputmode="numeric" maxlength="6" placeholder="Code à 6 chiffres" style="padding:11px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:16px;text-align:center;letter-spacing:4px;background:#fafaf7;width:160px">
+          <button id="sec2faDisableBtn" style="font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 18px;border:1px solid #b1432f;background:#fff;color:#b1432f;cursor:pointer">Désactiver la 2FA</button>
+          <span id="sec2faDisableMsg" style="font-size:13px"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div class="ord-modal" id="ordModal"><div class="ord-modal-box" id="ordModalBox"></div></div>
-<script src="admin.js?v=25"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="admin.js?v=26"></script>
 </body>
 </html>

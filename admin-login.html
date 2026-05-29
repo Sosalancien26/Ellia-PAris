@@ -40,8 +40,20 @@
   document.getElementById('f').addEventListener('submit', async ()=>{
     const err=document.getElementById('err'); err.textContent='';
     try{
-      const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('pw').value})});
-      if(r.ok){ location.href='/admin'; } else { err.textContent='Mot de passe incorrect.'; }
+      const pw = document.getElementById('pw').value;
+      const code = document.getElementById('twofa') ? document.getElementById('twofa').value : '';
+      const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw, code:code})});
+      const j = await r.json().catch(()=>({}));
+      if(r.ok && j.ok){ location.href='/admin'; }
+      else if(j.need_2fa){
+        if(!document.getElementById('twofa')){
+          const div = document.createElement('div');
+          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;padding:14px 16px;border:1px solid rgba(0,0,0,.12);font-family:var(--sans);font-size:20px;text-align:center;letter-spacing:8px;background:#fafaf7">';
+          document.getElementById('pw').parentElement.parentElement.insertBefore(div, document.querySelector('button'));
+          err.textContent = ''; err.style.color = '#8a857d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
+        } else { err.style.color = '#b1432f'; err.textContent = j.error || 'Code incorrect.'; }
+      }
+      else { err.style.color='#b1432f'; err.textContent = j.error || 'Mot de passe incorrect.'; }
     }catch(e){ err.textContent='Connexion impossible (lancez le serveur : npm start).'; }
   });
 </script>

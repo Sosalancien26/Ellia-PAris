@@ -24,6 +24,12 @@ catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
 let comptaMod = null;
 try { comptaMod = require('./compta'); }
 catch(e){ console.warn('Module compta.js indisponible :', e.message); }
+let promoMod = null;
+try { promoMod = require('./promo'); }
+catch(e){ console.warn('Module promo.js indisponible :', e.message); }
+let totpMod = null;
+try { totpMod = require('./totp'); }
+catch(e){ console.warn('Module totp.js indisponible :', e.message); }
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -327,6 +333,30 @@ async function getStats(){
   return { ca_total, commandes, panier_moyen, taux_perso, ca_mois: ca_mois.length?ca_mois:[] };
 }
 
+
+/* Helpers admin_settings (TOTP) */
+async function getAdminSetting(key){
+  if(!USE_DB) return null;
+  try { const r = await sb('admin_settings?key=eq.'+encodeURIComponent(key)+'&select=value'); return r && r[0] ? r[0].value : null; }
+  catch(_){ return null; }
+}
+async function setAdminSetting(key, value){
+  if(!USE_DB) return false;
+  try {
+    const existing = await sb('admin_settings?key=eq.'+encodeURIComponent(key));
+    if(existing && existing.length){
+      await sb('admin_settings?key=eq.'+encodeURIComponent(key), { method:'PATCH', body:{ value, updated_at:new Date().toISOString() } });
+    } else {
+      await sb('admin_settings', { method:'POST', body:{ key, value } });
+    }
+    return true;
+  } catch(_){ return false; }
+}
+async function deleteAdminSetting(key){
+  if(!USE_DB) return false;
+  try { await sb('admin_settings?key=eq.'+encodeURIComponent(key), { method:'DELETE' }); return true; } catch(_){ return false; }
+}
+
 /* ----- Helpers ----- */
 const MAX_BODY = 64 * 1024;
 function sendJSON(res, obj, code){ if(code) res.statusCode=code; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
@@ -381,11 +411,15 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='POST' && pathname==='/api/login'){
         if(!rateAllowed('login', clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
-        if (d.password === ADMIN_PASSWORD){
-          res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
-          return sendJSON(res,{ ok:true });
+        if (d.password !== ADMIN_PASSWORD) return sendJSON(res,{ ok:false, error:'Mot de passe incorrect' },401);
+        // 2FA si configure
+        const totpSecret = await getAdminSetting('totp_secret');
+        if (totpSecret && totpMod) {
+          if (!d.code) return sendJSON(res,{ ok:false, need_2fa:true });
+          if (!totpMod.verify(totpSecret, d.code, 1)) return sendJSON(res,{ ok:false, error:'Code à 6 chiffres invalide', need_2fa:true }, 401);
         }
-        return sendJSON(res,{ ok:false, error:'Mot de passe incorrect' },401);
+        res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
+        return sendJSON(res,{ ok:true });
       }
       if (req.method==='POST' && pathname==='/api/logout'){
         res.setHeader('Set-Cookie','ellia_session=; HttpOnly;'+cookieSec+' Path=/; Max-Age=0');
@@ -514,6 +548,13 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
       }
 
+      if (USE_DB && promoMod && req.method==='POST' && pathname==='/api/promo/validate'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        try {
+          const r = await promoMod.validatePromoCode(sb, d.code, Number(d.amount||0));
+          return sendJSON(res, r);
+        } catch(e){ return sendJSON(res,{ valid:false, error:'failed' },500); }
+      }
       if (!isAuthed(req)) return sendJSON(res,{ error:'non autorise' },401);
 
       if (req.method==='GET' && pathname==='/api/stats')  return sendJSON(res, await getStats());
@@ -750,6 +791,54 @@ const server = http.createServer(async (req, res) => {
           res.setHeader('Content-Disposition','attachment; filename="factures-' + year + '.csv"');
           return res.end(csv);
         } catch(e){ return sendJSON(res,{ error:'csv_failed', detail:String(e.message||e) }, 500); }
+      }
+
+      /* ----- PROMO CODES (admin) ----- */
+      if (USE_DB && promoMod && req.method==='GET' && pathname==='/api/admin/promo'){
+        try { return sendJSON(res, await promoMod.listPromoCodes(sb)); }
+        catch(e){ return sendJSON(res,{ error:'failed' },500); }
+      }
+      if (USE_DB && promoMod && req.method==='POST' && pathname==='/api/admin/promo'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        try { const r = await promoMod.createPromoCode(sb, d); return sendJSON(res,{ ok:true, promo:r && r[0] }); }
+        catch(e){ return sendJSON(res,{ ok:false, error:String(e.message||e) },400); }
+      }
+      if (USE_DB && promoMod && req.method==='PATCH' && pathname.startsWith('/api/admin/promo/')){
+        const code = pathname.split('/').pop();
+        const d = JSON.parse((await readBody(req))||'{}');
+        try { await promoMod.togglePromoCode(sb, code, !!d.active); return sendJSON(res,{ ok:true }); }
+        catch(e){ return sendJSON(res,{ ok:false, error:'failed' },500); }
+      }
+      if (USE_DB && promoMod && req.method==='DELETE' && pathname.startsWith('/api/admin/promo/')){
+        const code = pathname.split('/').pop();
+        try { await promoMod.deletePromoCode(sb, code); return sendJSON(res,{ ok:true }); }
+        catch(e){ return sendJSON(res,{ ok:false, error:'failed' },500); }
+      }
+
+      /* ----- 2FA admin (TOTP) ----- */
+      if (totpMod && req.method==='GET' && pathname==='/api/admin/2fa/status'){
+        const sec = await getAdminSetting('totp_secret');
+        return sendJSON(res,{ enabled: !!sec });
+      }
+      if (totpMod && req.method==='POST' && pathname==='/api/admin/2fa/setup'){
+        const secret = totpMod.generateSecret();
+        const uri = totpMod.otpauthUri(secret, process.env.SMTP_USER || 'admin@ellia-paris.fr', 'ELLIA PARIS');
+        return sendJSON(res,{ secret, uri });
+      }
+      if (totpMod && req.method==='POST' && pathname==='/api/admin/2fa/enable'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        if (!d.secret || !d.code) return sendJSON(res,{ ok:false, error:'missing_params' },400);
+        if (!totpMod.verify(d.secret, d.code, 1)) return sendJSON(res,{ ok:false, error:'invalid_code' },400);
+        await setAdminSetting('totp_secret', d.secret);
+        return sendJSON(res,{ ok:true });
+      }
+      if (totpMod && req.method==='POST' && pathname==='/api/admin/2fa/disable'){
+        const d = JSON.parse((await readBody(req))||'{}');
+        const existing = await getAdminSetting('totp_secret');
+        if (!existing) return sendJSON(res,{ ok:true });
+        if (!totpMod.verify(existing, d.code||'', 1)) return sendJSON(res,{ ok:false, error:'invalid_code' },400);
+        await deleteAdminSetting('totp_secret');
+        return sendJSON(res,{ ok:true });
       }
 
       return sendJSON(res,{ error:'route inconnue' },404);

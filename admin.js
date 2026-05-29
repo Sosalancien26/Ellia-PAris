@@ -456,6 +456,158 @@
     document.querySelector('.tab[data-tab="compta"]')?.addEventListener('click', loadCompta);
   })();
 
+  
+
+  /* ============================================================
+     CODES PROMO — CRUD admin
+     ============================================================ */
+  (function(){
+    const form = document.getElementById('promoForm');
+    if(!form) return;
+    const list = document.getElementById('promoList');
+    const msg = document.getElementById('promoMsg');
+
+    async function reload(){
+      try {
+        const r = await fetch('/api/admin/promo',{cache:'no-store'});
+        const codes = await r.json();
+        if(!Array.isArray(codes)){ list.innerHTML = '<div style="color:var(--gris)">Erreur de chargement.</div>'; return; }
+        if(codes.length === 0){ list.innerHTML = '<div style="color:var(--gris);padding:20px 0">Aucun code promo créé pour le moment.</div>'; return; }
+        list.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr><th>Code</th><th>Type</th><th>Valeur</th><th>Min</th><th>Utilisé</th><th>Expire</th><th>Statut</th><th></th></tr></thead><tbody>' +
+          codes.map(c => {
+            const exp = c.expires_at ? new Date(c.expires_at).toLocaleDateString('fr-FR') : '∞';
+            const used = (c.used_count||0) + (c.max_uses ? ' / '+c.max_uses : ' / ∞');
+            let val = '';
+            if(c.discount_type==='percent') val = c.discount_value+' %';
+            else if(c.discount_type==='fixed') val = Number(c.discount_value).toFixed(2)+' €';
+            else if(c.discount_type==='shipping') val = 'Port offert';
+            return '<tr>'+
+              '<td><b style="font-family:monospace;font-size:13px">'+c.code+'</b>'+(c.description?'<br><span style="font-size:11px;color:var(--gris)">'+c.description+'</span>':'')+'</td>'+
+              '<td>'+c.discount_type+'</td>'+
+              '<td><b>'+val+'</b></td>'+
+              '<td>'+(c.min_order>0 ? Number(c.min_order).toFixed(2)+' €' : '—')+'</td>'+
+              '<td>'+used+'</td>'+
+              '<td>'+exp+'</td>'+
+              '<td><span style="display:inline-block;padding:3px 9px;border-radius:2px;font-size:11px;background:'+(c.active?'var(--vert-bg)':'#f5f5f5')+';color:'+(c.active?'var(--vert)':'var(--gris2)')+'">'+(c.active?'Actif':'Inactif')+'</span></td>'+
+              '<td style="text-align:right;white-space:nowrap"><button data-toggle="'+c.code+'" data-state="'+(c.active?1:0)+'" style="border:1px solid var(--ligne);background:#fff;padding:5px 10px;font-size:11px;cursor:pointer;margin-right:4px">'+(c.active?'Désactiver':'Activer')+'</button>'+
+              '<button data-del="'+c.code+'" style="border:1px solid #b1432f;background:#fff;color:#b1432f;padding:5px 10px;font-size:11px;cursor:pointer">Suppr.</button></td>'+
+              '</tr>';
+          }).join('') + '</tbody></table>';
+
+        list.querySelectorAll('[data-toggle]').forEach(btn => btn.addEventListener('click', async ()=>{
+          const code = btn.dataset.toggle; const active = btn.dataset.state !== '1';
+          await fetch('/api/admin/promo/'+encodeURIComponent(code), { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({active}) });
+          reload();
+        }));
+        list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async ()=>{
+          if(!confirm('Supprimer le code "'+btn.dataset.del+'" ?')) return;
+          await fetch('/api/admin/promo/'+encodeURIComponent(btn.dataset.del), { method:'DELETE' });
+          reload();
+        }));
+      } catch(e){ list.innerHTML = '<div style="color:#b1432f">Erreur : '+e.message+'</div>'; }
+    }
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      msg.textContent = ''; msg.style.color = '';
+      const data = {};
+      new FormData(form).forEach((v,k) => { data[k] = typeof v === 'string' ? v.trim() : v; });
+      if(data.expires_at) data.expires_at = new Date(data.expires_at).toISOString();
+      if(!data.max_uses) delete data.max_uses;
+      try {
+        const r = await fetch('/api/admin/promo', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+        const j = await r.json().catch(()=>({}));
+        if(r.ok && j.ok){
+          msg.style.color = 'var(--vert)'; msg.textContent = '✓ Code créé';
+          form.reset();
+          reload();
+        } else {
+          msg.style.color = '#b1432f'; msg.textContent = 'Erreur : ' + (j.error || 'inconnue');
+        }
+      } catch(err){ msg.style.color = '#b1432f'; msg.textContent = 'Connexion impossible'; }
+    });
+
+    document.querySelector('.tab[data-tab="promo"]')?.addEventListener('click', reload);
+  })();
+
+  /* ============================================================
+     2FA — Setup / Enable / Disable
+     ============================================================ */
+  (function(){
+    const status = document.getElementById('sec2faStatus');
+    if(!status) return;
+    let pendingSecret = null;
+
+    async function refresh(){
+      try {
+        const r = await fetch('/api/admin/2fa/status', { cache:'no-store' });
+        const j = await r.json();
+        if(j.enabled){
+          status.style.background = 'var(--vert-bg)'; status.style.color = 'var(--vert)'; status.style.borderColor = 'var(--vert)';
+          status.innerHTML = '✓ <b>Double authentification ACTIVÉE</b> — Tu dois entrer un code à 6 chiffres à chaque connexion.';
+          document.getElementById('sec2faSetup').style.display = 'none';
+          document.getElementById('sec2faDisable').style.display = 'block';
+        } else {
+          status.style.background = '#fbf6e8'; status.style.color = '#7a6320'; status.style.borderColor = '#ecdfbd';
+          status.innerHTML = '⚠ <b>2FA non activée.</b> Recommandé pour protéger ton admin.';
+          document.getElementById('sec2faSetup').style.display = 'none';
+          document.getElementById('sec2faDisable').style.display = 'none';
+          // Bouton pour démarrer le setup
+          if(!document.getElementById('sec2faStartBtn')){
+            const btn = document.createElement('button');
+            btn.id = 'sec2faStartBtn';
+            btn.textContent = 'Activer la 2FA';
+            btn.style.cssText = 'font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;border:none;background:var(--noir);color:#fff;cursor:pointer';
+            btn.addEventListener('click', startSetup);
+            status.parentNode.insertBefore(btn, document.getElementById('sec2faSetup'));
+          }
+        }
+      } catch(e){ status.textContent = 'Erreur de chargement.'; }
+    }
+
+    async function startSetup(){
+      const r = await fetch('/api/admin/2fa/setup', { method:'POST' });
+      const j = await r.json();
+      if(!j.secret) return;
+      pendingSecret = j.secret;
+      document.getElementById('sec2faSecret').textContent = j.secret;
+      // QR Code via qrcode-generator
+      const qrDiv = document.getElementById('sec2faQr');
+      qrDiv.innerHTML = '';
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(j.uri); qr.make();
+        qrDiv.innerHTML = qr.createImgTag(5, 8);
+      } catch(_){ qrDiv.innerHTML = '<div style="color:var(--gris);padding:20px;border:1px dashed var(--ligne)">Saisis la clé manuellement</div>'; }
+      document.getElementById('sec2faSetup').style.display = 'block';
+      const startBtn = document.getElementById('sec2faStartBtn'); if(startBtn) startBtn.remove();
+    }
+
+    document.getElementById('sec2faEnable').addEventListener('click', async ()=>{
+      const code = document.getElementById('sec2faCode').value.trim();
+      const m = document.getElementById('sec2faSetupMsg');
+      if(!pendingSecret || code.length !== 6){ m.style.color='#b1432f'; m.textContent='Code à 6 chiffres requis.'; return; }
+      const r = await fetch('/api/admin/2fa/enable', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ secret: pendingSecret, code }) });
+      const j = await r.json();
+      if(r.ok && j.ok){ m.style.color='var(--vert)'; m.textContent='✓ 2FA activée'; setTimeout(refresh, 800); }
+      else { m.style.color='#b1432f'; m.textContent = 'Code invalide. Vérifie l\'heure de ton téléphone.'; }
+    });
+
+    document.getElementById('sec2faDisableBtn').addEventListener('click', async ()=>{
+      const code = document.getElementById('sec2faCodeDisable').value.trim();
+      const m = document.getElementById('sec2faDisableMsg');
+      if(!confirm('Désactiver la 2FA ?')) return;
+      const r = await fetch('/api/admin/2fa/disable', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code }) });
+      const j = await r.json();
+      if(r.ok && j.ok){ m.style.color='var(--vert)'; m.textContent='✓ 2FA désactivée'; setTimeout(refresh, 800); }
+      else { m.style.color='#b1432f'; m.textContent = 'Code invalide.'; }
+    });
+
+    document.querySelector('.tab[data-tab="securite"]')?.addEventListener('click', refresh);
+    // Initial load si onglet activé par défaut
+    if(document.getElementById('securite')?.classList.contains('active')) refresh();
+  })();
+
   /* Deconnexion */
   const lo=document.getElementById('logout');
   if(lo) lo.addEventListener('click',async e=>{ e.preventDefault(); try{await fetch('/api/logout',{method:'POST'});}catch(_){} location.href='/admin'; });
