@@ -789,3 +789,67 @@ html{overflow-x:hidden}
       linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 75%,rgba(0,0,0,.85) 100%) !important;
   }
 }
+
+/* ============ HERO V4 — moins zoom + bois visible + texte horizontal en bas ============ */
+/* Hero plus court pour laisser respirer la photo (object-fit cover zoome moins) */
+.hero-cinema{
+  min-height:88vh !important;
+  align-items:flex-end !important;
+  padding:140px 60px 70px !important;
+  justify-content:center !important;
+}
+/* Photo : moins de zoom Ken Burns et plus de bois visible */
+.hero-cinema .bg img{
+  object-position:30% 35% !important; /* recadré pour montrer la pochette + le bois */
+  animation:heroKenSubtle2 32s ease-in-out infinite alternate !important;
+}
+@keyframes heroKenSubtle2{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.02)}
+}
+/* Voile minimal : juste de quoi lire le texte en bas, le reste limpide */
+.hero-cinema .veil{
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 85%,rgba(0,0,0,.78) 100%) !important;
+}
+
+/* TEXTE — nouvelle disposition : horizontal en bas, centré, plus chic */
+.hero-cinema .content{
+  max-width:1100px !important;
+  width:100%;
+  text-align:center;
+  padding:0 !important;
+}
+.hero-cinema .eyebrow{
+  text-align:center;
+  margin-bottom:18px;
+}
+.hero-cinema h1{
+  font-size:clamp(48px,5.2vw,82px) !important;
+  text-align:center;
+  margin:0 0 16px !important;
+  line-height:1 !important;
+}
+.hero-cinema h1 .l1,.hero-cinema h1 .l2{display:inline !important}
+.hero-cinema h1 .l2{margin-left:14px}
+.hero-cinema .sub{
+  text-align:center;
+  margin:0 auto 32px !important;
+  max-width:520px !important;
+  font-size:15px !important;
+  line-height:1.6 !important;
+}
+.hero-cinema .cta-row{
+  justify-content:center;
+  margin-top:0 !important;
+}
+
+@media (max-width:1024px){
+  .hero-cinema{padding:140px 40px 70px !important;min-height:90vh !important}
+  .hero-cinema h1{font-size:clamp(40px,7vw,60px) !important}
+}
+@media (max-width:768px){
+  .hero-cinema{padding:120px 24px 80px !important;min-height:92vh !important}
+  .hero-cinema h1{font-size:clamp(40px,10vw,56px) !important}
+  .hero-cinema .sub{font-size:14.5px !important;max-width:100% !important}
+  .hero-cinema h1 .l1,.hero-cinema h1 .l2{display:block !important;margin-left:0}
+}
