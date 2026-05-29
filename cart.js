@@ -66,3 +66,66 @@
     }catch(e){}
   });
 })();
+
+/* ===== AVIS CLIENTS ===== */
+(function(){
+  function star(n){var s='';for(var i=0;i<5;i++)s+=(i<n?'★':'☆');return s;}
+  function fmtDate(s){try{var d=new Date(s);return d.toLocaleDateString('fr-FR',{year:'numeric',month:'long'});}catch(_){return s||'';}}
+  function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}
+  function render(list){
+    var box=document.getElementById('reviewsList');if(!box)return;
+    if(!list||!list.length){box.innerHTML='<div class="reviews-empty">Soyez la première à partager votre expérience.</div>';return;}
+    box.innerHTML=list.map(function(r){
+      return '<div class="review-card">'+
+        '<div class="rv-head"><div class="rv-author">'+escapeHtml(r.prenom||'Anonyme')+'</div><div class="rv-date">'+fmtDate(r.created_at)+'</div></div>'+
+        '<div class="rv-rating">'+star(r.note||5)+'</div>'+
+        (r.titre?'<div class="rv-title">« '+escapeHtml(r.titre)+' »</div>':'')+
+        '<div class="rv-comment">'+escapeHtml(r.commentaire||'')+'</div>'+
+        '<div class="rv-verified">Avis vérifié</div>'+
+      '</div>';
+    }).join('');
+  }
+  function renderSummary(list){
+    var score=document.getElementById('rsScore'),count=document.getElementById('rsCount');
+    if(!score||!count)return;
+    if(!list||!list.length){score.textContent='—';count.textContent='0';return;}
+    var avg=list.reduce(function(s,r){return s+Number(r.note||0);},0)/list.length;
+    score.textContent=(Math.round(avg*10)/10).toFixed(1);
+    count.textContent=list.length;
+  }
+  async function loadReviews(){
+    if(!document.getElementById('reviewsList'))return;
+    try{
+      var r=await fetch('/api/reviews');
+      var j=await r.json();
+      var list=Array.isArray(j.reviews)?j.reviews:[];
+      render(list);renderSummary(list);
+    }catch(_){
+      render([]);renderSummary([]);
+    }
+  }
+  document.addEventListener('DOMContentLoaded',loadReviews);
+
+  document.addEventListener('submit',async function(e){
+    var f=e.target;if(!f||f.id!=='reviewForm')return;
+    e.preventDefault();
+    var btn=document.getElementById('rvSubmit'),msg=document.getElementById('rvMsg');
+    msg.className='cf-msg';msg.textContent='';
+    var data={};new FormData(f).forEach(function(v,k){data[k]=v;});
+    if(!data.prenom||!data.email||!data.note||!data.commentaire||!data.rgpd){
+      msg.className='cf-msg err';msg.textContent='Merci de remplir tous les champs requis.';return;
+    }
+    if(data.commentaire.length<20){msg.className='cf-msg err';msg.textContent='Votre avis doit contenir au moins 20 caractères.';return;}
+    var old=btn.textContent;btn.disabled=true;btn.textContent='Envoi…';
+    try{
+      var r=await fetch('/api/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      if(r.ok){
+        msg.className='cf-msg ok';msg.textContent='✓ Merci ! Votre avis sera publié après modération.';
+        f.reset();
+      }else{
+        msg.className='cf-msg err';msg.textContent='Une erreur est survenue. Merci de réessayer.';
+      }
+    }catch(_){msg.className='cf-msg err';msg.textContent='Connexion impossible.';}
+    btn.disabled=false;btn.textContent=old;
+  });
+})();

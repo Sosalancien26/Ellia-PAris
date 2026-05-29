@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact — ELLIA PARIS</title>
+<meta name="description" content="Contactez la Maison ELLIA PARIS. Nos conseillers vous répondent sous 24 heures ouvrées." />
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=21">
+</head>
+<body>
+
+<div id="preloader"><div class="pl-scan"><img class="pl-logo-base" src="assets/picto_black_trim.png" alt="" /><img class="pl-logo-fill" src="assets/picto_black_trim.png" alt="ELLIA PARIS" /><div class="pl-beam"></div></div><div class="pl-line">ELLIA&nbsp;&nbsp;PARIS</div></div>
+
+<header id="header" class="solid">
+  <div class="bar">
+    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <nav class="links">
+      <a href="index.html">Accueil</a>
+      <a href="pochette.html">La Pochette</a>
+      <a href="personnalisation.html">Personnalisation</a>
+      <a href="maison.html">Maison</a>
+    </nav>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+  </div>
+</header>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
+
+<section class="page-hero page-top">
+  <div class="wrap">
+    <div class="breadcrumb reveal"><a href="index.html">Accueil</a> · Contact</div>
+    <div class="reveal"><div class="eyebrow" style="margin-top:24px">Un échange privilégié</div><h1>Nous écrire</h1><p>Nos conseillers sont à votre disposition pour toute question — personnalisation, livraison, entretien. Réponse sous 24 heures ouvrées.</p></div>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap" style="max-width:1080px">
+    <div class="contact-grid">
+      <!-- Colonne formulaire -->
+      <div class="reveal">
+        <div class="eyebrow" style="margin-bottom:18px">Formulaire</div>
+        <h2 style="font-family:var(--serif);font-size:32px;margin-bottom:8px">Votre message</h2>
+        <p style="color:var(--gris-clair);font-size:15px;margin-bottom:30px">Décrivez-nous votre demande avec autant de précision que possible.</p>
+
+        <form id="contactForm" class="contact-form" novalidate>
+          <div class="cf-row">
+            <label>
+              <span>Nom complet *</span>
+              <input type="text" name="nom" required maxlength="80" autocomplete="name" />
+            </label>
+            <label>
+              <span>Adresse e-mail *</span>
+              <input type="email" name="email" required maxlength="120" autocomplete="email" />
+            </label>
+          </div>
+          <label>
+            <span>Sujet *</span>
+            <select name="sujet" required>
+              <option value="">Choisir un sujet…</option>
+              <option value="commande">Question sur une commande</option>
+              <option value="personnalisation">Personnalisation</option>
+              <option value="livraison">Livraison & retours</option>
+              <option value="entretien">Entretien & SAV</option>
+              <option value="presse">Presse & partenariats</option>
+              <option value="autre">Autre demande</option>
+            </select>
+          </label>
+          <label>
+            <span>Numéro de commande (optionnel)</span>
+            <input type="text" name="commande" maxlength="40" placeholder="EP-XXXXXX" />
+          </label>
+          <label>
+            <span>Votre message *</span>
+            <textarea name="message" required minlength="10" maxlength="2000" rows="7"></textarea>
+          </label>
+          <div class="cf-rgpd">
+            <label class="cf-check">
+              <input type="checkbox" name="rgpd" required />
+              <span>J'accepte que mes données soient utilisées pour traiter ma demande. <a href="confidentialite.html">Politique de confidentialité</a></span>
+            </label>
+          </div>
+          <button type="submit" class="btn solid" id="cfSubmit">Envoyer le message</button>
+          <div class="cf-msg" id="cfMsg"></div>
+        </form>
+      </div>
+
+      <!-- Colonne infos -->
+      <aside class="reveal contact-aside">
+        <div class="eyebrow" style="margin-bottom:18px">Nous joindre</div>
+
+        <div class="ca-block">
+          <h3>E-mail</h3>
+          <p><a href="mailto:contact@ellia-paris.fr">contact@ellia-paris.fr</a></p>
+          <small>Réponse sous 24 heures ouvrées</small>
+        </div>
+
+        <div class="ca-block">
+          <h3>Service client</h3>
+          <p>Du lundi au vendredi<br>10h — 18h (heure de Paris)</p>
+        </div>
+
+        <div class="ca-block">
+          <h3>Suivi de commande</h3>
+          <p>Consultez l'état de votre commande à tout moment dans votre <a href="compte.html">espace personnel</a>.</p>
+        </div>
+
+        <div class="ca-block">
+          <h3>Personnalisation</h3>
+          <p>Pour un projet sur-mesure ou une demande spécifique, indiquez "Personnalisation" comme sujet de votre message.</p>
+        </div>
+
+        <div class="ca-block">
+          <h3>Presse & partenariats</h3>
+          <p><a href="mailto:presse@ellia-paris.fr">presse@ellia-paris.fr</a></p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><img class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
+      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h4>Suivez-nous</h4><ul><li><a href="#" rel="noopener" target="_blank">Instagram</a></li><li><a href="#" rel="noopener" target="_blank">TikTok</a></li><li><a href="#" rel="noopener" target="_blank">Pinterest</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 ELLIA PARIS — Tous droits réservés.</div>
+      <div><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var f=document.getElementById('contactForm'),btn=document.getElementById('cfSubmit'),msg=document.getElementById('cfMsg');
+  if(!f) return;
+  f.addEventListener('submit', async function(e){
+    e.preventDefault();
+    msg.className='cf-msg';msg.textContent='';
+    var data={};
+    new FormData(f).forEach(function(v,k){data[k]=v;});
+    if(!data.nom||!data.email||!data.sujet||!data.message||!data.rgpd){
+      msg.className='cf-msg err';msg.textContent='Veuillez remplir tous les champs requis.';return;
+    }
+    if(data.message.length<10){msg.className='cf-msg err';msg.textContent='Votre message doit contenir au moins 10 caractères.';return;}
+    var old=btn.textContent;btn.disabled=true;btn.textContent='Envoi en cours…';
+    try{
+      var r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      if(r.ok){
+        msg.className='cf-msg ok';msg.textContent='✓ Votre message a bien été envoyé. Nous vous répondons sous 24 heures ouvrées.';
+        f.reset();
+      } else {
+        var j=await r.json().catch(function(){return{};});
+        msg.className='cf-msg err';msg.textContent=j.error==='rate_limit'?'Trop de messages envoyés. Veuillez réessayer dans quelques minutes.':'Une erreur est survenue. Merci de réessayer ou de nous écrire directement à contact@ellia-paris.fr';
+      }
+    }catch(_){
+      msg.className='cf-msg err';msg.textContent='Connexion impossible. Merci de réessayer.';
+    }
+    btn.disabled=false;btn.textContent=old;
+  });
+})();
+</script>
+<script src="app.js?v=21"></script>
+<script src="cart.js?v=21"></script>
+</body>
+</html>

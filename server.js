@@ -29,11 +29,13 @@ const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
 /* Rate-limit generique en memoire (par IP, par bucket) */
-const RATE = { login: new Map(), newsletter: new Map(), orders: new Map() };
+const RATE = { login: new Map(), newsletter: new Map(), orders: new Map(), contact: new Map(), reviews: new Map() };
 const RATE_LIMITS = {
   login:      { max: 5,  window: 5*60*1000 },
   newsletter: { max: 5,  window: 60*60*1000 },
-  orders:     { max: 10, window: 60*60*1000 }
+  orders:     { max: 10, window: 60*60*1000 },
+  contact:    { max: 3,  window: 60*60*1000 },
+  reviews:    { max: 5,  window: 24*60*60*1000 }
 };
 function rateAllowed(bucket, ip){
   const cfg = RATE_LIMITS[bucket]; if(!cfg) return true;
@@ -88,15 +90,18 @@ const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_
 function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner){
-  return '<div style="margin:0;padding:30px 12px;background:#f3f1ec">' +
-  '<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e6e3dc">' +
-    '<div style="text-align:center;padding:30px 0 20px;border-bottom:1px solid #efece6">' +
-      '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:44px;width:auto" />' +
+  return '<div style="margin:0;padding:40px 12px;background:#f3f1ec">' +
+  '<div style="max-width:580px;margin:0 auto;background:#ffffff;box-shadow:0 30px 60px -25px rgba(0,0,0,.12)">' +
+    '<div style="text-align:center;padding:36px 0 14px">' +
+      '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:46px;width:auto" />' +
+      '<div style="margin-top:14px;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#8a857d">Maison de maroquinerie · Paris</div>' +
     '</div>' +
-    '<div style="padding:34px 40px;font-family:Georgia,\'Times New Roman\',serif;color:#0d0d0d;font-size:16px;line-height:1.6">' + inner + '</div>' +
-    '<div style="padding:22px 40px;border-top:1px solid #efece6;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.06em;color:#8a857d">' +
-      'ELLIA PARIS — Maison de maroquinerie · Paris<br/>' +
-      '<a href="https://ellia-paris.fr" style="color:#8a857d;text-decoration:none">ellia-paris.fr</a>' +
+    '<div style="height:1px;background:#efece6;margin:0 40px"></div>' +
+    '<div style="padding:36px 44px 40px;font-family:Georgia,\'Times New Roman\',serif;color:#0d0d0d;font-size:16px;line-height:1.65">' + inner + '</div>' +
+    '<div style="background:#0d0d0d;padding:28px 44px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.18em;color:#bdb8af">' +
+      '<div style="margin-bottom:10px;color:#ffffff;letter-spacing:.4em">ELLIA &nbsp; PARIS</div>' +
+      '<div style="margin-bottom:14px"><a href="https://ellia-paris.fr" style="color:#bdb8af;text-decoration:none">ellia-paris.fr</a> · <a href="https://ellia-paris.fr/contact.html" style="color:#bdb8af;text-decoration:none">Contact</a> · <a href="https://ellia-paris.fr/entretien.html" style="color:#bdb8af;text-decoration:none">Entretien</a></div>' +
+      '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© 2026 ELLIA PARIS — Tous droits réservés.</div>' +
     '</div>' +
   '</div></div>';
 }
@@ -303,6 +308,80 @@ const server = http.createServer(async (req, res) => {
         if(!isEmail(email)) return sendJSON(res,{ ok:false, error:'invalid' }, 400);
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         try{ await sb('newsletters',{ method:'POST', body:{ email } }); }catch(e){}
+        return sendJSON(res,{ ok:true });
+      }
+
+      if (req.method==='POST' && pathname==='/api/contact'){
+        if(!rateAllowed('contact', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate_limit' }, 429);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const nom     = clean(String(d.nom||'').trim()).slice(0,80);
+        const cEmail  = String(d.email||'').trim().toLowerCase();
+        const sujet   = clean(String(d.sujet||'').trim()).slice(0,40);
+        const cmd     = clean(String(d.commande||'').trim()).slice(0,40);
+        const message = clean(String(d.message||'').trim()).slice(0,2000);
+        const rgpd    = !!d.rgpd;
+        if(!nom || !isEmail(cEmail) || !sujet || message.length<10 || !rgpd){
+          return sendJSON(res,{ ok:false, error:'invalid' }, 400);
+        }
+        const subjects = {commande:'Question sur une commande',personnalisation:'Personnalisation',livraison:'Livraison & retours',entretien:'Entretien & SAV',presse:'Presse & partenariats',autre:'Autre demande'};
+        const sujLabel = subjects[sujet] || sujet;
+        const escapeMsg = String(message).replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])).replace(/\n/g,'<br>');
+        const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
+        const innerAdmin = '<h2 style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;margin:0 0 18px">Nouveau message — ' + sujLabel + '</h2>' +
+          '<table style="width:100%;border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif">' +
+            '<tr><td style="padding:8px 0;color:#666;width:140px">Nom</td><td style="padding:8px 0;color:#0d0d0d"><b>' + nom + '</b></td></tr>' +
+            '<tr><td style="padding:8px 0;color:#666">E-mail</td><td style="padding:8px 0"><a href="mailto:' + cEmail + '" style="color:#0d0d0d">' + cEmail + '</a></td></tr>' +
+            '<tr><td style="padding:8px 0;color:#666">Sujet</td><td style="padding:8px 0;color:#0d0d0d">' + sujLabel + '</td></tr>' +
+            (cmd ? '<tr><td style="padding:8px 0;color:#666">Commande</td><td style="padding:8px 0;color:#0d0d0d">' + cmd + '</td></tr>' : '') +
+          '</table>' +
+          '<div style="margin-top:24px;padding:20px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14.5px;line-height:1.6;color:#333">' + escapeMsg + '</div>' +
+          '<p style="margin-top:24px;font-size:12px;color:#999;font-family:Arial,sans-serif">Pour répondre : cliquer sur l\'adresse e-mail ci-dessus.</p>';
+        if (adminMail) sendMail(adminMail, '[ELLIA PARIS] ' + sujLabel + ' — ' + nom, emailLayout(innerAdmin));
+        const innerClient = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre message est bien reçu</h1>' +
+          '<p style="margin:0 0 14px">Bonjour ' + nom + ',</p>' +
+          '<p style="margin:0 0 14px">Nous avons bien reçu votre demande et nos conseillers vous répondront sous <b>24 heures ouvrées</b>.</p>' +
+          '<p style="margin:0 0 8px;font-size:14px;font-family:Arial,sans-serif;color:#56524c">Rappel de votre message :</p>' +
+          '<div style="margin-top:8px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14px;line-height:1.6;color:#555;font-style:italic;font-family:Georgia,serif">' + escapeMsg + '</div>' +
+          '<p style="margin:28px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+        sendMail(cEmail, 'Votre message a bien été reçu — ELLIA PARIS', emailLayout(innerClient));
+        return sendJSON(res,{ ok:true });
+      }
+
+      if (req.method==='GET' && pathname==='/api/reviews'){
+        if(!USE_DB){
+          // Demo data si pas de DB
+          return sendJSON(res,{ reviews:[
+            {prenom:'Camille',note:5,titre:'Un objet d\'exception',commentaire:'La qualité du cuir et la finition de la plaque chromée sont absolument remarquables. Le verrouillage biométrique fonctionne à merveille et la gravure de mes initiales est d\'une précision impressionnante. Un investissement qui vaut chaque euro.',created_at:'2026-04-22T10:00:00Z',validated:true},
+            {prenom:'Élodie',note:5,titre:'Discrète et raffinée',commentaire:'J\'aime particulièrement le côté discret de la fermeture biométrique — on ne la remarque qu\'au second regard. La pochette accompagne aussi bien mes tenues du soir que celles de tous les jours.',created_at:'2026-04-18T14:30:00Z',validated:true},
+            {prenom:'Margaux',note:4,titre:'Belle pièce',commentaire:'Très satisfaite de l\'achat. L\'écrin est magnifique, le cuir vraiment qualitatif. Petit bémol sur le délai de livraison, un peu long, mais l\'attente en vaut la peine.',created_at:'2026-04-10T09:15:00Z',validated:true},
+            {prenom:'Pauline',note:5,titre:'Service client au top',commentaire:'J\'ai eu une question sur la personnalisation, l\'équipe a été d\'une grande disponibilité. Le résultat dépasse mes attentes : finition impeccable, et le picto Ellia gravé sur la plaque est superbe.',created_at:'2026-03-28T16:45:00Z',validated:true}
+          ]});
+        }
+        try{
+          const rows = await sb('reviews?validated=eq.true&order=created_at.desc&limit=50',{ method:'GET' });
+          return sendJSON(res,{ reviews: rows||[] });
+        }catch(e){ return sendJSON(res,{ reviews:[] }); }
+      }
+
+      if (req.method==='POST' && pathname==='/api/reviews'){
+        if(!rateAllowed('reviews', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate_limit' }, 429);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const prenom     = clean(String(d.prenom||'').trim()).slice(0,40);
+        const rEmail     = String(d.email||'').trim().toLowerCase();
+        const note       = Math.max(1, Math.min(5, parseInt(d.note,10)||0));
+        const titre      = clean(String(d.titre||'').trim()).slice(0,80);
+        const commentaire= clean(String(d.commentaire||'').trim()).slice(0,1000);
+        const rgpd       = !!d.rgpd;
+        if(!prenom || !isEmail(rEmail) || !note || commentaire.length<20 || !rgpd){
+          return sendJSON(res,{ ok:false, error:'invalid' }, 400);
+        }
+        const row = { prenom, email:rEmail, note, titre, commentaire, validated:false, ref_produit:'ELLIA-NOIR', created_at:new Date().toISOString() };
+        if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
+        try{
+          await sb('reviews',{ method:'POST', body:row });
+          const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
+          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + prenom + '</b> (' + rEmail + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + titre + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
+        }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         return sendJSON(res,{ ok:true });
       }
 

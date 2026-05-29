@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a></div>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
 <section class="pad page-top" style="padding-bottom:90px">
   <div class="wrap">
@@ -119,7 +119,7 @@
       <div class="bio-visual reveal">
         <img loading="lazy" decoding="async" src="assets/pochette-hero.jpg?v=8" alt="Pochette ELLIA PARIS tenue à la main — capteur biométrique en situation" />
         <div class="fp"><div class="scan"></div>
-          <img class="fp-icon" src="assets/picto_black_trim.png?v=20" alt="" />
+          <img class="fp-icon" src="assets/picto_black_trim.png?v=21" alt="" />
         </div>
       </div>
     </div>
@@ -161,6 +161,60 @@
   </div></div>
 </section>
 
+<!-- AVIS CLIENTS -->
+<section class="pad reviews-sec" id="avis">
+  <div class="wrap" style="max-width:980px">
+    <div class="section-head reveal" style="text-align:center;max-width:680px;margin:0 auto 50px">
+      <div class="eyebrow">Témoignages</div>
+      <h2>Avis de nos clients</h2>
+      <p>L'expérience ELLIA, racontée par celles et ceux qui la portent au quotidien.</p>
+    </div>
+
+    <div class="reviews-summary reveal" id="reviewsSummary">
+      <div class="rs-avg">
+        <div class="rs-num"><span id="rsScore">—</span><small>/5</small></div>
+        <div class="rs-stars" id="rsStars" aria-hidden="true">★★★★★</div>
+        <div class="rs-count"><span id="rsCount">0</span> avis vérifiés</div>
+      </div>
+      <a href="#avis-form" class="btn">Laisser un avis</a>
+    </div>
+
+    <div class="reviews-list" id="reviewsList">
+      <div class="reviews-loading">Chargement des avis…</div>
+    </div>
+
+    <details class="reviews-form-wrap reveal" id="avis-form">
+      <summary class="btn solid" style="display:inline-flex;cursor:pointer;list-style:none">Partager mon expérience</summary>
+      <form id="reviewForm" class="reviews-form" novalidate>
+        <p style="font-size:13.5px;color:var(--gris-clair);margin-bottom:18px">Votre avis sera publié après modération. Réservé aux clients ayant reçu leur pochette.</p>
+        <div class="cf-row">
+          <label><span>Prénom *</span><input type="text" name="prenom" required maxlength="40" /></label>
+          <label><span>Adresse e-mail *</span><input type="email" name="email" required maxlength="120" /></label>
+        </div>
+        <label><span>Note *</span>
+          <select name="note" required>
+            <option value="">Choisir une note</option>
+            <option value="5">★★★★★ — Excellent</option>
+            <option value="4">★★★★☆ — Très bien</option>
+            <option value="3">★★★☆☆ — Bien</option>
+            <option value="2">★★☆☆☆ — Moyen</option>
+            <option value="1">★☆☆☆☆ — Décevant</option>
+          </select>
+        </label>
+        <label><span>Titre (optionnel)</span><input type="text" name="titre" maxlength="80" placeholder="Ex : Un objet d'exception" /></label>
+        <label><span>Votre avis *</span>
+          <textarea name="commentaire" required minlength="20" maxlength="1000" rows="5" placeholder="Décrivez votre ressenti, l'usage au quotidien, la finition…"></textarea>
+        </label>
+        <div class="cf-rgpd">
+          <label class="cf-check"><input type="checkbox" name="rgpd" required /><span>J'accepte la publication de mon avis et l'utilisation de mes données. <a href="confidentialite.html">Confidentialité</a></span></label>
+        </div>
+        <button type="submit" class="btn solid" id="rvSubmit">Envoyer mon avis</button>
+        <div class="cf-msg" id="rvMsg"></div>
+      </form>
+    </details>
+  </div>
+</section>
+
 <footer id="contact">
   <div class="wrap">
     <div class="foot-grid">
@@ -176,7 +230,7 @@
   </div>
 </footer>
 
-<script src="app.js?v=20"></script>
-<script src="cart.js?v=20"></script>
+<script src="app.js?v=21"></script>
+<script src="cart.js?v=21"></script>
 </body>
 </html>
