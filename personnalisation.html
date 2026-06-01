@@ -207,7 +207,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=10', (gltf)=>{
+  loader.load('assets/pochette.glb?v=11', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
