@@ -711,8 +711,8 @@ function initConfigurator(){
       ctx.strokeText(txt, cx, cy + 1);
       ctx.restore();
 
-      // 2. FOIL DE BASE + STROKE pour epaissir les traits fins (ex: crossbar du A)
-      ctx.lineWidth = Math.max(8, fontSize * 0.025);  // epaisseur du stroke proportionelle
+      // 2. FOIL DE BASE — stroke leger pour preserver le dessin Marcellus, puis fill
+      ctx.lineWidth = Math.max(4, fontSize * 0.016);  // plus fin = lettres plus fideles a Marcellus
       ctx.strokeStyle = foilBase;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -720,37 +720,48 @@ function initConfigurator(){
       ctx.fillStyle = foilBase;
       ctx.fillText(txt, cx, cy);
 
-      // 3. OMBRE INTERNE BAS — tres legere ombre au bas pour effet pressee subtil
+      // 3. OMBRE INTERNE diagonale BAS-DROITE — effet relief 3D credible
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
-      const shade = ctx.createLinearGradient(0, cy, 0, cy + fontSize*0.55);
+      const shade = ctx.createLinearGradient(cx - fontSize*0.3, cy - fontSize*0.1, cx + fontSize*0.4, cy + fontSize*0.5);
       shade.addColorStop(0, 'rgba(0,0,0,0)');
-      shade.addColorStop(1, 'rgba(0,0,0,.22)');
+      shade.addColorStop(0.6, 'rgba(0,0,0,0)');
+      shade.addColorStop(1, 'rgba(0,0,0,.26)');
       ctx.fillStyle = shade;
       ctx.fillText(txt, cx, cy);
       ctx.restore();
 
-      // 4. REFLET HAUT — eclat naturel sur l'arete superieure (subtil)
+      // 4. REFLET diagonal HAUT-GAUCHE — la lumiere d'un studio frappe l'angle superieur gauche
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
-      const high = ctx.createLinearGradient(0, cy - fontSize*0.5, 0, cy + fontSize*0.1);
+      const high = ctx.createLinearGradient(cx - fontSize*0.5, cy - fontSize*0.5, cx + fontSize*0.2, cy + fontSize*0.1);
       high.addColorStop(0,   foilHi);
-      high.addColorStop(0.4, foilHi);
+      high.addColorStop(0.35, foilHi);
       high.addColorStop(1,   'rgba(255,255,255,0)');
       ctx.fillStyle = high;
-      ctx.globalAlpha = 0.32;
+      ctx.globalAlpha = 0.38;
       ctx.fillText(txt, cx, cy);
       ctx.globalAlpha = 1;
       ctx.restore();
 
-      // 5. RIM TOP — fin liseré clair (foil propre)
+      // 5. RIM TOP — fin liseré clair (le bord superieur du foil pressee)
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.8;
       ctx.strokeStyle = foilHi;
-      ctx.globalAlpha = 0.28;
+      ctx.globalAlpha = 0.32;
       ctx.strokeText(txt, cx, cy - 1);
       ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // 6. MICRO-GRAIN du foil : tres legere variation pour eviter l'effet "plastique"
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = 'rgba(255,255,255,.04)';
+      const grain = Math.max(3, Math.floor(fontSize * 0.06));
+      for (let i = 0; i < 30; i++) {
+        ctx.fillRect(cx - fontSize + Math.random()*fontSize*2, cy - fontSize*0.4 + Math.random()*fontSize*0.8, grain, 1);
+      }
       ctx.restore();
     }
   }
