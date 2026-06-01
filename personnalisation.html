@@ -201,7 +201,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=5', (gltf)=>{
+  loader.load('assets/pochette.glb?v=6', (gltf)=>{
     const obj = gltf.scene;
     // Normalise la taille du modèle (peu importe l'échelle d'export)
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -219,38 +219,35 @@ function initConfigurator(){
     obj.position.y -= bbox3.min.y;
     obj.position.y -= 0.085;
     const leatherMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0a0a0a,
+      color: 0x080808,
       metalness: 0.0,
-      roughness: 0.55,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.55,
-      envMapIntensity: 1.0,
-      side: THREE.FrontSide,
-      flatShading: false
+      roughness: 0.92,
+      envMapIntensity: 0.45,
+      side: THREE.FrontSide
     });
     const chromeMat = new THREE.MeshPhysicalMaterial({
       color: 0xeaeaea,
       metalness: 1.0,
-      roughness: 0.18,
-      envMapIntensity: 1.4,
+      roughness: 0.22,
+      envMapIntensity: 1.2,
       side: THREE.FrontSide
     });
     const innerMat = new THREE.MeshPhysicalMaterial({
-      color: 0x141414,
+      color: 0x121212,
       metalness: 0.0,
-      roughness: 0.85,
+      roughness: 0.95,
+      envMapIntensity: 0.35,
       side: THREE.FrontSide
     });
     window.__chromeMat = chromeMat;
     window.__leatherMat = leatherMat;
 
-    // GARDE les normales du modeleur (pas de computeVertexNormals — sinon artefacts)
     obj.traverse(o=>{
       if(!o.isMesh) return;
       const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
-      if (tris > 20000)      o.material = leatherMat;   // corps cuir
-      else if (tris > 5000)  o.material = innerMat;     // doublure / 2eme face
-      else                   o.material = chromeMat;    // hardware metallique
+      if (tris > 20000)      o.material = leatherMat;
+      else if (tris > 5000)  o.material = innerMat;
+      else                   o.material = chromeMat;
       if(tris > 20000) pochetteMesh = o;
     });
     scene.add(obj);
