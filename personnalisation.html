@@ -386,19 +386,18 @@ function initConfigurator(){
         ).replace(
           '#include <roughnessmap_fragment>',
           '#include <roughnessmap_fragment>\n' +
-          // La gravure foil est tres lisse (roughness basse = brillante)
-          'roughnessFactor = mix(roughnessFactor, 0.15, _engA * 0.95);'
+          // Surface lisse (basse rugosite) au niveau de la gravure
+          'roughnessFactor = mix(roughnessFactor, 0.22, _engA * 0.92);'
         ).replace(
           '#include <metalnessmap_fragment>',
           '#include <metalnessmap_fragment>\n' +
-          // Foil = metallique
-          'metalnessFactor = mix(metalnessFactor, 0.85, _engA * 0.85);'
+          // Metalness modere : assez pour briller, pas trop pour preserver les couleurs visibles
+          'metalnessFactor = mix(metalnessFactor, 0.55, _engA * 0.75);'
         ).replace(
           '#include <normal_fragment_maps>',
           '#include <normal_fragment_maps>\n' +
-          // CRUCIAL : a l'endroit de la gravure, on aplati la normale pour effacer
-          // les grains du cuir. Le foil devient lisse comme un metal poli.
-          'normal = normalize(mix(normal, normalize(vNormal), _engA * 0.95));'
+          // Aplatit la normale pour effacer les grains du cuir au niveau de la gravure
+          'normal = normalize(mix(normal, normalize(vNormal), _engA * 0.90));'
         );
 
         cuirMat.userData.shader = shader;
