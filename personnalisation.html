@@ -49,7 +49,7 @@
   <div class="wrap">
     <div class="perso-grid">
       <div class="perso-preview reveal" id="persoPreview" style="background:transparent;border:none;box-shadow:none;padding:0">
-        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#ffffff 0%,#f3efe6 65%,#e6dfd1 100%);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
+        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 50%,#c4bdae 100%);box-shadow:inset 0 0 80px rgba(0,0,0,.08);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
         <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px">Glissez pour tourner · molette pour zoomer</div>
         <div id="engrave" style="display:none">A·B</div>
         <div id="monoFinish" style="display:none">Finition Or</div>
@@ -403,38 +403,69 @@ function initConfigurator(){
     ctx.clearRect(0,0,W,H);
     const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
     if(!initials) { engraveTex.needsUpdate = true; return; }
-    // Format luxe : separateur point fin entre lettres (ex: N·B)
     const txt = initials.split('').join('·');
     const f = FINISHES[state.finish] || FINISHES.or;
     const col = '#'+f.hex.toString(16).padStart(6,'0');
-    // Police serif lettres CAPITALES — comme sur les photos client
-    ctx.font = '700 500px "Cormorant Garamond", "Times New Roman", serif';
+
+    // Police serif majuscules — taille adaptée au nb de lettres (2 lettres = plus grande)
+    const fontSize = initials.length <= 2 ? 620 : 520;
+    ctx.font = '700 ' + fontSize + 'px "Cormorant Garamond", "Times New Roman", serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
+    const cx = W/2, cy = H/2;
+
     if (state.finish === 'aveugle'){
-      // Gravure aveugle : effet emboss subtil
-      ctx.globalAlpha = 0.18;
+      // === GRAVURE AVEUGLE (embossage cuir, pas de couleur) ===
+      // Ombre creusée pour effet emboss naturel
+      ctx.globalAlpha = 0.65;
       ctx.fillStyle = '#000';
-      ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
-      ctx.fillText(txt, W/2, H/2 + 4);
-      ctx.shadowOffsetY = 0;
-      ctx.globalAlpha = 0.14;
-      ctx.fillStyle = '#fff';
-      ctx.fillText(txt, W/2, H/2 - 2);
+      ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 14; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 6;
+      ctx.fillText(txt, cx, cy + 6);
+      // Lumière supérieure (highlight)
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(txt, cx, cy - 4);
     } else {
-      // Or / Argent : couleur dorée vive
-      ctx.globalAlpha = 1;
-      ctx.shadowColor = col; ctx.shadowBlur = 22;
+      // === GRAVURE OR / ARGENT — effet métallique luxe ===
+      // Couche 1 : ombre portée sous la lettre (effet relief, comme estampée dans le cuir)
+      ctx.shadowColor = 'rgba(0,0,0,.55)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 5;
       ctx.fillStyle = col;
-      ctx.fillText(txt, W/2, H/2);
-      // Surlignage métallique
-      ctx.shadowBlur = 0;
-      const grad = ctx.createLinearGradient(0, H*0.4, 0, H*0.6);
-      grad.addColorStop(0, 'rgba(255,255,255,.45)');
-      grad.addColorStop(0.5, col);
-      grad.addColorStop(1, 'rgba(0,0,0,.25)');
+      ctx.globalAlpha = 1;
+      ctx.fillText(txt, cx, cy);
+
+      // Couche 2 : gradient métallique principal (3 stops pour effet doré profond)
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      const grad = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy + fontSize*0.45);
+      if (state.finish === 'or') {
+        grad.addColorStop(0,    '#fff5cc');     // reflet haut éclatant
+        grad.addColorStop(0.18, '#f4d36b');
+        grad.addColorStop(0.42, '#d4af37');     // or de base
+        grad.addColorStop(0.65, '#a8841e');     // creux ombré
+        grad.addColorStop(0.85, '#7a5e10');     // ombre profonde
+        grad.addColorStop(1,    '#3d2f08');     // base sombre
+      } else { // argent
+        grad.addColorStop(0,    '#ffffff');
+        grad.addColorStop(0.20, '#e8e8e8');
+        grad.addColorStop(0.45, '#c0c0c0');
+        grad.addColorStop(0.70, '#7d7d7d');
+        grad.addColorStop(1,    '#3a3a3a');
+      }
       ctx.fillStyle = grad;
-      ctx.fillText(txt, W/2, H/2);
+      ctx.fillText(txt, cx, cy);
+
+      // Couche 3 : highlight blanc en haut des lettres (brillance)
+      ctx.globalCompositeOperation = 'source-atop';
+      const high = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy - fontSize*0.10);
+      high.addColorStop(0, 'rgba(255,255,255,.7)');
+      high.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = high;
+      ctx.fillText(txt, cx, cy);
+      ctx.globalCompositeOperation = 'source-over';
     }
     engraveTex.needsUpdate = true;
   }
