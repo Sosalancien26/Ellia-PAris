@@ -29,11 +29,11 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 /* Preloader */
 #preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s}
 #preloader.done{opacity:0;visibility:hidden}
-#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.25);filter:blur(8px);animation:plTextZoom 3.4s cubic-bezier(.22,.61,.36,1) 1.0s forwards}
+#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 3.0s cubic-bezier(.22,.61,.36,1) 0.8s forwards}
 @keyframes plIn{to{opacity:1}}
 @keyframes plTextZoom{
-  0%   { opacity:0;   transform:scale(0.25); filter:blur(8px);   letter-spacing:0 }
-  100% { opacity:1;   transform:scale(1);    filter:blur(0);     letter-spacing:.42em }
+  0%   { opacity:0;   transform:scale(0.4) }
+  100% { opacity:1;   transform:scale(1) }
 }
 /* Scan d'empreinte : le faisceau descend et revele le logo */
 .pl-scan{position:relative;width:120px;height:150px}
@@ -552,17 +552,18 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   80%{top:194px;opacity:0}
   100%{opacity:0}
 }
-/* Texte ELLIA PARIS : zoom-in depuis loin, demarre pendant la scan (pas de pause) */
+/* Texte ELLIA PARIS : zoom-in fluide pendant la scan (GPU-friendly, sans blur) */
 #preloader .pl-line{
   margin-top:46px;
   font-size:42px;
   letter-spacing:.42em;
   color:var(--noir);
   opacity:0;
-  transform:scale(0.25);
-  filter:blur(8px);
-  animation:plTextZoom 3.4s cubic-bezier(.22,.61,.36,1) 1.0s forwards
+  transform:scale(0.4);
+  will-change:transform,opacity;
+  animation:plTextZoom 3.0s cubic-bezier(.22,.61,.36,1) 0.8s forwards
 }
+.pl-scan,.pl-scan img,.pl-beam{will-change:transform,opacity}
 
 /* Mobile : préloader proportionné */
 @media (max-width:768px){

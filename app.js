@@ -96,7 +96,7 @@
       }
       if(monoFinish)monoFinish.textContent='Finition '+names[color];
     }
-    input.addEventListener('input',function(){input.value=input.value.replace(/[^a-zA-Z]/g,'');paint();});
+    input.addEventListener('input',function(){paint();});
     document.querySelectorAll('#swatches .sw').forEach(function(s){s.addEventListener('click',function(){
       document.querySelectorAll('#swatches .sw').forEach(function(o){o.classList.remove('active');});
       s.classList.add('active');color=s.dataset.color;paint();
@@ -108,9 +108,30 @@
     var addBtn=document.getElementById('addPerso');
     if(addBtn) addBtn.addEventListener('click', async function(e){
       e.preventDefault();
-      var ini=fmt(input.value||'');
+      // Texte EXACT tape par le client (pas d'uppercase, pas de points ajoutes)
+      var rawText = input.value || '';
       var place=(document.querySelector('#placements .place-btn.active')||{}).textContent||'Centre';
-      var item={ref:'ELLIA-NOIR-PERSO',nom:'La Pochette Ellia - Noir',prix:218,initiales:ini||null,finition:names[color],emplacement:place};
+      // Capture 3D : screenshot du configurateur a l'instant T
+      var preview = null;
+      try {
+        var canvas3d = document.querySelector('#viewer3d canvas');
+        if (canvas3d) {
+          // Re-render avant capture pour avoir la derniere version
+          if (window.__forceRender) window.__forceRender();
+          preview = canvas3d.toDataURL('image/jpeg', 0.78);
+          if (preview && preview.length > 500000) preview = preview.substring(0, 0); // securite si trop gros, on n'envoie pas
+        }
+      } catch(err){ /* silencieux : la capture est best-effort */ }
+      var item = {
+        ref:'ELLIA-NOIR-PERSO',
+        nom:'La Pochette Ellia - Noir',
+        prix:218,
+        initiales: rawText || null,
+        finition: names[color],
+        emplacement: place,
+        flame: (window.__getFlameState ? window.__getFlameState() : null),
+        preview: preview
+      };
       var ok=true;
       if(window.Cart && Cart.tryAdd){ var r=await Cart.tryAdd(item); ok=r.ok; }
       else if(window.Cart){ Cart.add(item); }

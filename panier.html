@@ -53,9 +53,17 @@
 (function(){
   const list=document.getElementById('cartList'), foot=document.getElementById('cartFooter');
   const eur=n=>n.toLocaleString('fr-FR')+' €';
+  function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function persoTxt(it){
-    if(!it.initiales) return 'Sans gravure';
-    return 'Gravure : '+it.initiales+' · '+it.finition+' · '+it.emplacement;
+    if(!it.initiales && !(it.flame && it.flame.enabled)) return 'Sans gravure';
+    var parts=[];
+    if(it.initiales) parts.push('« '+esc(it.initiales)+' » · '+esc(it.finition||'')+' · '+esc(it.emplacement||''));
+    if(it.flame && it.flame.enabled) parts.push('Flamme : '+esc(it.flame.finish||'')+' · '+esc(it.flame.placement||''));
+    return 'Gravure : '+parts.join(' / ');
+  }
+  function previewImg(it){
+    if(!it.preview) return '';
+    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0" />';
   }
   function render(){
     const items=Cart.items();
@@ -64,7 +72,8 @@
       foot.innerHTML=''; return;
     }
     list.innerHTML=items.map((it,i)=>
-      '<div class="cart-line"><div><div class="nm">'+(it.nom||'La Pochette Ellia')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
+      '<div class="cart-line" style="align-items:center">'+previewImg(it)+
+      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette Ellia')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
       '<div class="pr">'+eur(it.prix)+'</div>'+
       '<button class="rm" data-i="'+i+'">Retirer</button></div>').join('');
     foot.innerHTML='<div class="cart-sum"><span class="l">Total</span><span class="v">'+eur(Cart.total())+'</span></div>'+

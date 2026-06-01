@@ -61,8 +61,8 @@
       </div>
       <div class="perso-panel reveal">
         <div class="block">
-          <span class="field-label">Vos initiales — 3 lettres max.</span>
-          <input class="initials-input" id="initials" maxlength="3" value="AB" placeholder="VOS INITIALES" />
+          <span class="field-label">Votre texte de gravure</span>
+          <input class="initials-input" id="initials" maxlength="18" value="AB" placeholder="VOTRE TEXTE" autocomplete="off" />
           <label for="hebrewToggle" style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:#5c5852;letter-spacing:.06em;user-select:none">
             <input type="checkbox" id="hebrewToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
             <span>Graver aussi une <strong style="color:#0d0d0d">flamme</strong> — <em>Aesh Sheli</em></span>
@@ -173,7 +173,7 @@ if (container && window.WebGLRenderingContext) initConfigurator();
 function initConfigurator(){
   const w = ()=>container.clientWidth, h = ()=>container.clientHeight||container.clientWidth;
 
-  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setSize(w(), h());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -747,9 +747,16 @@ function initConfigurator(){
     const ctx1 = engraveCanvas.getContext('2d');
     const W1 = engraveCanvas.width, H1 = engraveCanvas.height;
     ctx1.clearRect(0,0,W1,H1);
-    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
+    // On grave exactement ce que tape le client (pas d'upperCase ni de slice)
+    const initials = (state.initials||'');
     if (initials.length > 0) {
-      const fontSize = initials.length <= 2 ? 720 : 600;
+      // Taille de police adaptee a la longueur du texte
+      let fontSize;
+      if (initials.length <= 2)      fontSize = 720;
+      else if (initials.length <= 4) fontSize = 540;
+      else if (initials.length <= 6) fontSize = 420;
+      else if (initials.length <= 9) fontSize = 320;
+      else                           fontSize = 240;
       drawInitialsText(ctx1, W1/2, H1/2, initials, state.finish, fontSize);
     }
     engraveTex.needsUpdate = true;
@@ -773,11 +780,11 @@ function initConfigurator(){
   const initialsInput = document.getElementById('initials');
   if(initialsInput){
     initialsInput.addEventListener('input',()=>{
-      state.initials = initialsInput.value.replace(/[^a-zA-Z]/g,'').toUpperCase();
-      initialsInput.value = state.initials;
+      // Aucun filtre : on grave exactement ce que le client tape (lettres, chiffres, point, etc.)
+      state.initials = initialsInput.value;
       schedulePaint();
     });
-    state.initials = (initialsInput.value||'AB').toUpperCase();
+    state.initials = initialsInput.value || 'AB';
   }
   document.querySelectorAll('#swatches .sw').forEach(s=>{
     s.addEventListener('click',()=>{
@@ -838,6 +845,18 @@ function initConfigurator(){
     clearTimeout(_resizeT);
     _resizeT = setTimeout(resize, 80);
   });
+
+  // === Exposes pour la capture lors de l'ajout au panier ===
+  window.__forceRender = function(){
+    try { renderer.render(scene, camera); } catch(e){}
+  };
+  window.__getFlameState = function(){
+    return state.useHebrew ? {
+      enabled: true,
+      finish: state.flameFinish,
+      placement: state.flamePlacement
+    } : null;
+  };
 
   // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
   let visible = true;
