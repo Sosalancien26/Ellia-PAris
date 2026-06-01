@@ -71,13 +71,13 @@
           <span class="field-label">Emplacement</span>
           <div class="placements" id="placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <button class="place-btn" data-pos="hg">Haut gauche</button>
-            <button class="place-btn" data-pos="ht">Haut centre</button>
+            <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="hd">Haut droit</button>
             <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
             <button class="place-btn active" data-pos="centre">Centre</button>
             <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bg">Bas gauche</button>
-            <button class="place-btn" data-pos="bt">Bas centre</button>
+            <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
@@ -154,15 +154,15 @@ function initConfigurator(){
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
   const camera = new THREE.PerspectiveCamera(35, w()/h(), 0.05, 50);
-  camera.position.set(0.38, 0.16, 0.48);
+  camera.position.set(0.0, 0.12, 0.52);  // vue face avant
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.minDistance = 0.25;
   controls.maxDistance = 0.85;
-  controls.minPolarAngle = Math.PI*0.20;
-  controls.maxPolarAngle = Math.PI*0.78;
+  controls.minPolarAngle = Math.PI*0.15;
+  controls.maxPolarAngle = Math.PI*0.85;
   controls.target.set(0,0,0);
 
   // === Clean studio: one big neutral softbox + soft fill ===
@@ -207,7 +207,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=13', (gltf)=>{
+  loader.load('assets/pochette.glb?v=14', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -241,8 +241,8 @@ function initConfigurator(){
     const fsize = fbox.getSize(new THREE.Vector3());
     const fctr  = fbox.getCenter(new THREE.Vector3());
     // Plane gravure (taille ~30% largeur pochette pour visibilité)
-    const planeW = fsize.x * 0.32;
-    const planeH = planeW * 0.45;
+    const planeW = fsize.x * 0.55;
+    const planeH = planeW * 0.40;
     const engravePlane = new THREE.Mesh(
       new THREE.PlaneGeometry(planeW, planeH),
       new THREE.MeshBasicMaterial({
@@ -261,15 +261,7 @@ function initConfigurator(){
     scene.add(engravePlane);
     window.__engravePlane = engravePlane;
 
-    // === DEBUG : second plane on opposite face — pour voir où est le devant ===
-    const engravePlane2 = engravePlane.clone();
-    engravePlane2.material = engravePlane.material.clone();
-    engravePlane2.rotation.y = Math.PI;  // retourne pour faire face à -Z
-    engravePlane2.position.set(fctr.x, fctr.y, fbox.min.z - 0.0015);
-    engravePlane2.userData.frontZ = fbox.min.z - 0.0015;
-    engravePlane2.userData.box = { x:fbox.min.x, X:fbox.max.x, y:fbox.min.y, Y:fbox.max.y, z:fbox.min.z - 0.0015 };
-    scene.add(engravePlane2);
-    window.__engravePlane2 = engravePlane2;
+
 
     scene.add(obj);
     paint();
@@ -352,24 +344,21 @@ function initConfigurator(){
     if(!pochetteMesh) return;
     drawEngraving();
     // Repositionne l'overlay de gravure selon le placement choisi
-    // Update les 2 planes (avant + arriere pour debug)
-    [window.__engravePlane, window.__engravePlane2].forEach(p => {
-      if(!p) return;
-      const b = p.userData.box;
+    const p = window.__engravePlane;
+    if(!p) return;
+    const b = p.userData.box;
       const w = b.X - b.x, hH = b.Y - b.y;
-      const mx = w * 0.18, my = hH * 0.18;
-      const positions = {
-        centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
-        hg:     [ b.x + mx,           b.Y - my ],
-        ht:     [ (b.x + b.X)/2,      b.Y - my ],
-        hd:     [ b.X - mx,           b.Y - my ],
-        bg:     [ b.x + mx,           b.y + my ],
-        bt:     [ (b.x + b.X)/2,      b.y + my ],
-        bd:     [ b.X - mx,           b.y + my ]
-      };
-      const pos = positions[state.placement] || positions.centre;
-      p.position.set(pos[0], pos[1], b.z);
-    });
+    const w = b.X - b.x, hH = b.Y - b.y;
+    const mx = w * 0.18, my = hH * 0.20;
+    const positions = {
+      centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
+      hg:     [ b.x + mx,           b.Y - my ],
+      hd:     [ b.X - mx,           b.Y - my ],
+      bg:     [ b.x + mx,           b.y + my ],
+      bd:     [ b.X - mx,           b.y + my ]
+    };
+    const pos = positions[state.placement] || positions.centre;
+    p.position.set(pos[0], pos[1], b.z);
   }
 
   function drawEngraving(){
