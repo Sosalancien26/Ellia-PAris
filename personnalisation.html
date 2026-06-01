@@ -126,7 +126,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -216,7 +215,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=25', (gltf)=>{
+  loader.load('assets/pochette.glb?v=26', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -254,56 +253,41 @@ function initConfigurator(){
     console.log('[Ellia 3D] Mesh corps choisi - volume:', bestVol.toFixed(2));
     window.__chromeMat = null;  // plus de chrome material à modifier (on garde celui du modélo)
 
-    // === DECAL GRAVURE PRO : projection sur la geometrie reelle du cuir ===
+    // === GRAVURE : plane plat sur la face avant du corps cuir ===
     const refMesh = pochetteMesh || obj;
     const fbox = new THREE.Box3().setFromObject(refMesh);
     const fsize = fbox.getSize(new THREE.Vector3());
     const fctr  = fbox.getCenter(new THREE.Vector3());
     
-    // Taille du decal (la zone où on projette la gravure sur le cuir)
-    const decalSize = new THREE.Vector3(
-      fsize.x * 0.50,                  // largeur
-      fsize.y * 0.30,                  // hauteur
-      0.02                              // profondeur TRES MINCE - ne projette que sur la 1ere surface
+    // Plan petit qui reste dans la zone plate du cuir (30% largeur, 15% hauteur)
+    const planeW = fsize.x * 0.30;
+    const planeH = planeW * 0.50;
+    const engravePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(planeW, planeH),
+      new THREE.MeshBasicMaterial({
+        map: engraveTex,
+        transparent: true,
+        depthTest: true,           // occluded naturally par la pochette quand vue de dos
+        depthWrite: false,
+        side: THREE.FrontSide,     // invisible de derriere
+        alphaTest: 0.02,
+        polygonOffset: true,
+        polygonOffsetFactor: -10,  // agressif pour éviter z-fighting
+        polygonOffsetUnits: -10
+      })
     );
+    engravePlane.renderOrder = 5;
     
-    // Materiau du decal — la gravure apparait sur la surface du cuir
-    const decalMat = new THREE.MeshBasicMaterial({
-      map: engraveTex,
-      transparent: true,
-      depthTest: true,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-      alphaTest: 0.02
-    });
-    
-    // Fonction qui (re)crée le decal à une position donnée sur la surface
-    function buildDecal(worldPos) {
-      // Supprime l'ancien decal s'il existe
-      if (window.__engraveDecal) {
-        scene.remove(window.__engraveDecal);
-        window.__engraveDecal.geometry.dispose();
-      }
-      // Orientation : projection depuis +Z (face avant)
-      const orient = new THREE.Euler(0, 0, 0);
-      try {
-        const decalGeom = new DecalGeometry(refMesh, worldPos, orient, decalSize);
-        const decal = new THREE.Mesh(decalGeom, decalMat);
-        decal.renderOrder = 10;
-        scene.add(decal);
-        window.__engraveDecal = decal;
-        return decal;
-      } catch(e){ console.warn('Decal build failed:', e); return null; }
-    }
-    
-    // Stocker la fonction et la bbox pour paint()
-    window.__buildDecal = buildDecal;
-    window.__decalBox = { 
+    // Position : face avant du cuir + petit offset Z pour eviter intersection
+    const frontZ = fbox.max.z + 0.0015;
+    engravePlane.position.set(fctr.x, fctr.y, frontZ);
+    engravePlane.userData.box = { 
       x: fbox.min.x, X: fbox.max.x, 
       y: fbox.min.y, Y: fbox.max.y, 
-      z: fbox.max.z + 0.005   // projection commence un peu devant la face cuir
+      z: frontZ 
     };
+    scene.add(engravePlane);
+    window.__engravePlane = engravePlane;
 
 
 
@@ -396,20 +380,21 @@ function initConfigurator(){
     if(!pochetteMesh) return;
     drawEngraving();
     // Repositionne l'overlay de gravure selon le placement choisi
-    // Reconstruit le decal a la position selon le placement choisi
-    if (!window.__buildDecal || !window.__decalBox) return;
-    const b = window.__decalBox;
+    // Repositionne le plane selon le placement choisi
+    const p = window.__engravePlane;
+    if (!p) return;
+    const b = p.userData.box;
     const w = b.X - b.x, hH = b.Y - b.y;
-    const mx = w * 0.22, my = hH * 0.22;
+    const mx = w * 0.20, my = hH * 0.22;
     const positions = {
-      centre: new THREE.Vector3( (b.x + b.X)/2,      (b.y + b.Y)/2, b.z ),
-      hg:     new THREE.Vector3( b.x + mx,           b.Y - my,      b.z ),
-      hd:     new THREE.Vector3( b.X - mx,           b.Y - my,      b.z ),
-      bg:     new THREE.Vector3( b.x + mx,           b.y + my,      b.z ),
-      bd:     new THREE.Vector3( b.X - mx,           b.y + my,      b.z )
+      centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
+      hg:     [ b.x + mx,           b.Y - my ],
+      hd:     [ b.X - mx,           b.Y - my ],
+      bg:     [ b.x + mx,           b.y + my ],
+      bd:     [ b.X - mx,           b.y + my ]
     };
     const pos = positions[state.placement] || positions.centre;
-    window.__buildDecal(pos);
+    p.position.set(pos[0], pos[1], b.z);
   }
 
   function drawEngraving(){
