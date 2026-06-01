@@ -269,19 +269,20 @@ function initConfigurator(){
       new THREE.MeshBasicMaterial({
         map: engraveTex,
         transparent: true,
-        depthTest: true,           // occluded naturally par la pochette quand vue de dos
+        depthTest: true,
         depthWrite: false,
-        side: THREE.FrontSide,     // invisible de derriere
+        side: THREE.FrontSide,
         alphaTest: 0.02,
         polygonOffset: true,
-        polygonOffsetFactor: -10,  // agressif pour éviter z-fighting
-        polygonOffsetUnits: -10
+        polygonOffsetFactor: -100,  // ultra agressif : plane apparait DANS le cuir
+        polygonOffsetUnits: -100,
+        opacity: 0.94
       })
     );
     engravePlane.renderOrder = 5;
     
     // Position : face avant du cuir + petit offset Z pour eviter intersection
-    const frontZ = fbox.max.z + 0.0015;
+    const frontZ = fbox.max.z;  // exactement a la surface du cuir
     engravePlane.position.set(fctr.x, fctr.y, frontZ);
     engravePlane.userData.box = { 
       x: fbox.min.x, X: fbox.max.x, 
@@ -441,9 +442,9 @@ function initConfigurator(){
     } else {
       // ===== Foil stamping métallique (or / or rose / argent) =====
       let foilBase, foilHi, foilShade;
-      if (state.finish === 'or')          { foilBase = '#c79a3a'; foilHi = '#f0d278'; foilShade = '#7a5e10'; }
-      else if (state.finish === 'orrose') { foilBase = '#b77a6f'; foilHi = '#e8c5b8'; foilShade = '#6e3f37'; }
-      else                                { foilBase = '#aaaaaa'; foilHi = '#ededed'; foilShade = '#555555'; }
+      if (state.finish === 'or')          { foilBase = '#a07d2c'; foilHi = '#d5b35a'; foilShade = '#4a3608'; }
+      else if (state.finish === 'orrose') { foilBase = '#925f54'; foilHi = '#c89889'; foilShade = '#502c25'; }
+      else                                { foilBase = '#878787'; foilHi = '#c2c2c2'; foilShade = '#3a3a3a'; }
 
       // 1. SILLON NOIR : un trait noir sous la lettre simule la depression dans le cuir
       ctx.save();
