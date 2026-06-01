@@ -207,7 +207,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=12', (gltf)=>{
+  loader.load('assets/pochette.glb?v=13', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -240,25 +240,36 @@ function initConfigurator(){
     const fbox = new THREE.Box3().setFromObject(obj);
     const fsize = fbox.getSize(new THREE.Vector3());
     const fctr  = fbox.getCenter(new THREE.Vector3());
-    // Plane petit (taille ~20% largeur pochette)
-    const planeW = fsize.x * 0.22;
-    const planeH = planeW * 0.5;
+    // Plane gravure (taille ~30% largeur pochette pour visibilité)
+    const planeW = fsize.x * 0.32;
+    const planeH = planeW * 0.45;
     const engravePlane = new THREE.Mesh(
       new THREE.PlaneGeometry(planeW, planeH),
       new THREE.MeshBasicMaterial({
         map: engraveTex,
         transparent: true,
         depthWrite: false,
-        alphaTest: 0.02
+        alphaTest: 0.01,
+        side: THREE.DoubleSide  // visible des 2 côtés
       })
     );
-    // Position devant la face avant (max Z + petit offset)
-    const frontZ = fbox.max.z + 0.0008;
+    // Position devant la face avant (max Z + offset)
+    const frontZ = fbox.max.z + 0.0015;
     engravePlane.position.set(fctr.x, fctr.y, frontZ);
     engravePlane.userData.frontZ = frontZ;
     engravePlane.userData.box = { x:fbox.min.x, X:fbox.max.x, y:fbox.min.y, Y:fbox.max.y, z:frontZ };
     scene.add(engravePlane);
     window.__engravePlane = engravePlane;
+
+    // === DEBUG : second plane on opposite face — pour voir où est le devant ===
+    const engravePlane2 = engravePlane.clone();
+    engravePlane2.material = engravePlane.material.clone();
+    engravePlane2.rotation.y = Math.PI;  // retourne pour faire face à -Z
+    engravePlane2.position.set(fctr.x, fctr.y, fbox.min.z - 0.0015);
+    engravePlane2.userData.frontZ = fbox.min.z - 0.0015;
+    engravePlane2.userData.box = { x:fbox.min.x, X:fbox.max.x, y:fbox.min.y, Y:fbox.max.y, z:fbox.min.z - 0.0015 };
+    scene.add(engravePlane2);
+    window.__engravePlane2 = engravePlane2;
 
     scene.add(obj);
     paint();
@@ -341,23 +352,24 @@ function initConfigurator(){
     if(!pochetteMesh) return;
     drawEngraving();
     // Repositionne l'overlay de gravure selon le placement choisi
-    const p = window.__engravePlane;
-    if(!p) return;
-    const b = p.userData.box;
-    const w = b.X - b.x, hH = b.Y - b.y;
-    // Marges depuis les bords (15% de chaque côté)
-    const mx = w * 0.15, my = hH * 0.15;
-    const positions = {
-      centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
-      hg:     [ b.x + mx,           b.Y - my ],
-      ht:     [ (b.x + b.X)/2,      b.Y - my ],
-      hd:     [ b.X - mx,           b.Y - my ],
-      bg:     [ b.x + mx,           b.y + my ],
-      bt:     [ (b.x + b.X)/2,      b.y + my ],
-      bd:     [ b.X - mx,           b.y + my ]
-    };
-    const pos = positions[state.placement] || positions.centre;
-    p.position.set(pos[0], pos[1], b.z);
+    // Update les 2 planes (avant + arriere pour debug)
+    [window.__engravePlane, window.__engravePlane2].forEach(p => {
+      if(!p) return;
+      const b = p.userData.box;
+      const w = b.X - b.x, hH = b.Y - b.y;
+      const mx = w * 0.18, my = hH * 0.18;
+      const positions = {
+        centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
+        hg:     [ b.x + mx,           b.Y - my ],
+        ht:     [ (b.x + b.X)/2,      b.Y - my ],
+        hd:     [ b.X - mx,           b.Y - my ],
+        bg:     [ b.x + mx,           b.y + my ],
+        bt:     [ (b.x + b.X)/2,      b.y + my ],
+        bd:     [ b.X - mx,           b.y + my ]
+      };
+      const pos = positions[state.placement] || positions.centre;
+      p.position.set(pos[0], pos[1], b.z);
+    });
   }
 
   function drawEngraving(){
