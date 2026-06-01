@@ -215,7 +215,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=20', (gltf)=>{
+  loader.load('assets/pochette.glb?v=21', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -244,9 +244,10 @@ function initConfigurator(){
     });
     window.__chromeMat = null;  // plus de chrome material à modifier (on garde celui du modélo)
 
-    // === Overlay GRAVURE : plane mesh devant la pochette ===
-    // BBox apres scaling
-    const fbox = new THREE.Box3().setFromObject(obj);
+    // === Overlay GRAVURE : plane sur la face avant du corps de la pochette ===
+    // On utilise pochetteMesh (le corps cuir) plutôt que toute la scene, plus précis
+    const refMesh = pochetteMesh || obj;
+    const fbox = new THREE.Box3().setFromObject(refMesh);
     const fsize = fbox.getSize(new THREE.Vector3());
     const fctr  = fbox.getCenter(new THREE.Vector3());
     // Plane gravure (taille ~30% largeur pochette pour visibilité)
@@ -259,11 +260,14 @@ function initConfigurator(){
         transparent: true,
         depthWrite: false,
         alphaTest: 0.01,
-        side: THREE.DoubleSide  // visible des 2 côtés
+        side: THREE.FrontSide,
+        polygonOffset: true,        // évite le z-fighting avec la pochette
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
       })
     );
     // Position devant la face avant (max Z + offset)
-    const frontZ = fbox.max.z + 0.0015;
+    const frontZ = fbox.max.z + 0.004;  // un peu plus loin pour eviter intersection avec le bombé du cuir
     engravePlane.position.set(fctr.x, fctr.y, frontZ);
     engravePlane.userData.frontZ = frontZ;
     engravePlane.userData.box = { x:fbox.min.x, X:fbox.max.x, y:fbox.min.y, Y:fbox.max.y, z:frontZ };
