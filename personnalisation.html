@@ -121,6 +121,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -197,7 +198,10 @@ function initConfigurator(){
 
   let pochetteMesh = null;
   const loader = new GLTFLoader();
-  loader.load('assets/pochette.glb', (gltf)=>{
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+  loader.setDRACOLoader(dracoLoader);
+  loader.load('assets/pochette.glb?v=2', (gltf)=>{
     const obj = gltf.scene;
     const bbox = new THREE.Box3().setFromObject(obj);
     const center = bbox.getCenter(new THREE.Vector3());
