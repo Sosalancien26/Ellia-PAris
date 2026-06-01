@@ -207,7 +207,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=11', (gltf)=>{
+  loader.load('assets/pochette.glb?v=12', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -221,44 +221,19 @@ function initConfigurator(){
     const bbox2 = new THREE.Box3().setFromObject(obj);
     obj.position.y -= bbox2.min.y + 0.085;
 
-    // === 2. Matériaux PBR propres (sans clearcoat — amplifie les défauts) ===
-    const leatherMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0a0a,
-      metalness: 0.0,
-      roughness: 0.78,
-      envMapIntensity: 0.6,
-      flatShading: false,
-      side: THREE.DoubleSide   // <- corps potentiellement à 1 face : DoubleSide évite les trous
-    });
-    const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xe8e8e8,
-      metalness: 1.0,
-      roughness: 0.25,
-      envMapIntensity: 1.2,
-      flatShading: false,
-      side: THREE.DoubleSide
-    });
-    const innerMat = new THREE.MeshStandardMaterial({
-      color: 0x141414,
-      metalness: 0.0,
-      roughness: 0.9,
-      envMapIntensity: 0.4,
-      flatShading: false,
-      side: THREE.DoubleSide
-    });
-    window.__chromeMat = chromeMat;
-    window.__leatherMat = leatherMat;
-
-    // === 3. Traverse — PRESERVE les normales/tangentes du modéleur ===
+    // === 2. KEEP modélo materials — juste retenir le mesh principal pour la gravure ===
     obj.traverse(o=>{
       if(!o.isMesh) return;
       const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
-      // Heuristique : gros mesh = corps, moyen = doublure, petit = hardware metallique
-      if (tris > 20000)      o.material = leatherMat;
-      else if (tris > 5000)  o.material = innerMat;
-      else                   o.material = chromeMat;
+      // Ne pas overrider les materiaux — on garde le PBR du modélo
+      // Mais on s'assure que envMap soit applique pour les reflets
+      if (o.material && o.material.isMaterial) {
+        o.material.envMapIntensity = 0.85;
+        o.material.needsUpdate = true;
+      }
       if(tris > 20000) pochetteMesh = o;
     });
+    window.__chromeMat = null;  // plus de chrome material à modifier (on garde celui du modélo)
 
     // === Overlay GRAVURE : plane mesh devant la pochette ===
     // BBox apres scaling
