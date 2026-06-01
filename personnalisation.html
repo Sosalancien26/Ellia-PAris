@@ -201,7 +201,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=3', (gltf)=>{
+  loader.load('assets/pochette.glb?v=4', (gltf)=>{
     const obj = gltf.scene;
     // Normalise la taille du modèle (peu importe l'échelle d'export)
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -218,69 +218,34 @@ function initConfigurator(){
     const bbox3 = new THREE.Box3().setFromObject(obj);
     obj.position.y -= bbox3.min.y;
     obj.position.y -= 0.085;
-    const mat = new THREE.MeshPhysicalMaterial({
+    const leatherMat = new THREE.MeshPhysicalMaterial({
       map: leatherTex,
       normalMap: leatherNormal,
-      normalScale: new THREE.Vector2(0.7, 0.7),
-      color: 0x121110,
+      normalScale: new THREE.Vector2(0.6, 0.6),
+      color: 0x0e0d0c,
       metalness: 0.0,
       roughness: 0.78,
-      clearcoat: 0.15,
+      clearcoat: 0.12,
       clearcoatRoughness: 0.65,
-      reflectivity: 0.20,
-      envMapIntensity: 0.85
+      envMapIntensity: 0.85,
+      side: THREE.FrontSide
     });
-    // === Inject zip + biometric plate masks into the PBR shader ===
-    mat.userData.uMetalColor = { value: new THREE.Color(0xb8b8b8) }; // default gunmetal
-    mat.onBeforeCompile = (shader)=>{
-      shader.uniforms.uMetalColor = mat.userData.uMetalColor;
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 vObjPos;'
-      ).replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvObjPos = position;'
-      );
-      const maskGLSL = `
-        float zipMask = smoothstep(0.058, 0.072, vObjPos.y);
-        float plateX = smoothstep(0.095, 0.118, abs(vObjPos.x));
-        float plateY = 1.0 - smoothstep(0.020, 0.055, abs(vObjPos.y));
-        float plateZ = 1.0 - smoothstep(0.018, 0.040, abs(vObjPos.z));
-        float plateMask = plateX * plateY * plateZ;
-        float metalMask = clamp(max(zipMask, plateMask), 0.0, 1.0);
-      `;
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 vObjPos;\nuniform vec3 uMetalColor;'
-      ).replace(
-        '#include <map_fragment>',
-        '#include <map_fragment>\n' + maskGLSL + '\ndiffuseColor.rgb = mix(diffuseColor.rgb, uMetalColor, metalMask);'
-      ).replace(
-        '#include <roughnessmap_fragment>',
-        '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.28, metalMask);'
-      ).replace(
-        '#include <metalnessmap_fragment>',
-        '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 1.0, metalMask);'
-      );
-      mat.userData.shader = shader;
-    };
+    const chromeMat = new THREE.MeshPhysicalMaterial({
+      color: 0xeaeaea,
+      metalness: 1.0,
+      roughness: 0.18,
+      envMapIntensity: 1.2,
+      side: THREE.FrontSide
+    });
+    window.__chromeMat = chromeMat;
+    window.__leatherMat = leatherMat;
+
     obj.traverse(o=>{
-      if(o.isMesh){
-        o.material = mat;
-        if(!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
-        if(!o.geometry.attributes.uv){
-          const pos = o.geometry.attributes.position;
-          const uv = new Float32Array(pos.count*2);
-          const b = new THREE.Box3().setFromBufferAttribute(pos);
-          const sz = new THREE.Vector3(); b.getSize(sz);
-          for(let i=0;i<pos.count;i++){
-            uv[i*2]   = (pos.getX(i)-b.min.x)/sz.x;
-            uv[i*2+1] = (pos.getY(i)-b.min.y)/sz.y;
-          }
-          o.geometry.setAttribute('uv', new THREE.BufferAttribute(uv,2));
-        }
-        pochetteMesh = o;
-      }
+      if(!o.isMesh) return;
+      o.geometry.computeVertexNormals();
+      const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
+      o.material = (tris > 5000) ? leatherMat : chromeMat;
+      if(tris > 20000) pochetteMesh = o;
     });
     scene.add(obj);
     paint();
@@ -363,10 +328,11 @@ function initConfigurator(){
     if(state.finish==='blanc'){ mat.color.set(0xeae5dc); mat.roughness=0.75; mat.clearcoat=0.18; }
     else {                       mat.color.set(0x121110); mat.roughness=0.78; mat.clearcoat=0.15; }
     // Metal parts (zip + biometric plate): use the chosen finish color, but keep silver for noir/blanc
-    if(mat.userData.uMetalColor){
-      if(state.finish==='or')         mat.userData.uMetalColor.value.setHex(0xd4af37);
-      else if(state.finish==='orrose')mat.userData.uMetalColor.value.setHex(0xc98e86);
-      else                            mat.userData.uMetalColor.value.setHex(0xb8b8b8); // argent/noir/blanc all get gunmetal silver
+    if(window.__chromeMat){
+      const c = window.__chromeMat.color;
+      if(state.finish==='or')         c.setHex(0xd4af37);
+      else if(state.finish==='orrose') c.setHex(0xc98e86);
+      else                             c.setHex(0xc7c7c7); // argent / défaut chrome
     }
     mat.needsUpdate = true;
     drawEngraving();
