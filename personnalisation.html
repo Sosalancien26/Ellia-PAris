@@ -416,51 +416,82 @@ function initConfigurator(){
     ctx.textAlign = 'center';
     const cx = W/2, cy = H/2;
 
+    // === VRAI EFFET FOIL STAMPING : pressé DANS le cuir, pas posé dessus ===
     if (state.finish === 'aveugle'){
-      // === GRAVURE AVEUGLE — embossage cuir sans couleur (comme photo cuir bordeaux) ===
-      // Ombre interne sous la lettre (donne effet creusé)
-      ctx.shadowColor = 'rgba(0,0,0,.7)';
-      ctx.shadowBlur = 10;
+      // ===== Embossage aveugle =====
+      // Sillon noir creusé (autour de la lettre)
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.85)';
+      ctx.shadowBlur = 14;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 4;
-      ctx.fillStyle = 'rgba(0,0,0,.35)';
-      ctx.fillText(txt, cx, cy + 2);
-      // Léger highlight haut
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#fff';
-      ctx.fillText(txt, cx, cy - 3);
-      ctx.globalAlpha = 1;
-    } else {
-      // === GRAVURE OR / OR ROSE / ARGENT — foil stamping luxe sobre ===
-      // Couleurs unies par finition, comme un vrai marquage à chaud
-      let baseCol, hiCol;
-      if (state.finish === 'or')          { baseCol = '#caa14a'; hiCol = '#f5e29a'; }
-      else if (state.finish === 'orrose') { baseCol = '#bd8276'; hiCol = '#f0c8bd'; }
-      else                                { baseCol = '#b8b8b8'; hiCol = '#f4f4f4'; }
-      
-      // Ombre douce sous la lettre (effet pression dans le cuir)
-      ctx.shadowColor = 'rgba(0,0,0,.35)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 3;
-      ctx.fillStyle = baseCol;
+      ctx.shadowOffsetY = 5;
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(0,0,0,.55)';
+      ctx.strokeText(txt, cx, cy + 1);
+      ctx.restore();
+      // Lettre creusée sombre
+      ctx.fillStyle = 'rgba(0,0,0,.42)';
       ctx.fillText(txt, cx, cy);
-      
-      // Très subtil highlight en haut des lettres (foil reflète la lumière du haut)
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
+      // Reflet rim haut (lumiere effleurant le bord supérieur du sillon)
+      ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
-      const high = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy + fontSize*0.05);
-      high.addColorStop(0,   hiCol);
-      high.addColorStop(0.45, 'rgba(255,255,255,0)');
-      high.addColorStop(1,   'rgba(0,0,0,0)');
-      ctx.fillStyle = high;
-      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = 'rgba(255,255,255,.22)';
+      ctx.fillText(txt, cx, cy - 4);
+      ctx.restore();
+    } else {
+      // ===== Foil stamping métallique (or / or rose / argent) =====
+      let foilBase, foilHi, foilShade;
+      if (state.finish === 'or')          { foilBase = '#c79a3a'; foilHi = '#f0d278'; foilShade = '#7a5e10'; }
+      else if (state.finish === 'orrose') { foilBase = '#b77a6f'; foilHi = '#e8c5b8'; foilShade = '#6e3f37'; }
+      else                                { foilBase = '#aaaaaa'; foilHi = '#ededed'; foilShade = '#555555'; }
+
+      // 1. SILLON NOIR : un trait noir sous la lettre simule la depression dans le cuir
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.55)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 5;
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(0,0,0,.65)';
+      ctx.strokeText(txt, cx, cy + 1);
+      ctx.restore();
+
+      // 2. FOIL DE BASE — la lettre remplie de la couleur foil (ton moyen)
+      ctx.fillStyle = foilBase;
       ctx.fillText(txt, cx, cy);
-      ctx.globalCompositeOperation = 'source-over';
+
+      // 3. OMBRE INTERNE BAS — la lettre est creusée, donc le bas est en ombre
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const shade = ctx.createLinearGradient(0, cy, 0, cy + fontSize*0.5);
+      shade.addColorStop(0, 'rgba(0,0,0,0)');
+      shade.addColorStop(1, 'rgba(0,0,0,.45)');
+      ctx.fillStyle = shade;
+      ctx.fillText(txt, cx, cy);
+      ctx.restore();
+
+      // 4. REFLET HAUT — le foil capture la lumière du haut (clair)
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const high = ctx.createLinearGradient(0, cy - fontSize*0.5, 0, cy);
+      high.addColorStop(0,   foilHi);
+      high.addColorStop(0.5, foilHi);
+      high.addColorStop(1,   'rgba(255,255,255,0)');
+      ctx.fillStyle = high;
+      ctx.globalAlpha = 0.5;
+      ctx.fillText(txt, cx, cy);
       ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // 5. RIM TOP — fin liseré clair sur l'arête supérieure (foil neuf et propre)
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = foilHi;
+      ctx.globalAlpha = 0.4;
+      ctx.strokeText(txt, cx, cy - 1);
+      ctx.globalAlpha = 1;
+      ctx.restore();
     }
     engraveTex.needsUpdate = true;
   }
