@@ -516,33 +516,15 @@ function initConfigurator(){
     ctx.restore();
   }
 
-  function drawEngraving(){
-    const ctx = engraveCanvas.getContext('2d');
-    const W = engraveCanvas.width, H = engraveCanvas.height;
-    ctx.clearRect(0,0,W,H);
-
-    // === Mode FLAMME (Aesh Sheli — symbole graphique) ===
-    if (state.useHebrew) {
-      drawFlame(ctx, W/2, H/2, Math.min(W,H) * 0.7, state.finish);
-      engraveTex.needsUpdate = true;
-      return;
-    }
-
-    // === Mode INITIALES texte ===
-    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
-    if(!initials) { engraveTex.needsUpdate = true; return; }
+  // === Dessine les initiales texte (foil stamping) ===
+  function drawInitialsText(ctx, cx, cy, initials, finish, fontSize){
     const txt = initials.split('').join('·');
-    const fontSize = initials.length <= 2 ? 720 : 600;
     const fontFamily = '"Cormorant Garamond", "Times New Roman", serif';
     ctx.font = '800 ' + fontSize + 'px ' + fontFamily;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    const cx = W/2, cy = H/2;
-    const f = FINISHES[state.finish] || FINISHES.or;
-    const col = '#'+f.hex.toString(16).padStart(6,'0');
 
-    // === VRAI EFFET FOIL STAMPING : pressé DANS le cuir, pas posé dessus ===
-    if (state.finish === 'aveugle'){
+    if (finish === 'aveugle'){
       // ===== Embossage aveugle =====
       // Sillon noir creusé (autour de la lettre)
       ctx.save();
@@ -568,8 +550,8 @@ function initConfigurator(){
     } else {
       // ===== Foil stamping métallique (or / or rose / argent) =====
       let foilBase, foilHi, foilShade;
-      if (state.finish === 'or')          { foilBase = '#e6b942'; foilHi = '#ffe89a'; foilShade = '#5a4010'; }   // or vif
-      else if (state.finish === 'orrose') { foilBase = '#d09385'; foilHi = '#f6cfbf'; foilShade = '#6a3a32'; }   // rose vif
+      if (finish === 'or')          { foilBase = '#e6b942'; foilHi = '#ffe89a'; foilShade = '#5a4010'; }   // or vif
+      else if (finish === 'orrose') { foilBase = '#d09385'; foilHi = '#f6cfbf'; foilShade = '#6a3a32'; }   // rose vif
       else                                { foilBase = '#dcdcdc'; foilHi = '#ffffff'; foilShade = '#555555'; }   // argent eclatant
 
       // 1. SILLON NOIR : un trait noir sous la lettre simule la depression dans le cuir
@@ -625,6 +607,34 @@ function initConfigurator(){
       ctx.globalAlpha = 1;
       ctx.restore();
     }
+  }
+
+  // === Orchestrateur : decide quoi dessiner (flamme seule / initiales seules / les deux) ===
+  function drawEngraving(){
+    const ctx = engraveCanvas.getContext('2d');
+    const W = engraveCanvas.width, H = engraveCanvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
+    const hasFlame = !!state.useHebrew;
+    const hasText  = initials.length > 0;
+
+    if (!hasFlame && !hasText) { engraveTex.needsUpdate = true; return; }
+
+    if (hasFlame && hasText) {
+      // ===== LES DEUX : flamme en haut, initiales en bas =====
+      drawFlame(ctx, W/2, H*0.34, Math.min(W,H) * 0.62, state.finish);
+      const fontSize = initials.length <= 2 ? 480 : 400;
+      drawInitialsText(ctx, W/2, H*0.78, initials, state.finish, fontSize);
+    } else if (hasFlame) {
+      // ===== FLAMME SEULE — 50% plus grosse qu'avant =====
+      drawFlame(ctx, W/2, H/2, Math.min(W,H) * 1.05, state.finish);
+    } else {
+      // ===== INITIALES SEULES =====
+      const fontSize = initials.length <= 2 ? 720 : 600;
+      drawInitialsText(ctx, W/2, H/2, initials, state.finish, fontSize);
+    }
+
     engraveTex.needsUpdate = true;
   }
 
@@ -656,21 +666,11 @@ function initConfigurator(){
     });
   });
 
-  // Toggle symbole "Aesh Sheli" (flamme)
+  // Toggle symbole "Aesh Sheli" (flamme) — initiales et flamme peuvent coexister
   const hebrewToggle = document.getElementById('hebrewToggle');
-  const _initialsInputRef = document.getElementById('initials');
-  if (hebrewToggle && _initialsInputRef) {
+  if (hebrewToggle) {
     hebrewToggle.addEventListener('change', ()=>{
       state.useHebrew = hebrewToggle.checked;
-      if (state.useHebrew) {
-        _initialsInputRef.disabled = true;
-        _initialsInputRef.style.opacity = '0.4';
-        _initialsInputRef.value = '🔥 Symbole flamme';
-      } else {
-        _initialsInputRef.disabled = false;
-        _initialsInputRef.style.opacity = '1';
-        _initialsInputRef.value = state.initials || 'AB';
-      }
       paint();
     });
   }
