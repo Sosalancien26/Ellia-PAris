@@ -216,7 +216,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=24', (gltf)=>{
+  loader.load('assets/pochette.glb?v=25', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -262,9 +262,9 @@ function initConfigurator(){
     
     // Taille du decal (la zone où on projette la gravure sur le cuir)
     const decalSize = new THREE.Vector3(
-      fsize.x * 0.55,                  // largeur
-      fsize.y * 0.35,                  // hauteur
-      Math.max(fsize.z, 0.04) * 1.5    // profondeur projection (assez pour traverser le cuir)
+      fsize.x * 0.50,                  // largeur
+      fsize.y * 0.30,                  // hauteur
+      0.02                              // profondeur TRES MINCE - ne projette que sur la 1ere surface
     );
     
     // Materiau du decal — la gravure apparait sur la surface du cuir
@@ -302,7 +302,7 @@ function initConfigurator(){
     window.__decalBox = { 
       x: fbox.min.x, X: fbox.max.x, 
       y: fbox.min.y, Y: fbox.max.y, 
-      z: fbox.max.z + 0.001 
+      z: fbox.max.z + 0.005   // projection commence un peu devant la face cuir
     };
 
 
@@ -423,7 +423,7 @@ function initConfigurator(){
     const f = FINISHES[state.finish] || FINISHES.or;
     const col = '#'+f.hex.toString(16).padStart(6,'0');
     // Police serif lettres CAPITALES — comme sur les photos client
-    ctx.font = '600 360px "Cormorant Garamond", "Times New Roman", serif';
+    ctx.font = '700 500px "Cormorant Garamond", "Times New Roman", serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     if (state.finish === 'aveugle'){
