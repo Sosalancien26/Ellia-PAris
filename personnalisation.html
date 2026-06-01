@@ -202,7 +202,7 @@ function initConfigurator(){
   engraveTex.magFilter = THREE.LinearFilter;
   engraveTex.colorSpace = THREE.SRGBColorSpace;
 
-  const state = { initials:'AB', finish:'or', placement:'centre' };
+  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false };
 
   let pochetteMesh = null;
   
@@ -448,15 +448,23 @@ function initConfigurator(){
     const ctx = engraveCanvas.getContext('2d');
     const W = engraveCanvas.width, H = engraveCanvas.height;
     ctx.clearRect(0,0,W,H);
-    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
-    if(!initials) { engraveTex.needsUpdate = true; return; }
-    const txt = initials.split('').join('·');
+
+    let txt, fontSize, fontFamily;
+    if (state.useHebrew) {
+      // Mode "Aesh Sheli" — texte hébreu pré-défini
+      txt = 'אש שלי';
+      fontSize = 420;  // plus petit car mot complet
+      fontFamily = '"Times New Roman", "David", serif';
+    } else {
+      const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
+      if(!initials) { engraveTex.needsUpdate = true; return; }
+      txt = initials.split('').join('·');
+      fontSize = initials.length <= 2 ? 720 : 600;
+      fontFamily = '"Cormorant Garamond", "Times New Roman", serif';
+    }
     const f = FINISHES[state.finish] || FINISHES.or;
     const col = '#'+f.hex.toString(16).padStart(6,'0');
-
-    // Police serif majuscules — taille adaptée au nb de lettres (2 lettres = plus grande)
-    const fontSize = initials.length <= 2 ? 720 : 600;  // 15% plus gros
-    ctx.font = '800 ' + fontSize + 'px "Cormorant Garamond", "Times New Roman", serif';  // bolder
+    ctx.font = '800 ' + fontSize + 'px ' + fontFamily;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     const cx = W/2, cy = H/2;
@@ -575,6 +583,25 @@ function initConfigurator(){
       paint();
     });
   });
+
+  // Toggle gravure hébraïque "Aesh Sheli"
+  const hebrewToggle = document.getElementById('hebrewToggle');
+  const initialsInput = document.getElementById('initials');
+  if (hebrewToggle) {
+    hebrewToggle.addEventListener('change', ()=>{
+      state.useHebrew = hebrewToggle.checked;
+      if (state.useHebrew) {
+        initialsInput.disabled = true;
+        initialsInput.style.opacity = '0.45';
+        initialsInput.value = 'אש שלי';
+      } else {
+        initialsInput.disabled = false;
+        initialsInput.style.opacity = '1';
+        initialsInput.value = state.initials || 'AB';
+      }
+      paint();
+    });
+  }
 
   function resize(){
     renderer.setSize(w(), h());
