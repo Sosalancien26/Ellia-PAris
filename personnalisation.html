@@ -49,7 +49,12 @@
   <div class="wrap">
     <div class="perso-grid">
       <div class="perso-preview reveal" id="persoPreview" style="background:transparent;border:none;box-shadow:none;padding:0">
-        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 50%,#c4bdae 100%);box-shadow:inset 0 0 80px rgba(0,0,0,.08);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none"></div>
+        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 50%,#c4bdae 100%);box-shadow:inset 0 0 80px rgba(0,0,0,.08);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none">
+          <div id="viewer3d-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 60%,#c4bdae 100%);pointer-events:none;transition:opacity 600ms ease-out;z-index:2">
+            <div style="font-size:11px;letter-spacing:.34em;color:#7a7363;text-transform:uppercase">Chargement du modèle</div>
+            <div style="width:180px;height:1px;background:rgba(0,0,0,.12);overflow:hidden;border-radius:1px"><div id="viewer3d-bar" style="height:100%;width:0%;background:#0d0d0d;transition:width 200ms linear"></div></div>
+          </div>
+        </div>
         <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px">Glissez pour tourner · molette pour zoomer</div>
         <div id="engrave" style="display:none">A·B</div>
         <div id="monoFinish" style="display:none">Finition Or</div>
@@ -86,7 +91,7 @@
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
-        <div class="block" id="flameOptions" style="display:none;border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
+        <div class="block" id="flameOptions" style="display:none;border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px;animation:slideDown .45s cubic-bezier(.16,1,.3,1) both">
           <span class="field-label" style="color:#0d0d0d">Finition de la flamme</span>
           <div class="swatches" id="flameSwatches">
             <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
@@ -398,19 +403,45 @@ function initConfigurator(){
 
     scene.add(obj);
     window.__pochetteRoot = obj;
+
+    // === Fade-in luxe : opacite 0 -> 1 sur 800ms + leger zoom ===
+    obj.traverse(o => {
+      if (o.isMesh && o.material) {
+        o.material.transparent = true;
+        o.material.opacity = 0;
+      }
+    });
+    const startScale = obj.scale.x;
+    obj.scale.setScalar(startScale * 0.92);
+    const t0 = performance.now();
+    const fadeDuration = 850;
+    function fadeIn(){
+      const elapsed = performance.now() - t0;
+      const k = Math.min(elapsed / fadeDuration, 1);
+      const ease = 1 - Math.pow(1 - k, 3); // easeOutCubic
+      obj.traverse(o => {
+        if (o.isMesh && o.material) o.material.opacity = ease;
+      });
+      obj.scale.setScalar(startScale * (0.92 + 0.08 * ease));
+      if (k < 1) requestAnimationFrame(fadeIn);
+      else obj.traverse(o => { if (o.isMesh && o.material) { o.material.transparent = false; o.material.needsUpdate = true; } });
+    }
+    requestAnimationFrame(fadeIn);
+
+    // Hide loader si present
+    const loader3d = document.getElementById('viewer3d-loader');
+    if (loader3d) loader3d.style.opacity = '0';
+
     paint();
   }, (xhr)=>{
-    // onProgress
+    // onProgress : mise a jour de la barre de chargement si presente
     if(xhr.lengthComputable){
       const pct = Math.round(xhr.loaded/xhr.total*100);
-      console.log('Pochette 3D :', pct + '% (' + Math.round(xhr.loaded/1024/1024) + ' / ' + Math.round(xhr.total/1024/1024) + ' MB)');
+      const bar = document.getElementById('viewer3d-bar');
+      if (bar) bar.style.width = pct + '%';
     }
   }, (err)=>{
-    console.error('=== GLB load error ===');
-    console.error('Type:', err && err.type);
-    console.error('Message:', err && err.message);
-    console.error('Stack:', err && err.stack);
-    console.error('Full:', err);
+    console.error('=== GLB load error ===', err);
     container.innerHTML = '<div style="padding:40px;text-align:center;color:#7a7363;font-family:Jost,sans-serif;font-size:13px;letter-spacing:.1em">Erreur de chargement du modèle 3D.<br>Ouvrez la console (F12) pour le détail.</div>';
   });
 
@@ -727,12 +758,18 @@ function initConfigurator(){
     flameTex.needsUpdate = true;
   }
 
+  // Debounce paint sur la frappe pour eviter de redessiner la texture a chaque keystroke
+  let _paintT = null;
+  function schedulePaint(){
+    if (_paintT) return;
+    _paintT = requestAnimationFrame(()=>{ _paintT = null; paint(); });
+  }
   const initialsInput = document.getElementById('initials');
   if(initialsInput){
     initialsInput.addEventListener('input',()=>{
       state.initials = initialsInput.value.replace(/[^a-zA-Z]/g,'').toUpperCase();
       initialsInput.value = state.initials;
-      paint();
+      schedulePaint();
     });
     state.initials = (initialsInput.value||'AB').toUpperCase();
   }
@@ -789,15 +826,48 @@ function initConfigurator(){
     camera.aspect = w()/h();
     camera.updateProjectionMatrix();
   }
-  window.addEventListener('resize', resize);
+  // Resize debounce — evite les recompositions multiples
+  let _resizeT = null;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(_resizeT);
+    _resizeT = setTimeout(resize, 80);
+  });
 
-  // Boucle de rendu simple — la gravure est dans le shader, pas besoin de fade
+  // === Detection interaction utilisateur (pour idle motion) ===
+  let lastInteract = performance.now();
+  const touchInteract = ()=>{ lastInteract = performance.now(); };
+  ['pointerdown','wheel','touchstart','keydown'].forEach(ev=>{
+    container.addEventListener(ev, touchInteract, {passive:true});
+  });
+
+  // === Boucle de rendu avec idle motion + pause hors viewport (perf) ===
+  let visible = true;
+  const io = new IntersectionObserver((entries)=>{
+    visible = entries[0].isIntersecting;
+  }, { threshold: 0.01 });
+  io.observe(container);
+
   function tick(){
+    requestAnimationFrame(tick);
+    if (!visible) return;  // economise CPU/GPU quand hors ecran
+
+    // Idle motion : tres legere rotation auto apres 4s sans interaction
+    if (window.__pochetteRoot) {
+      const idleMs = performance.now() - lastInteract;
+      if (idleMs > 4000) {
+        const factor = Math.min((idleMs - 4000) / 1500, 1); // fade-in sur 1.5s
+        window.__pochetteRoot.rotation.y += 0.0012 * factor;
+      }
+    }
     controls.update();
     renderer.render(scene, camera);
-    requestAnimationFrame(tick);
   }
   tick();
+
+  // Pause complete quand l'onglet est cache (perf majeure)
+  document.addEventListener('visibilitychange', ()=>{
+    visible = document.visibilityState === 'visible' && visible;
+  });
 }
 </script>
 <script src="cookies-banner.js?v=1" defer></script>
