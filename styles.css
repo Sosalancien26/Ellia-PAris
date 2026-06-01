@@ -59,8 +59,8 @@ header{position:fixed;top:0;left:0;width:100%;z-index:1000;transition:background
 header .bar{display:flex;align-items:center;justify-content:space-between;padding:24px 40px}
 header.scrolled,header.solid{background:rgba(243,241,236,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--ligne-soft)}
 header.scrolled .bar,header.solid .bar{padding:15px 40px}
-.nav-logo{height:66px;transition:height .5s var(--ease)}
-header.scrolled .nav-logo,header.solid .nav-logo{height:54px}
+.nav-logo{height:79px;transition:height .5s var(--ease)}
+header.scrolled .nav-logo,header.solid .nav-logo{height:65px}
 nav.links{display:flex;gap:36px}
 nav.links a{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--noir);position:relative;padding:4px 0;opacity:.8;transition:opacity .3s}
 nav.links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--noir);transition:width .4s var(--ease)}
@@ -261,7 +261,7 @@ section{position:relative}
 /* Footer */
 footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 36px}
 .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;margin-bottom:60px}
-.foot-logo{height:78px;margin-bottom:24px}
+.foot-logo{height:94px;margin-bottom:24px}
 .foot-grid p.desc{color:var(--gris-txt);font-size:13.5px;max-width:300px}
 .foot-grid h4{font-family:var(--sans);font-weight:400;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gris-clair);margin-bottom:20px}
 .foot-grid ul{list-style:none}
@@ -460,7 +460,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   #cookieBar button{width:100%;padding:12px 16px;font-size:11px;min-height:44px}
 
   /* Logo header un peu plus petit */
-  .nav-logo{height:40px}
+  .nav-logo{height:48px}
   header .bar{padding:14px 18px}
 
   /* Mobile menu : items plus aérés */
@@ -583,7 +583,9 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 @media (max-width:768px){.fp-icon{width:48px;height:48px}}
 
 /* ============ HERO PLEIN ÉCRAN LUXE ============ */
-.hero-cinema{position:relative;min-height:100vh;width:100%;overflow:hidden;background:#0a0908;display:flex;align-items:flex-end;justify-content:flex-start;padding:120px 70px 120px}
+.hero-cinema{position:relative;min-height:100vh;width:100%;overflow:hidden;background:#0a0908;display:flex;align-items:center;justify-content:flex-start;padding:120px 70px 120px}
+.hero-cinema .content.content-left{max-width:560px;text-shadow:0 2px 14px rgba(0,0,0,.55)}
+.hero-cinema .veil{background:linear-gradient(90deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.25) 35%,rgba(0,0,0,0) 60%),linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(0,0,0,.55) 100%)!important}
 .hero-cinema .bg{position:absolute;inset:0;z-index:0;overflow:hidden}
 .hero-cinema .bg img{width:100%;height:100%;object-fit:cover;object-position:center;animation:heroKen 22s ease-in-out infinite alternate;will-change:transform}
 @keyframes heroKen{0%{transform:scale(1) translateX(0)}100%{transform:scale(1.12) translateX(-2%)}}
@@ -616,13 +618,13 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 
 /* ============ HEADER ON-DARK (hero cinéma) ============ */
 header.on-dark:not(.scrolled){background:transparent;backdrop-filter:none;border-bottom:1px solid rgba(255,255,255,0)}
-header.on-dark:not(.scrolled) .nav-logo{filter:brightness(0) invert(1);height:81px}
+header.on-dark:not(.scrolled) .nav-logo{filter:brightness(0) invert(1);height:97px}
 header.on-dark:not(.scrolled) nav.links a{color:#fff}
 header.on-dark:not(.scrolled) nav.links a::after{background:#fff}
 header.on-dark:not(.scrolled) .nav-ico{color:#fff}
 header.on-dark:not(.scrolled) .burger span{background:#fff}
 @media (max-width:768px){
-  header.on-dark:not(.scrolled) .nav-logo{height:60px}
+  header.on-dark:not(.scrolled) .nav-logo{height:72px}
 }
 
 /* ============ HERO CINEMA — TEXTE À DROITE ============ */
