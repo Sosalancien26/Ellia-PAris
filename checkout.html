@@ -150,8 +150,10 @@
     if(!v('prenom')||!v('nom')||!v('email')){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
     if(!v('l_adresse')||!v('l_cp')||!v('l_ville')){ err.textContent='Merci de compléter l\'adresse de livraison.'; return; }
     const perso=items.find(i=>i.initiales)||{};
-    // IMPORTANT : on retire le champ preview (base64 lourd) avant d'envoyer au serveur
-    // pour respecter la limite de body. La preview reste dans localStorage pour l'affichage panier.
+    // Extraire UNE preview (premier item qui en a une) au niveau racine du payload,
+    // et retirer le champ preview des items pour ne pas tout dupliquer.
+    var orderPreview = null;
+    for (var k=0; k<items.length; k++) { if (items[k] && items[k].preview) { orderPreview = items[k].preview; break; } }
     const itemsLight = items.map(it => {
       var copy = Object.assign({}, it);
       delete copy.preview;
@@ -165,7 +167,8 @@
       ville_facturation: same.checked? v('l_ville'):v('f_ville'),
       pays_facturation: same.checked? (v('l_pays')||'France'):(v('f_pays')||'France'),
       initiales:perso.initiales||null, finition:perso.finition||null, emplacement:perso.emplacement||null,
-      items:itemsLight, montant_total:Cart.total(), user_id:userId
+      items:itemsLight, montant_total:Cart.total(), user_id:userId,
+      preview: orderPreview
     };
     let numero='EP-'+Date.now().toString().slice(-6);
     try{

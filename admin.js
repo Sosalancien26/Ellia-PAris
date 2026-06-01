@@ -109,6 +109,15 @@
       ? '<div class="om-row"><span class="k">Facture</span><span class="v"><b>'+o.invoice_number+'</b> &nbsp; <a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Ouvrir PDF</a></span></div>'
       : '<div class="om-row"><span class="k">Facture</span><span class="v"><a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Générer / Télécharger PDF</a></span></div>';
     const payRow = (o.payment_method || o.payment_status) ? ('<div class="om-row"><span class="k">Paiement</span><span class="v">'+(o.payment_method||'—')+' &middot; '+(o.payment_status||'—')+'</span></div>') : '';
+    // Bloc preview 3D : visible UNIQUEMENT si la commande contient une image
+    var previewBlock = '';
+    if (o.preview && typeof o.preview === 'string' && o.preview.indexOf('data:image/') === 0) {
+      previewBlock =
+        '<div style="margin:14px 0 18px;padding:14px;background:#f8f6f1;border:1px solid #e9e5da;border-radius:3px">'+
+          '<div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);margin-bottom:10px">Aperçu de la personnalisation choisie par le client</div>'+
+          '<a href="'+o.preview+'" target="_blank" title="Ouvrir en grand"><img src="'+o.preview+'" alt="Aperçu personnalisation" style="display:block;max-width:340px;width:100%;height:auto;border:1px solid #e0ddd6;border-radius:3px;cursor:zoom-in" /></a>'+
+        '</div>';
+    }
     document.getElementById('ordModalBox').innerHTML=
       '<button class="om-close" id="omClose">×</button>'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
@@ -118,7 +127,9 @@
       '<div style="height:14px"></div>'+
       omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
       omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
-      omRow('Personnalisation',gravure(o))+omRow('Total','<b>'+eur(o.total)+'</b>')+
+      omRow('Personnalisation',gravure(o))+
+      previewBlock+
+      omRow('Total','<b>'+eur(o.total)+'</b>')+
       payRow+invoiceRow+
       '<div style="margin:20px 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Gestion de la commande</div>'+
       '<div class="om-actions">'+

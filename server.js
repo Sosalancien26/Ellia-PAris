@@ -299,7 +299,7 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,created_at&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,created_at&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
@@ -309,6 +309,7 @@ async function getOrders(){
     suivi:r.suivi||'', transporteur:r.transporteur||'',
     invoice_number:r.invoice_number||'', manual:!!r.manual_order,
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
+    preview:r.preview||null,
     adresse_livraison:r.adresse_livraison||'', cp_livraison:r.cp_livraison||'', ville_livraison:r.ville_livraison||'', pays_livraison:r.pays_livraison||'France',
     adresse_facturation:r.adresse_facturation||'', cp_facturation:r.cp_facturation||'', ville_facturation:r.ville_facturation||'', pays_facturation:r.pays_facturation||'France',
     adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
@@ -526,11 +527,16 @@ const server = http.createServer(async (req, res) => {
           if(stock < qte) return sendJSON(res,{ ok:false, error:'rupture', stock }, 409);
         }catch(_){}
         notifyNewOrder(d, numero);
+        // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
+        let preview = null;
+        if (typeof d.preview === 'string' && d.preview.length > 0 && d.preview.length < 220000) {
+          if (/^data:image\/(jpeg|png|webp);base64,/i.test(d.preview)) preview = d.preview;
+        }
         const row = { numero,
           client_nom: clean(d.client_nom, 120),
           client_email: clean(String(d.client_email||'').toLowerCase(), 254),
           telephone: clean(d.telephone, 30),
-          initiales: clean(d.initiales, 20),
+          initiales: clean(d.initiales, 50),
           finition: clean(d.finition, 40),
           emplacement: clean(d.emplacement, 40),
           adresse_livraison: clean(d.adresse_livraison, 200),
@@ -543,6 +549,7 @@ const server = http.createServer(async (req, res) => {
           pays_facturation: clean(d.pays_facturation, 60) || 'France',
           user_id: d.user_id || null,
           montant_total: Math.min(100000, Math.max(0, Number(d.montant_total) || 0)),
+          preview: preview,
           statut: 'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte } }); }catch(_){}
