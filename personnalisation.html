@@ -201,7 +201,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=4', (gltf)=>{
+  loader.load('assets/pochette.glb?v=5', (gltf)=>{
     const obj = gltf.scene;
     // Normalise la taille du modèle (peu importe l'échelle d'export)
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -219,32 +219,38 @@ function initConfigurator(){
     obj.position.y -= bbox3.min.y;
     obj.position.y -= 0.085;
     const leatherMat = new THREE.MeshPhysicalMaterial({
-      map: leatherTex,
-      normalMap: leatherNormal,
-      normalScale: new THREE.Vector2(0.6, 0.6),
-      color: 0x0e0d0c,
+      color: 0x0a0a0a,
       metalness: 0.0,
-      roughness: 0.78,
-      clearcoat: 0.12,
-      clearcoatRoughness: 0.65,
-      envMapIntensity: 0.85,
-      side: THREE.FrontSide
+      roughness: 0.55,
+      clearcoat: 0.35,
+      clearcoatRoughness: 0.55,
+      envMapIntensity: 1.0,
+      side: THREE.FrontSide,
+      flatShading: false
     });
     const chromeMat = new THREE.MeshPhysicalMaterial({
       color: 0xeaeaea,
       metalness: 1.0,
       roughness: 0.18,
-      envMapIntensity: 1.2,
+      envMapIntensity: 1.4,
+      side: THREE.FrontSide
+    });
+    const innerMat = new THREE.MeshPhysicalMaterial({
+      color: 0x141414,
+      metalness: 0.0,
+      roughness: 0.85,
       side: THREE.FrontSide
     });
     window.__chromeMat = chromeMat;
     window.__leatherMat = leatherMat;
 
+    // GARDE les normales du modeleur (pas de computeVertexNormals — sinon artefacts)
     obj.traverse(o=>{
       if(!o.isMesh) return;
-      o.geometry.computeVertexNormals();
       const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
-      o.material = (tris > 5000) ? leatherMat : chromeMat;
+      if (tris > 20000)      o.material = leatherMat;   // corps cuir
+      else if (tris > 5000)  o.material = innerMat;     // doublure / 2eme face
+      else                   o.material = chromeMat;    // hardware metallique
       if(tris > 20000) pochetteMesh = o;
     });
     scene.add(obj);
@@ -323,18 +329,7 @@ function initConfigurator(){
 
   function paint(){
     if(!pochetteMesh) return;
-    const mat = pochetteMesh.material;
-    // Body (leather) color depends on chosen finish
-    if(state.finish==='blanc'){ mat.color.set(0xeae5dc); mat.roughness=0.75; mat.clearcoat=0.18; }
-    else {                       mat.color.set(0x121110); mat.roughness=0.78; mat.clearcoat=0.15; }
-    // Metal parts (zip + biometric plate): use the chosen finish color, but keep silver for noir/blanc
-    if(window.__chromeMat){
-      const c = window.__chromeMat.color;
-      if(state.finish==='or')         c.setHex(0xd4af37);
-      else if(state.finish==='orrose') c.setHex(0xc98e86);
-      else                             c.setHex(0xc7c7c7); // argent / défaut chrome
-    }
-    mat.needsUpdate = true;
+    // Le cuir reste noir, point. Seule la gravure des initiales prend la couleur de la finition.
     drawEngraving();
   }
 
