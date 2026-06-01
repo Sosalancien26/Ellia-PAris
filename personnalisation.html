@@ -216,7 +216,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=23', (gltf)=>{
+  loader.load('assets/pochette.glb?v=24', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -232,17 +232,26 @@ function initConfigurator(){
     obj.position.y -= bbox2.min.y + 0.085;
 
     // === 2. KEEP modélo materials — juste retenir le mesh principal pour la gravure ===
+    // 1ere passe : applique envMap + collecte les meshes
+    const allMeshes = [];
     obj.traverse(o=>{
       if(!o.isMesh) return;
-      const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
-      // Ne pas overrider les materiaux — on garde le PBR du modélo
-      // Mais on s'assure que envMap soit applique pour les reflets
       if (o.material && o.material.isMaterial) {
         o.material.envMapIntensity = 0.85;
         o.material.needsUpdate = true;
       }
-      if(tris > 20000) pochetteMesh = o;
+      o.geometry.computeBoundingBox();
+      allMeshes.push(o);
     });
+    // 2e passe : choisit le mesh avec le PLUS GROS VOLUME bbox (= corps principal)
+    let bestVol = 0;
+    allMeshes.forEach(o => {
+      const bb = o.geometry.boundingBox;
+      const sz = bb.getSize(new THREE.Vector3());
+      const vol = sz.x * sz.y * sz.z;
+      if (vol > bestVol) { bestVol = vol; pochetteMesh = o; }
+    });
+    console.log('[Ellia 3D] Mesh corps choisi - volume:', bestVol.toFixed(2));
     window.__chromeMat = null;  // plus de chrome material à modifier (on garde celui du modélo)
 
     // === DECAL GRAVURE PRO : projection sur la geometrie reelle du cuir ===
