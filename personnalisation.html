@@ -444,30 +444,103 @@ function initConfigurator(){
     u.uEngraveCenter.value.set(pos[0], pos[1], b.z);
   }
 
+  // === Dessine une flamme stylisée luxe — symbole "Aesh Sheli" ===
+  function drawFlame(ctx, cx, cy, size, finish){
+    let foilBase, foilHi, shade;
+    if (finish === 'or')          { foilBase = '#e6b942'; foilHi = '#ffe89a'; shade = '#5a4010'; }
+    else if (finish === 'orrose') { foilBase = '#d09385'; foilHi = '#f6cfbf'; shade = '#6a3a32'; }
+    else if (finish === 'aveugle'){ foilBase = '#2a2a2a'; foilHi = '#5a5a5a'; shade = '#000000'; }
+    else                          { foilBase = '#dcdcdc'; foilHi = '#ffffff'; shade = '#555555'; }
+
+    const w = size * 0.55, h = size; // ratio flamme
+    // Path flamme : courbes Bézier stylisées (langue centrale + 2 latérales + base bombée)
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, 1);
+    ctx.beginPath();
+    // Base bas-gauche
+    ctx.moveTo(-w*0.45, h*0.45);
+    // Côté gauche montant en ondulations
+    ctx.bezierCurveTo(-w*0.62, h*0.20,  -w*0.55, -h*0.05, -w*0.40, -h*0.20);
+    ctx.bezierCurveTo(-w*0.30, -h*0.30, -w*0.20, -h*0.32, -w*0.18, -h*0.45);
+    // Langue gauche pointue
+    ctx.bezierCurveTo(-w*0.16, -h*0.32, -w*0.30, -h*0.20, -w*0.05, -h*0.05);
+    // Creux central
+    ctx.bezierCurveTo( w*0.02, -h*0.15,  w*0.00, -h*0.30, -w*0.05, -h*0.40);
+    // Pic central principal (point haut)
+    ctx.bezierCurveTo( w*0.00, -h*0.48,  w*0.08, -h*0.50,  w*0.04, -h*0.30);
+    ctx.bezierCurveTo( w*0.06, -h*0.20,  w*0.20, -h*0.25,  w*0.18, -h*0.45);
+    // Langue droite
+    ctx.bezierCurveTo( w*0.22, -h*0.35,  w*0.30, -h*0.30,  w*0.28, -h*0.15);
+    // Côté droit descendant
+    ctx.bezierCurveTo( w*0.38, -h*0.08,  w*0.55, -h*0.02,  w*0.50,  h*0.15);
+    ctx.bezierCurveTo( w*0.55,  h*0.30,  w*0.30,  h*0.45,  w*0.05,  h*0.48);
+    // Base droite vers base gauche
+    ctx.bezierCurveTo(-w*0.20, h*0.50, -w*0.40, h*0.50, -w*0.45, h*0.45);
+    ctx.closePath();
+
+    // === Sillon noir creusé (effet pression) ===
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.55)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(0,0,0,.65)';
+    ctx.stroke();
+    ctx.restore();
+
+    // === Foil de base ===
+    ctx.fillStyle = foilBase;
+    ctx.fill();
+
+    // === Gradient highlight haut ===
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    const grad = ctx.createLinearGradient(0, -h*0.5, 0, h*0.5);
+    grad.addColorStop(0,   foilHi);
+    grad.addColorStop(0.4, foilBase);
+    grad.addColorStop(1,   shade);
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.restore();
+
+    // === Rim top fin ===
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = foilHi;
+    ctx.globalAlpha = 0.45;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
   function drawEngraving(){
     const ctx = engraveCanvas.getContext('2d');
     const W = engraveCanvas.width, H = engraveCanvas.height;
     ctx.clearRect(0,0,W,H);
 
-    let txt, fontSize, fontFamily;
+    // === Mode FLAMME (Aesh Sheli — symbole graphique) ===
     if (state.useHebrew) {
-      // Mode "Aesh Sheli" — texte hébreu pré-défini
-      txt = 'אש שלי';
-      fontSize = 420;  // plus petit car mot complet
-      fontFamily = '"Times New Roman", "David", serif';
-    } else {
-      const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
-      if(!initials) { engraveTex.needsUpdate = true; return; }
-      txt = initials.split('').join('·');
-      fontSize = initials.length <= 2 ? 720 : 600;
-      fontFamily = '"Cormorant Garamond", "Times New Roman", serif';
+      drawFlame(ctx, W/2, H/2, Math.min(W,H) * 0.7, state.finish);
+      engraveTex.needsUpdate = true;
+      return;
     }
-    const f = FINISHES[state.finish] || FINISHES.or;
-    const col = '#'+f.hex.toString(16).padStart(6,'0');
+
+    // === Mode INITIALES texte ===
+    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
+    if(!initials) { engraveTex.needsUpdate = true; return; }
+    const txt = initials.split('').join('·');
+    const fontSize = initials.length <= 2 ? 720 : 600;
+    const fontFamily = '"Cormorant Garamond", "Times New Roman", serif';
     ctx.font = '800 ' + fontSize + 'px ' + fontFamily;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     const cx = W/2, cy = H/2;
+    const f = FINISHES[state.finish] || FINISHES.or;
+    const col = '#'+f.hex.toString(16).padStart(6,'0');
 
     // === VRAI EFFET FOIL STAMPING : pressé DANS le cuir, pas posé dessus ===
     if (state.finish === 'aveugle'){
@@ -584,20 +657,20 @@ function initConfigurator(){
     });
   });
 
-  // Toggle gravure hébraïque "Aesh Sheli"
+  // Toggle symbole "Aesh Sheli" (flamme)
   const hebrewToggle = document.getElementById('hebrewToggle');
-  const initialsInput = document.getElementById('initials');
-  if (hebrewToggle) {
+  const _initialsInputRef = document.getElementById('initials');
+  if (hebrewToggle && _initialsInputRef) {
     hebrewToggle.addEventListener('change', ()=>{
       state.useHebrew = hebrewToggle.checked;
       if (state.useHebrew) {
-        initialsInput.disabled = true;
-        initialsInput.style.opacity = '0.45';
-        initialsInput.value = 'אש שלי';
+        _initialsInputRef.disabled = true;
+        _initialsInputRef.style.opacity = '0.4';
+        _initialsInputRef.value = '🔥 Symbole flamme';
       } else {
-        initialsInput.disabled = false;
-        initialsInput.style.opacity = '1';
-        initialsInput.value = state.initials || 'AB';
+        _initialsInputRef.disabled = false;
+        _initialsInputRef.style.opacity = '1';
+        _initialsInputRef.value = state.initials || 'AB';
       }
       paint();
     });
