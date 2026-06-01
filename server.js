@@ -359,7 +359,7 @@ async function deleteAdminSetting(key){
 }
 
 /* ----- Helpers ----- */
-const MAX_BODY = 64 * 1024;
+const MAX_BODY = 256 * 1024;  // 256 KB — assez pour commandes avec metadata, refuse les abus
 function sendJSON(res, obj, code){ if(code) res.statusCode=code; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
 function readBody(req){
   return new Promise((resolve, reject)=>{

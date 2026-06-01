@@ -150,6 +150,13 @@
     if(!v('prenom')||!v('nom')||!v('email')){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
     if(!v('l_adresse')||!v('l_cp')||!v('l_ville')){ err.textContent='Merci de compléter l\'adresse de livraison.'; return; }
     const perso=items.find(i=>i.initiales)||{};
+    // IMPORTANT : on retire le champ preview (base64 lourd) avant d'envoyer au serveur
+    // pour respecter la limite de body. La preview reste dans localStorage pour l'affichage panier.
+    const itemsLight = items.map(it => {
+      var copy = Object.assign({}, it);
+      delete copy.preview;
+      return copy;
+    });
     const payload={
       client_nom:v('prenom')+' '+v('nom'), client_email:v('email'), telephone:v('telephone'),
       adresse_livraison:v('l_adresse'), cp_livraison:v('l_cp'), ville_livraison:v('l_ville'), pays_livraison:v('l_pays')||'France',
@@ -158,7 +165,7 @@
       ville_facturation: same.checked? v('l_ville'):v('f_ville'),
       pays_facturation: same.checked? (v('l_pays')||'France'):(v('f_pays')||'France'),
       initiales:perso.initiales||null, finition:perso.finition||null, emplacement:perso.emplacement||null,
-      items:items, montant_total:Cart.total(), user_id:userId
+      items:itemsLight, montant_total:Cart.total(), user_id:userId
     };
     let numero='EP-'+Date.now().toString().slice(-6);
     try{
