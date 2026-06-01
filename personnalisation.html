@@ -312,17 +312,17 @@ function initConfigurator(){
     }
     const cuirMat = pochetteMesh ? pochetteMesh.material : null;
 
-    // Uniforms : DEUX decals independants (initiales + flamme)
+    // Uniforms : DEUX decals independants (initiales + flamme) — proportions resserrees
     const engraveUniforms = {
-      // Initiales (texte)
+      // Initiales (texte) — moins large, plus compact
       uEngraveMap:     { value: engraveTex },
       uEngraveCenter:  { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
-      uEngraveSize:    { value: new THREE.Vector2(fsize.x * 0.34, fsize.y * 0.17) },
+      uEngraveSize:    { value: new THREE.Vector2(fsize.x * 0.22, fsize.y * 0.14) },  // X -35%, Y -18%
       uEngraveOpacity: { value: 1.15 },
-      // Flamme (symbole) — independant
+      // Flamme (symbole) — independant, plus etroite
       uFlameMap:       { value: flameTex },
       uFlameCenter:    { value: new THREE.Vector3(fctr.x - fsize.x*0.25, fctr.y + fsize.y*0.20, fbox.max.z) },
-      uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.256, fsize.y * 0.256) },  // -20% pour equilibre avec initiales
+      uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },  // X -30%, Y -14% (proportions plus verticales)
       uFlameOpacity:   { value: 1.15 }
     };
 
