@@ -448,76 +448,71 @@ function initConfigurator(){
     u.uEngraveCenter.value.set(pos[0], pos[1], b.z);
   }
 
-  // === Dessine une flamme stylisée luxe — symbole "Aesh Sheli" ===
+  // === Image flamme — chargée une fois, redessine quand prête ===
+  const flameImg = new Image();
+  flameImg.crossOrigin = 'anonymous';
+  flameImg.src = 'assets/flame.png?v=2';
+  flameImg.onload = () => { if (typeof drawEngraving === 'function' && state.useHebrew) drawEngraving(); };
+
+  // === Dessine la flamme PNG avec effet foil stamping luxe ===
   function drawFlame(ctx, cx, cy, size, finish){
+    if (!flameImg.complete || !flameImg.naturalWidth) return; // pas encore chargee
     let foilBase, foilHi, shade;
     if (finish === 'or')          { foilBase = '#e6b942'; foilHi = '#ffe89a'; shade = '#5a4010'; }
     else if (finish === 'orrose') { foilBase = '#d09385'; foilHi = '#f6cfbf'; shade = '#6a3a32'; }
     else if (finish === 'aveugle'){ foilBase = '#2a2a2a'; foilHi = '#5a5a5a'; shade = '#000000'; }
     else                          { foilBase = '#dcdcdc'; foilHi = '#ffffff'; shade = '#555555'; }
 
-    const w = size * 0.55, h = size; // ratio flamme
-    // Path flamme : courbes Bézier stylisées (langue centrale + 2 latérales + base bombée)
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(1, 1);
-    ctx.beginPath();
-    // Base bas-gauche
-    ctx.moveTo(-w*0.45, h*0.45);
-    // Côté gauche montant en ondulations
-    ctx.bezierCurveTo(-w*0.62, h*0.20,  -w*0.55, -h*0.05, -w*0.40, -h*0.20);
-    ctx.bezierCurveTo(-w*0.30, -h*0.30, -w*0.20, -h*0.32, -w*0.18, -h*0.45);
-    // Langue gauche pointue
-    ctx.bezierCurveTo(-w*0.16, -h*0.32, -w*0.30, -h*0.20, -w*0.05, -h*0.05);
-    // Creux central
-    ctx.bezierCurveTo( w*0.02, -h*0.15,  w*0.00, -h*0.30, -w*0.05, -h*0.40);
-    // Pic central principal (point haut)
-    ctx.bezierCurveTo( w*0.00, -h*0.48,  w*0.08, -h*0.50,  w*0.04, -h*0.30);
-    ctx.bezierCurveTo( w*0.06, -h*0.20,  w*0.20, -h*0.25,  w*0.18, -h*0.45);
-    // Langue droite
-    ctx.bezierCurveTo( w*0.22, -h*0.35,  w*0.30, -h*0.30,  w*0.28, -h*0.15);
-    // Côté droit descendant
-    ctx.bezierCurveTo( w*0.38, -h*0.08,  w*0.55, -h*0.02,  w*0.50,  h*0.15);
-    ctx.bezierCurveTo( w*0.55,  h*0.30,  w*0.30,  h*0.45,  w*0.05,  h*0.48);
-    // Base droite vers base gauche
-    ctx.bezierCurveTo(-w*0.20, h*0.50, -w*0.40, h*0.50, -w*0.45, h*0.45);
-    ctx.closePath();
+    // Calculer dimensions en gardant ratio image
+    const ratio = flameImg.naturalWidth / flameImg.naturalHeight;
+    let w, h;
+    if (ratio >= 1) { w = size; h = size / ratio; }
+    else            { h = size; w = size * ratio; }
+    const x = cx - w/2, y = cy - h/2;
 
-    // === Sillon noir creusé (effet pression) ===
+    // ===== 1. Sillon noir creusé (ombre portée sous la flamme) =====
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.55)';
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 6;
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = 'rgba(0,0,0,.65)';
-    ctx.stroke();
+    ctx.shadowColor = 'rgba(0,0,0,.7)';
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 8;
+    ctx.globalAlpha = 0.55;
+    ctx.drawImage(flameImg, x, y, w, h);
     ctx.restore();
 
-    // === Foil de base ===
-    ctx.fillStyle = foilBase;
-    ctx.fill();
+    // ===== 2. Canvas offscreen pour teinter la silhouette =====
+    const off = document.createElement('canvas');
+    off.width = Math.ceil(w);
+    off.height = Math.ceil(h);
+    const octx = off.getContext('2d');
 
-    // === Gradient highlight haut ===
+    // Dessiner la silhouette blanche
+    octx.drawImage(flameImg, 0, 0, off.width, off.height);
+    // Teinter en foil base (source-in : garde alpha, change couleur)
+    octx.globalCompositeOperation = 'source-in';
+    octx.fillStyle = foilBase;
+    octx.fillRect(0, 0, off.width, off.height);
+
+    // Appliquer gradient highlight (haut clair, bas sombre)
+    octx.globalCompositeOperation = 'source-atop';
+    const grad = octx.createLinearGradient(0, 0, 0, off.height);
+    grad.addColorStop(0,    foilHi);
+    grad.addColorStop(0.45, foilBase);
+    grad.addColorStop(1,    shade);
+    octx.globalAlpha = 0.78;
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, off.width, off.height);
+
+    // ===== 3. Coller le canvas teinte sur le canvas principal =====
+    ctx.drawImage(off, x, y);
+
+    // ===== 4. Rim highlight subtil pour relief métallique =====
     ctx.save();
-    ctx.globalCompositeOperation = 'source-atop';
-    const grad = ctx.createLinearGradient(0, -h*0.5, 0, h*0.5);
-    grad.addColorStop(0,   foilHi);
-    grad.addColorStop(0.4, foilBase);
-    grad.addColorStop(1,   shade);
-    ctx.fillStyle = grad;
-    ctx.globalAlpha = 0.85;
-    ctx.fill();
-    ctx.restore();
-
-    // === Rim top fin ===
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = foilHi;
-    ctx.globalAlpha = 0.45;
-    ctx.stroke();
-    ctx.restore();
-
+    ctx.globalAlpha = 0.35;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.shadowColor = foilHi;
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = -1;
+    ctx.drawImage(flameImg, x, y, w, h);
     ctx.restore();
   }
 
