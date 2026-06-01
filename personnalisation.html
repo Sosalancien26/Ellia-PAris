@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
@@ -642,11 +642,17 @@ function initConfigurator(){
     ctx.restore();
   }
 
-  // === Dessine les initiales texte (foil stamping) ===
+  // === Dessine les initiales texte (foil stamping) — police Marcellus, monogramme luxe ===
   function drawInitialsText(ctx, cx, cy, initials, finish, fontSize){
-    const txt = initials.split('').join('·');
-    const fontFamily = '"Cormorant Garamond", "Times New Roman", serif';
-    ctx.font = '800 ' + fontSize + 'px ' + fontFamily;
+    var _initials = (initials || '').toUpperCase();
+    return _drawMonogram(ctx, cx, cy, _initials, finish, fontSize);
+  }
+  function _drawMonogram(ctx, cx, cy, _txtRaw, finish, fontSize){
+    // Monogramme serre, sans separateur
+    const txt = _txtRaw;
+    var _noop = (function(){return;});_noop();//''+initials_disabled_x.split('').join(' '); // thin space, plus compact qu'un point
+    const fontFamily = '"Marcellus", "Cormorant Garamond", "Times New Roman", serif';
+    ctx.font = '400 ' + fontSize + 'px ' + fontFamily;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
 
@@ -833,14 +839,7 @@ function initConfigurator(){
     _resizeT = setTimeout(resize, 80);
   });
 
-  // === Detection interaction utilisateur (pour idle motion) ===
-  let lastInteract = performance.now();
-  const touchInteract = ()=>{ lastInteract = performance.now(); };
-  ['pointerdown','wheel','touchstart','keydown'].forEach(ev=>{
-    container.addEventListener(ev, touchInteract, {passive:true});
-  });
-
-  // === Boucle de rendu avec idle motion + pause hors viewport (perf) ===
+  // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
   let visible = true;
   const io = new IntersectionObserver((entries)=>{
     visible = entries[0].isIntersecting;
@@ -849,16 +848,7 @@ function initConfigurator(){
 
   function tick(){
     requestAnimationFrame(tick);
-    if (!visible) return;  // economise CPU/GPU quand hors ecran
-
-    // Idle motion : tres legere rotation auto apres 4s sans interaction
-    if (window.__pochetteRoot) {
-      const idleMs = performance.now() - lastInteract;
-      if (idleMs > 4000) {
-        const factor = Math.min((idleMs - 4000) / 1500, 1); // fade-in sur 1.5s
-        window.__pochetteRoot.rotation.y += 0.0012 * factor;
-      }
-    }
+    if (!visible) return;
     controls.update();
     renderer.render(scene, camera);
   }
