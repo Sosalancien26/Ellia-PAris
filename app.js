@@ -1,10 +1,16 @@
 /* ELLIA PARIS — interactions partagees */
 (function(){
-  /* Preloader — scan d'empreinte ralenti (4.4s) + texte zoom (2.2s a partir de 2s) = ~4.5s total */
-  function hidePreloader(){var p=document.getElementById('preloader');if(p)p.classList.add('done');}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,4700);});
-  window.addEventListener('load',function(){setTimeout(hidePreloader,4700);});
-  setTimeout(hidePreloader,6500);
+  /* Preloader RAPIDE : se cache des que la page est interactive, max 1.5s d'attente */
+  function hidePreloader(){var p=document.getElementById('preloader');if(p){p.classList.add('done');setTimeout(function(){if(p&&p.parentNode)p.parentNode.removeChild(p);},700);}}
+  // Visite repetee : on cache instantanement (le cookie indique qu'on a deja vu l'anim)
+  if(sessionStorage.getItem('ellia_seen')==='1'){
+    setTimeout(hidePreloader,100);
+  } else {
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,1500);});
+    window.addEventListener('load',function(){setTimeout(hidePreloader,1200);});
+    setTimeout(hidePreloader,3000); // garde-fou max 3s
+    sessionStorage.setItem('ellia_seen','1');
+  }
 
   /* Bandeau cookies (RGPD) */
   if(localStorage.getItem('ellia_cookies')!=='ok'){

@@ -29,7 +29,7 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 /* Preloader */
 #preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s}
 #preloader.done{opacity:0;visibility:hidden}
-#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 3.0s cubic-bezier(.22,.61,.36,1) 0.8s forwards}
+#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 1.0s cubic-bezier(.22,.61,.36,1) 0.2s forwards}
 @keyframes plIn{to{opacity:1}}
 @keyframes plTextZoom{
   0%   { opacity:0;   transform:scale(0.4) }
@@ -39,8 +39,8 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 .pl-scan{position:relative;width:120px;height:150px}
 .pl-scan img{position:absolute;left:0;top:50%;transform:translateY(-50%);width:120px}
 .pl-logo-base{opacity:.15;filter:grayscale(1)}
-.pl-logo-fill{opacity:1;clip-path:inset(0 0 100% 0);animation:plFill 4.4s cubic-bezier(.4,0,.2,1) forwards}
-.pl-beam{position:absolute;left:-14px;right:-14px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(77,141,240,0) 0%,rgba(120,180,255,.6) 18%,rgba(200,225,255,1) 45%,#ffffff 50%,rgba(200,225,255,1) 55%,rgba(120,180,255,.6) 82%,rgba(77,141,240,0) 100%);box-shadow:0 0 4px 1px rgba(255,255,255,.95),0 0 12px 2px rgba(180,210,255,.9),0 0 26px 6px rgba(77,141,240,.7),0 0 52px 14px rgba(77,141,240,.38),0 0 90px 26px rgba(40,90,200,.22);top:4px;opacity:0;animation:plBeam 4.4s cubic-bezier(.4,0,.2,1) forwards}
+.pl-logo-fill{opacity:1;clip-path:inset(0 0 100% 0);animation:plFill 1.4s cubic-bezier(.4,0,.2,1) forwards}
+.pl-beam{position:absolute;left:-14px;right:-14px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(77,141,240,0) 0%,rgba(120,180,255,.6) 18%,rgba(200,225,255,1) 45%,#ffffff 50%,rgba(200,225,255,1) 55%,rgba(120,180,255,.6) 82%,rgba(77,141,240,0) 100%);box-shadow:0 0 4px 1px rgba(255,255,255,.95),0 0 12px 2px rgba(180,210,255,.9),0 0 26px 6px rgba(77,141,240,.7),0 0 52px 14px rgba(77,141,240,.38),0 0 90px 26px rgba(40,90,200,.22);top:4px;opacity:0;animation:plBeam 1.4s cubic-bezier(.4,0,.2,1) forwards}
 .pl-beam::after{content:"";position:absolute;left:50%;top:50%;width:170px;height:90px;transform:translate(-50%,-50%);background:radial-gradient(ellipse 90px 45px at center,rgba(77,141,240,.45),rgba(77,141,240,0) 70%);pointer-events:none;filter:blur(6px)}
 @keyframes plFill{0%{clip-path:inset(0 0 100% 0)}10%{clip-path:inset(0 0 100% 0)}70%{clip-path:inset(0 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
 @keyframes plBeam{0%{top:4px;opacity:0}6%{top:4px;opacity:1}70%{top:146px;opacity:1}80%{top:146px;opacity:0}100%{opacity:0}}
@@ -543,8 +543,8 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 .pl-scan img{width:160px}
 .pl-logo-base{opacity:.18}
 /* Faisceau bleu RALENTI : 4.4s (plus doux, plus contemplatif) */
-.pl-logo-fill{animation:plFill 4.4s cubic-bezier(.4,0,.2,1) .2s forwards}
-.pl-beam{animation:plBeam 4.4s cubic-bezier(.4,0,.2,1) .2s forwards}
+.pl-logo-fill{animation:plFill 1.4s cubic-bezier(.4,0,.2,1) .2s forwards}
+.pl-beam{animation:plBeam 1.4s cubic-bezier(.4,0,.2,1) .2s forwards}
 @keyframes plBeam{
   0%{top:6px;opacity:0}
   6%{top:6px;opacity:1}
@@ -561,7 +561,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   opacity:0;
   transform:scale(0.4);
   will-change:transform,opacity;
-  animation:plTextZoom 3.0s cubic-bezier(.22,.61,.36,1) 0.8s forwards
+  animation:plTextZoom 1.0s cubic-bezier(.22,.61,.36,1) 0.2s forwards
 }
 .pl-scan,.pl-scan img,.pl-beam{will-change:transform,opacity}
 
