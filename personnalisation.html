@@ -60,11 +60,11 @@
           <input class="initials-input" id="initials" maxlength="3" value="AB" placeholder="VOS INITIALES" />
           <label for="hebrewToggle" style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:#5c5852;letter-spacing:.06em;user-select:none">
             <input type="checkbox" id="hebrewToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
-            <span>Graver une <strong style="color:#0d0d0d">flamme</strong> — <em>Aesh Sheli</em></span>
+            <span>Graver aussi une <strong style="color:#0d0d0d">flamme</strong> — <em>Aesh Sheli</em></span>
           </label>
         </div>
         <div class="block">
-          <span class="field-label">Finition</span>
+          <span class="field-label">Finition des initiales</span>
           <div class="swatches" id="swatches">
             <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
             <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
@@ -73,13 +73,34 @@
           </div>
         </div>
         <div class="block">
-          <span class="field-label">Emplacement</span>
+          <span class="field-label">Emplacement des initiales</span>
           <div class="placements" id="placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <button class="place-btn" data-pos="hg">Haut gauche</button>
             <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="hd">Haut droit</button>
             <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
             <button class="place-btn active" data-pos="centre">Centre</button>
+            <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
+            <button class="place-btn" data-pos="bg">Bas gauche</button>
+            <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
+            <button class="place-btn" data-pos="bd">Bas droit</button>
+          </div>
+        </div>
+        <div class="block" id="flameOptions" style="display:none;border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
+          <span class="field-label" style="color:#0d0d0d">Finition de la flamme</span>
+          <div class="swatches" id="flameSwatches">
+            <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+            <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+            <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+          </div>
+          <span class="field-label" style="margin-top:14px;display:block">Emplacement de la flamme</span>
+          <div class="placements" id="flamePlacements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <button class="place-btn active" data-pos="hg">Haut gauche</button>
+            <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
+            <button class="place-btn" data-pos="hd">Haut droit</button>
+            <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
+            <button class="place-btn" data-pos="centre">Centre</button>
             <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bg">Bas gauche</button>
             <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
@@ -197,6 +218,7 @@ function initConfigurator(){
   leatherNormal.repeat.set(8,8);
   leatherTex.colorSpace = THREE.SRGBColorSpace;
 
+  // === Canvas 1 : INITIALES (texte) ===
   const engraveCanvas = document.createElement('canvas');
   engraveCanvas.width = 2048; engraveCanvas.height = 1024;
   const engraveTex = new THREE.CanvasTexture(engraveCanvas);
@@ -204,9 +226,17 @@ function initConfigurator(){
   engraveTex.anisotropy = 16;
   engraveTex.minFilter = THREE.LinearFilter;
   engraveTex.magFilter = THREE.LinearFilter;
-  engraveTex.colorSpace = THREE.SRGBColorSpace;
 
-  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false };
+  // === Canvas 2 : FLAMME (symbole, position independante) ===
+  const flameCanvas = document.createElement('canvas');
+  flameCanvas.width = 1024; flameCanvas.height = 1024;
+  const flameTex = new THREE.CanvasTexture(flameCanvas);
+  flameTex.colorSpace = THREE.SRGBColorSpace;
+  flameTex.anisotropy = 16;
+  flameTex.minFilter = THREE.LinearFilter;
+  flameTex.magFilter = THREE.LinearFilter;
+
+  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, flamePlacement:'hg', flameFinish:'or' };
 
   let pochetteMesh = null;
   
@@ -272,12 +302,18 @@ function initConfigurator(){
     }
     const cuirMat = pochetteMesh ? pochetteMesh.material : null;
 
-    // Uniforms partagés que paint() pourra modifier
+    // Uniforms : DEUX decals independants (initiales + flamme)
     const engraveUniforms = {
-      uEngraveMap:    { value: engraveTex },
-      uEngraveCenter: { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
-      uEngraveSize:   { value: new THREE.Vector2(fsize.x * 0.34, fsize.y * 0.17) },  // +15%
-      uEngraveOpacity:{ value: 1.15 }   // legere amplification pour plus de presence
+      // Initiales (texte)
+      uEngraveMap:     { value: engraveTex },
+      uEngraveCenter:  { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
+      uEngraveSize:    { value: new THREE.Vector2(fsize.x * 0.34, fsize.y * 0.17) },
+      uEngraveOpacity: { value: 1.15 },
+      // Flamme (symbole) — independant
+      uFlameMap:       { value: flameTex },
+      uFlameCenter:    { value: new THREE.Vector3(fctr.x - fsize.x*0.25, fctr.y + fsize.y*0.20, fbox.max.z) },
+      uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.32, fsize.y * 0.32) },  // carre, plus grosse
+      uFlameOpacity:   { value: 1.15 }
     };
 
     if (cuirMat) {
@@ -286,8 +322,11 @@ function initConfigurator(){
         shader.uniforms.uEngraveCenter  = engraveUniforms.uEngraveCenter;
         shader.uniforms.uEngraveSize    = engraveUniforms.uEngraveSize;
         shader.uniforms.uEngraveOpacity = engraveUniforms.uEngraveOpacity;
+        shader.uniforms.uFlameMap       = engraveUniforms.uFlameMap;
+        shader.uniforms.uFlameCenter    = engraveUniforms.uFlameCenter;
+        shader.uniforms.uFlameSize      = engraveUniforms.uFlameSize;
+        shader.uniforms.uFlameOpacity   = engraveUniforms.uFlameOpacity;
 
-        // Vertex shader : passer la position monde au fragment
         shader.vertexShader = shader.vertexShader.replace(
           '#include <common>',
           '#include <common>\nvarying vec3 vEngraveWorldPos;'
@@ -296,7 +335,6 @@ function initConfigurator(){
           '#include <begin_vertex>\nvEngraveWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;'
         );
 
-        // Fragment shader : projeter la texture engrave en fonction de la position monde
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <common>',
           '#include <common>\n' +
@@ -304,26 +342,37 @@ function initConfigurator(){
           'uniform vec3 uEngraveCenter;\n' +
           'uniform vec2 uEngraveSize;\n' +
           'uniform float uEngraveOpacity;\n' +
+          'uniform sampler2D uFlameMap;\n' +
+          'uniform vec3 uFlameCenter;\n' +
+          'uniform vec2 uFlameSize;\n' +
+          'uniform float uFlameOpacity;\n' +
           'varying vec3 vEngraveWorldPos;'
         ).replace(
           '#include <color_fragment>',
           '#include <color_fragment>\n' +
-          'vec3 _engToFrag = vEngraveWorldPos - uEngraveCenter;\n' +
-          'vec2 _engUV = vec2((_engToFrag.x / uEngraveSize.x) + 0.5, (_engToFrag.y / uEngraveSize.y) + 0.5);\n' +
-          // Limiter en X/Y (zone du decal) et en Z (uniquement face avant)
-          'bool _engIn = _engUV.x > 0.0 && _engUV.x < 1.0 && _engUV.y > 0.0 && _engUV.y < 1.0 && _engToFrag.z > -0.025 && _engToFrag.z < 0.03;\n' +
-          'vec4 _engCol = _engIn ? texture2D(uEngraveMap, _engUV) : vec4(0.0);\n' +
-          'float _engA = clamp(_engCol.a * uEngraveOpacity, 0.0, 1.0);\n' +
-          'diffuseColor.rgb = mix(diffuseColor.rgb, _engCol.rgb, _engA);'
+          // Decal 1 : INITIALES
+          'vec3 _to1 = vEngraveWorldPos - uEngraveCenter;\n' +
+          'vec2 _uv1 = vec2((_to1.x / uEngraveSize.x) + 0.5, (_to1.y / uEngraveSize.y) + 0.5);\n' +
+          'bool _in1 = _uv1.x > 0.0 && _uv1.x < 1.0 && _uv1.y > 0.0 && _uv1.y < 1.0 && _to1.z > -0.025 && _to1.z < 0.03;\n' +
+          'vec4 _col1 = _in1 ? texture2D(uEngraveMap, _uv1) : vec4(0.0);\n' +
+          'float _a1 = clamp(_col1.a * uEngraveOpacity, 0.0, 1.0);\n' +
+          // Decal 2 : FLAMME
+          'vec3 _to2 = vEngraveWorldPos - uFlameCenter;\n' +
+          'vec2 _uv2 = vec2((_to2.x / uFlameSize.x) + 0.5, (_to2.y / uFlameSize.y) + 0.5);\n' +
+          'bool _in2 = _uv2.x > 0.0 && _uv2.x < 1.0 && _uv2.y > 0.0 && _uv2.y < 1.0 && _to2.z > -0.025 && _to2.z < 0.03;\n' +
+          'vec4 _col2 = _in2 ? texture2D(uFlameMap, _uv2) : vec4(0.0);\n' +
+          'float _a2 = clamp(_col2.a * uFlameOpacity, 0.0, 1.0);\n' +
+          // Application : initiales puis flamme par-dessus
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _col1.rgb, _a1);\n' +
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _col2.rgb, _a2);\n' +
+          'float _engA = max(_a1, _a2);'
         ).replace(
           '#include <roughnessmap_fragment>',
           '#include <roughnessmap_fragment>\n' +
-          // Le foil est plus brillant que le cuir mat (roughness plus basse)
           'roughnessFactor = mix(roughnessFactor, 0.28, _engA * 0.85);'
         ).replace(
           '#include <metalnessmap_fragment>',
           '#include <metalnessmap_fragment>\n' +
-          // Foil = metallique (sauf aveugle qui reste mat)
           'metalnessFactor = mix(metalnessFactor, 0.7, _engA * 0.7);'
         );
 
@@ -430,8 +479,6 @@ function initConfigurator(){
   function paint(){
     if(!pochetteMesh) return;
     drawEngraving();
-    // Repositionne l'overlay de gravure selon le placement choisi
-    // Met à jour le centre de la gravure (uniform shader)
     const u = window.__engraveUniforms;
     const b = window.__engraveBox;
     if (!u || !b) return;
@@ -444,15 +491,24 @@ function initConfigurator(){
       bg:     [ b.x + mx,           b.y + my ],
       bd:     [ b.X - mx,           b.y + my ]
     };
-    const pos = positions[state.placement] || positions.centre;
-    u.uEngraveCenter.value.set(pos[0], pos[1], b.z);
+    // Centre INITIALES
+    const posInit = positions[state.placement] || positions.centre;
+    u.uEngraveCenter.value.set(posInit[0], posInit[1], b.z);
+    // Centre FLAMME (independant)
+    const posFlame = positions[state.flamePlacement] || positions.hg;
+    u.uFlameCenter.value.set(posFlame[0], posFlame[1], b.z);
+    // Opacite : on coupe une gravure si elle n'est pas demandee
+    const hasInit  = (state.initials||'').trim().length > 0;
+    const hasFlame = !!state.useHebrew;
+    u.uEngraveOpacity.value = hasInit  ? 1.15 : 0.0;
+    u.uFlameOpacity.value   = hasFlame ? 1.15 : 0.0;
   }
 
   // === Image flamme — chargée une fois, redessine quand prête ===
   const flameImg = new Image();
   flameImg.crossOrigin = 'anonymous';
   flameImg.src = 'assets/flame.png?v=2';
-  flameImg.onload = () => { if (typeof drawEngraving === 'function' && state.useHebrew) drawEngraving(); };
+  flameImg.onload = () => { if (state.useHebrew && typeof paint === 'function') paint(); };
 
   // === Dessine la flamme PNG avec effet foil stamping luxe ===
   function drawFlame(ctx, cx, cy, size, finish){
@@ -609,33 +665,27 @@ function initConfigurator(){
     }
   }
 
-  // === Orchestrateur : decide quoi dessiner (flamme seule / initiales seules / les deux) ===
+  // === Orchestrateur : initiales sur canvas 1, flamme sur canvas 2 (independants) ===
   function drawEngraving(){
-    const ctx = engraveCanvas.getContext('2d');
-    const W = engraveCanvas.width, H = engraveCanvas.height;
-    ctx.clearRect(0,0,W,H);
-
+    // === Canvas 1 : INITIALES texte ===
+    const ctx1 = engraveCanvas.getContext('2d');
+    const W1 = engraveCanvas.width, H1 = engraveCanvas.height;
+    ctx1.clearRect(0,0,W1,H1);
     const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
-    const hasFlame = !!state.useHebrew;
-    const hasText  = initials.length > 0;
-
-    if (!hasFlame && !hasText) { engraveTex.needsUpdate = true; return; }
-
-    if (hasFlame && hasText) {
-      // ===== LES DEUX : flamme en haut, initiales en bas =====
-      drawFlame(ctx, W/2, H*0.34, Math.min(W,H) * 0.62, state.finish);
-      const fontSize = initials.length <= 2 ? 480 : 400;
-      drawInitialsText(ctx, W/2, H*0.78, initials, state.finish, fontSize);
-    } else if (hasFlame) {
-      // ===== FLAMME SEULE — 50% plus grosse qu'avant =====
-      drawFlame(ctx, W/2, H/2, Math.min(W,H) * 1.05, state.finish);
-    } else {
-      // ===== INITIALES SEULES =====
+    if (initials.length > 0) {
       const fontSize = initials.length <= 2 ? 720 : 600;
-      drawInitialsText(ctx, W/2, H/2, initials, state.finish, fontSize);
+      drawInitialsText(ctx1, W1/2, H1/2, initials, state.finish, fontSize);
     }
-
     engraveTex.needsUpdate = true;
+
+    // === Canvas 2 : FLAMME (independante - position + couleur) ===
+    const ctx2 = flameCanvas.getContext('2d');
+    const W2 = flameCanvas.width, H2 = flameCanvas.height;
+    ctx2.clearRect(0,0,W2,H2);
+    if (state.useHebrew) {
+      drawFlame(ctx2, W2/2, H2/2, Math.min(W2,H2) * 0.95, state.flameFinish);
+    }
+    flameTex.needsUpdate = true;
   }
 
   const initialsInput = document.getElementById('initials');
@@ -666,14 +716,34 @@ function initConfigurator(){
     });
   });
 
-  // Toggle symbole "Aesh Sheli" (flamme) — initiales et flamme peuvent coexister
+  // Toggle symbole "Aesh Sheli" (flamme) — coexiste avec les initiales, position + couleur independantes
   const hebrewToggle = document.getElementById('hebrewToggle');
+  const flameOptions = document.getElementById('flameOptions');
   if (hebrewToggle) {
     hebrewToggle.addEventListener('change', ()=>{
       state.useHebrew = hebrewToggle.checked;
+      if (flameOptions) flameOptions.style.display = hebrewToggle.checked ? 'block' : 'none';
       paint();
     });
   }
+  // Swatches flamme (finition independante)
+  document.querySelectorAll('#flameSwatches .sw').forEach(s=>{
+    s.addEventListener('click',()=>{
+      document.querySelectorAll('#flameSwatches .sw').forEach(o=>o.classList.remove('active'));
+      s.classList.add('active');
+      state.flameFinish = s.dataset.color;
+      paint();
+    });
+  });
+  // Placements flamme (emplacement independant)
+  document.querySelectorAll('#flamePlacements .place-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#flamePlacements .place-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.flamePlacement = b.dataset.pos;
+      paint();
+    });
+  });
 
   function resize(){
     renderer.setSize(w(), h());
