@@ -255,42 +255,86 @@ function initConfigurator(){
     console.log('[Ellia 3D] Mesh corps choisi - volume:', bestVol.toFixed(2));
     window.__chromeMat = null;  // plus de chrome material à modifier (on garde celui du modélo)
 
-    // === GRAVURE : plane plat sur la face avant du corps cuir ===
+    // === GRAVURE PRO : injection dans le SHADER du materiau cuir ===
+    // La gravure devient partie integrante du cuir avec lighting PBR coherent.
     const refMesh = pochetteMesh || obj;
     const fbox = new THREE.Box3().setFromObject(refMesh);
     const fsize = fbox.getSize(new THREE.Vector3());
     const fctr  = fbox.getCenter(new THREE.Vector3());
-    
-    // Plan petit qui reste dans la zone plate du cuir (30% largeur, 15% hauteur)
-    const planeW = fsize.x * 0.30;
-    const planeH = planeW * 0.50;
-    const engravePlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(planeW, planeH),
-      new THREE.MeshBasicMaterial({
-        map: engraveTex,
-        transparent: true,
-        depthTest: true,
-        depthWrite: false,
-        side: THREE.FrontSide,
-        alphaTest: 0.02,
-        polygonOffset: true,
-        polygonOffsetFactor: -100,  // ultra agressif : plane apparait DANS le cuir
-        polygonOffsetUnits: -100,
-        opacity: 0.94
-      })
-    );
-    engravePlane.renderOrder = 5;
-    
-    // Position : face avant du cuir + petit offset Z pour eviter intersection
-    const frontZ = fbox.max.z;  // exactement a la surface du cuir
-    engravePlane.position.set(fctr.x, fctr.y, frontZ);
-    engravePlane.userData.box = { 
-      x: fbox.min.x, X: fbox.max.x, 
-      y: fbox.min.y, Y: fbox.max.y, 
-      z: frontZ 
+
+    // Clone le materiau du cuir pour ne pas affecter d'autres meshes
+    if (pochetteMesh && pochetteMesh.material) {
+      pochetteMesh.material = pochetteMesh.material.clone();
+    }
+    const cuirMat = pochetteMesh ? pochetteMesh.material : null;
+
+    // Uniforms partagés que paint() pourra modifier
+    const engraveUniforms = {
+      uEngraveMap:    { value: engraveTex },
+      uEngraveCenter: { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
+      uEngraveSize:   { value: new THREE.Vector2(fsize.x * 0.30, fsize.y * 0.15) },
+      uEngraveOpacity:{ value: 1.0 }
     };
-    scene.add(engravePlane);
-    window.__engravePlane = engravePlane;
+
+    if (cuirMat) {
+      cuirMat.onBeforeCompile = function(shader) {
+        shader.uniforms.uEngraveMap     = engraveUniforms.uEngraveMap;
+        shader.uniforms.uEngraveCenter  = engraveUniforms.uEngraveCenter;
+        shader.uniforms.uEngraveSize    = engraveUniforms.uEngraveSize;
+        shader.uniforms.uEngraveOpacity = engraveUniforms.uEngraveOpacity;
+
+        // Vertex shader : passer la position monde au fragment
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 vEngraveWorldPos;'
+        ).replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvEngraveWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;'
+        );
+
+        // Fragment shader : projeter la texture engrave en fonction de la position monde
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          '#include <common>\n' +
+          'uniform sampler2D uEngraveMap;\n' +
+          'uniform vec3 uEngraveCenter;\n' +
+          'uniform vec2 uEngraveSize;\n' +
+          'uniform float uEngraveOpacity;\n' +
+          'varying vec3 vEngraveWorldPos;'
+        ).replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\n' +
+          'vec3 _engToFrag = vEngraveWorldPos - uEngraveCenter;\n' +
+          'vec2 _engUV = vec2((_engToFrag.x / uEngraveSize.x) + 0.5, 0.5 - (_engToFrag.y / uEngraveSize.y));\n' +
+          // Limiter en X/Y (zone du decal) et en Z (uniquement face avant)
+          'bool _engIn = _engUV.x > 0.0 && _engUV.x < 1.0 && _engUV.y > 0.0 && _engUV.y < 1.0 && _engToFrag.z > -0.025 && _engToFrag.z < 0.03;\n' +
+          'vec4 _engCol = _engIn ? texture2D(uEngraveMap, _engUV) : vec4(0.0);\n' +
+          'float _engA = _engCol.a * uEngraveOpacity;\n' +
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _engCol.rgb, _engA);'
+        ).replace(
+          '#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\n' +
+          // Le foil est plus brillant que le cuir mat (roughness plus basse)
+          'roughnessFactor = mix(roughnessFactor, 0.28, _engA * 0.85);'
+        ).replace(
+          '#include <metalnessmap_fragment>',
+          '#include <metalnessmap_fragment>\n' +
+          // Foil = metallique (sauf aveugle qui reste mat)
+          'metalnessFactor = mix(metalnessFactor, 0.7, _engA * 0.7);'
+        );
+
+        cuirMat.userData.shader = shader;
+      };
+      cuirMat.needsUpdate = true;
+    }
+
+    // Stocker pour paint()
+    window.__engraveUniforms = engraveUniforms;
+    window.__engraveBox = {
+      x: fbox.min.x, X: fbox.max.x,
+      y: fbox.min.y, Y: fbox.max.y,
+      z: fbox.max.z
+    };
 
 
 
@@ -383,12 +427,12 @@ function initConfigurator(){
     if(!pochetteMesh) return;
     drawEngraving();
     // Repositionne l'overlay de gravure selon le placement choisi
-    // Repositionne le plane selon le placement choisi
-    const p = window.__engravePlane;
-    if (!p) return;
-    const b = p.userData.box;
+    // Met à jour le centre de la gravure (uniform shader)
+    const u = window.__engraveUniforms;
+    const b = window.__engraveBox;
+    if (!u || !b) return;
     const w = b.X - b.x, hH = b.Y - b.y;
-    const mx = w * 0.20, my = hH * 0.22;
+    const mx = w * 0.20, my = hH * 0.20;
     const positions = {
       centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
       hg:     [ b.x + mx,           b.Y - my ],
@@ -397,7 +441,7 @@ function initConfigurator(){
       bd:     [ b.X - mx,           b.y + my ]
     };
     const pos = positions[state.placement] || positions.centre;
-    p.position.set(pos[0], pos[1], b.z);
+    u.uEngraveCenter.value.set(pos[0], pos[1], b.z);
   }
 
   function drawEngraving(){
@@ -532,23 +576,9 @@ function initConfigurator(){
   }
   window.addEventListener('resize', resize);
 
-  // Boucle de rendu — PAS d'auto-rotation
-  // Cache la gravure quand la camera regarde le dos ou le profil
-  const _engraveDir = new THREE.Vector3(0, 0, 1); // direction face avant (vers +Z)
-  const _camToTarget = new THREE.Vector3();
+  // Boucle de rendu simple — la gravure est dans le shader, pas besoin de fade
   function tick(){
     controls.update();
-    // Visibility de la gravure selon angle camera vs face avant
-    if (window.__engravePlane) {
-      _camToTarget.subVectors(camera.position, controls.target).normalize();
-      const dot = _camToTarget.dot(_engraveDir);
-      // dot > 0.15 = on regarde la face avant. Sous ce seuil → invisible
-      window.__engravePlane.visible = dot > 0.15;
-      // Fade-out progressif pour transition douce
-      if (window.__engravePlane.material) {
-        window.__engravePlane.material.opacity = Math.max(0, Math.min(1, (dot - 0.15) * 4));
-      }
-    }
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
