@@ -215,7 +215,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=21', (gltf)=>{
+  loader.load('assets/pochette.glb?v=22', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -259,13 +259,12 @@ function initConfigurator(){
         map: engraveTex,
         transparent: true,
         depthWrite: false,
+        depthTest: false,           // toujours rendu, pas clippé par le cuir
         alphaTest: 0.01,
-        side: THREE.FrontSide,
-        polygonOffset: true,        // évite le z-fighting avec la pochette
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1
+        side: THREE.FrontSide       // invisible vue de derriere
       })
     );
+    engravePlane.renderOrder = 999;  // dessine APRES la pochette
     // Position devant la face avant (max Z + offset)
     const frontZ = fbox.max.z + 0.004;  // un peu plus loin pour eviter intersection avec le bombé du cuir
     engravePlane.position.set(fctr.x, fctr.y, frontZ);
