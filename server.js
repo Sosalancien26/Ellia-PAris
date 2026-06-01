@@ -72,12 +72,13 @@ function setSecurityHeaders(req, res){
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self), interest-cohort=()');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net blob:",
+    "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' https: data: blob:",
     "media-src 'self' https:",
-    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co",
+    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
