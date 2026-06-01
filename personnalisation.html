@@ -201,58 +201,65 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=7', (gltf)=>{
+  loader.load('assets/pochette.glb?v=9', (gltf)=>{
     const obj = gltf.scene;
-    // Normalise la taille du modèle (peu importe l'échelle d'export)
+    // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
     const size = bbox.getSize(new THREE.Vector3());
+    const center = bbox.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    const targetSize = 0.25; // ~25cm dans la scène
-    const scale = maxDim > 0 ? (targetSize / maxDim) : 1;
+    const scale = 0.28 / maxDim;
     obj.scale.setScalar(scale);
-    // Recalcule la bbox après scale pour centrer correctement
+    obj.position.copy(center.multiplyScalar(-scale));
+    // Pose au sol
     const bbox2 = new THREE.Box3().setFromObject(obj);
-    const center = bbox2.getCenter(new THREE.Vector3());
-    obj.position.sub(center);
-    // Pose la pochette sur le sol (ground a y=-0.085)
-    const bbox3 = new THREE.Box3().setFromObject(obj);
-    obj.position.y -= bbox3.min.y;
-    obj.position.y -= 0.085;
-    const leatherMat = new THREE.MeshPhysicalMaterial({
-      color: 0x080808,
+    obj.position.y -= bbox2.min.y + 0.085;
+
+    // === 2. Matériaux PBR propres (sans clearcoat — amplifie les défauts) ===
+    const leatherMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a0a,
       metalness: 0.0,
-      roughness: 0.92,
-      envMapIntensity: 0.45,
-      side: THREE.FrontSide
+      roughness: 0.78,
+      envMapIntensity: 0.6,
+      flatShading: false,
+      side: THREE.DoubleSide   // <- corps potentiellement à 1 face : DoubleSide évite les trous
     });
-    const chromeMat = new THREE.MeshPhysicalMaterial({
-      color: 0xeaeaea,
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xe8e8e8,
       metalness: 1.0,
-      roughness: 0.22,
+      roughness: 0.25,
       envMapIntensity: 1.2,
-      side: THREE.FrontSide
+      flatShading: false,
+      side: THREE.DoubleSide
     });
-    const innerMat = new THREE.MeshPhysicalMaterial({
-      color: 0x121212,
+    const innerMat = new THREE.MeshStandardMaterial({
+      color: 0x141414,
       metalness: 0.0,
-      roughness: 0.95,
-      envMapIntensity: 0.35,
-      side: THREE.FrontSide
+      roughness: 0.9,
+      envMapIntensity: 0.4,
+      flatShading: false,
+      side: THREE.DoubleSide
     });
     window.__chromeMat = chromeMat;
     window.__leatherMat = leatherMat;
 
+    // === 3. Traverse — PRESERVE les normales/tangentes du modéleur ===
     obj.traverse(o=>{
       if(!o.isMesh) return;
       const tris = o.geometry.index ? o.geometry.index.count/3 : (o.geometry.attributes.position.count/3);
+      // Heuristique : gros mesh = corps, moyen = doublure, petit = hardware metallique
       if (tris > 20000)      o.material = leatherMat;
       else if (tris > 5000)  o.material = innerMat;
       else                   o.material = chromeMat;
       if(tris > 20000) pochetteMesh = o;
     });
+
     scene.add(obj);
     paint();
-  }, undefined, (err)=>{
+  }, (xhr)=>{
+    // onProgress
+    if(xhr.lengthComputable){ console.log('Pochette 3D :', Math.round(xhr.loaded/xhr.total*100)+'%'); }
+  }, (err)=>{
     console.error('GLB load error', err);
     container.innerHTML = '<div style="padding:40px;text-align:center;color:#7a7363;font-family:Jost,sans-serif;font-size:13px;letter-spacing:.1em">Chargement du modèle 3D impossible.<br>Vérifiez la connexion.</div>';
   });
