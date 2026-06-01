@@ -63,18 +63,22 @@
           <span class="field-label">Finition</span>
           <div class="swatches" id="swatches">
             <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
             <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-            <div class="sw" data-color="noir"><div class="dot noir"></div><small>Noir</small></div>
-            <div class="sw" data-color="blanc"><div class="dot blanc"></div><small>Blanc</small></div>
+            <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
           </div>
         </div>
         <div class="block">
           <span class="field-label">Emplacement</span>
-          <div class="placements" id="placements">
+          <div class="placements" id="placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <button class="place-btn" data-pos="hg">Haut gauche</button>
+            <button class="place-btn" data-pos="ht">Haut centre</button>
+            <button class="place-btn" data-pos="hd">Haut droit</button>
+            <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
             <button class="place-btn active" data-pos="centre">Centre</button>
-            <button class="place-btn" data-pos="bas">Bas</button>
-            <button class="place-btn" data-pos="coin">Coin</button>
+            <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
+            <button class="place-btn" data-pos="bg">Bas gauche</button>
+            <button class="place-btn" data-pos="bt">Bas centre</button>
+            <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
         <div class="perso-total"><span class="lab">Total</span><span class="val" id="total">218&nbsp;€</span></div>
@@ -126,11 +130,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const FINISHES = {
-  or:     { name:'Or',     hex:0xd4af37 },
-  orrose: { name:'Or rose',hex:0xc98e86 },
-  argent: { name:'Argent', hex:0xc7c7c7 },
-  noir:   { name:'Noir',   hex:0x232323 },
-  blanc:  { name:'Blanc',  hex:0xf4f1ea }
+  or:      { name:'Or',      hex:0xd4af37, alpha:1.0 },
+  argent:  { name:'Argent',  hex:0xc7c7c7, alpha:1.0 },
+  aveugle: { name:'Aveugle', hex:0x0c0c0c, alpha:0.45 }   // gravure sans couleur, juste l'embossage
 };
 
 const container = document.getElementById('viewer3d');
@@ -190,8 +192,12 @@ function initConfigurator(){
   leatherTex.colorSpace = THREE.SRGBColorSpace;
 
   const engraveCanvas = document.createElement('canvas');
-  engraveCanvas.width = 1024; engraveCanvas.height = 1024;
+  engraveCanvas.width = 2048; engraveCanvas.height = 1024;
   const engraveTex = new THREE.CanvasTexture(engraveCanvas);
+  engraveTex.colorSpace = THREE.SRGBColorSpace;
+  engraveTex.anisotropy = 16;
+  engraveTex.minFilter = THREE.LinearFilter;
+  engraveTex.magFilter = THREE.LinearFilter;
   engraveTex.colorSpace = THREE.SRGBColorSpace;
 
   const state = { initials:'AB', finish:'or', placement:'centre' };
@@ -201,7 +207,7 @@ function initConfigurator(){
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=9', (gltf)=>{
+  loader.load('assets/pochette.glb?v=10', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -253,6 +259,31 @@ function initConfigurator(){
       else                   o.material = chromeMat;
       if(tris > 20000) pochetteMesh = o;
     });
+
+    // === Overlay GRAVURE : plane mesh devant la pochette ===
+    // BBox apres scaling
+    const fbox = new THREE.Box3().setFromObject(obj);
+    const fsize = fbox.getSize(new THREE.Vector3());
+    const fctr  = fbox.getCenter(new THREE.Vector3());
+    // Plane petit (taille ~20% largeur pochette)
+    const planeW = fsize.x * 0.22;
+    const planeH = planeW * 0.5;
+    const engravePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(planeW, planeH),
+      new THREE.MeshBasicMaterial({
+        map: engraveTex,
+        transparent: true,
+        depthWrite: false,
+        alphaTest: 0.02
+      })
+    );
+    // Position devant la face avant (max Z + petit offset)
+    const frontZ = fbox.max.z + 0.0008;
+    engravePlane.position.set(fctr.x, fctr.y, frontZ);
+    engravePlane.userData.frontZ = frontZ;
+    engravePlane.userData.box = { x:fbox.min.x, X:fbox.max.x, y:fbox.min.y, Y:fbox.max.y, z:frontZ };
+    scene.add(engravePlane);
+    window.__engravePlane = engravePlane;
 
     scene.add(obj);
     paint();
@@ -333,26 +364,66 @@ function initConfigurator(){
 
   function paint(){
     if(!pochetteMesh) return;
-    // Le cuir reste noir, point. Seule la gravure des initiales prend la couleur de la finition.
     drawEngraving();
+    // Repositionne l'overlay de gravure selon le placement choisi
+    const p = window.__engravePlane;
+    if(!p) return;
+    const b = p.userData.box;
+    const w = b.X - b.x, hH = b.Y - b.y;
+    // Marges depuis les bords (15% de chaque côté)
+    const mx = w * 0.15, my = hH * 0.15;
+    const positions = {
+      centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
+      hg:     [ b.x + mx,           b.Y - my ],
+      ht:     [ (b.x + b.X)/2,      b.Y - my ],
+      hd:     [ b.X - mx,           b.Y - my ],
+      bg:     [ b.x + mx,           b.y + my ],
+      bt:     [ (b.x + b.X)/2,      b.y + my ],
+      bd:     [ b.X - mx,           b.y + my ]
+    };
+    const pos = positions[state.placement] || positions.centre;
+    p.position.set(pos[0], pos[1], b.z);
   }
 
   function drawEngraving(){
     const ctx = engraveCanvas.getContext('2d');
     const W = engraveCanvas.width, H = engraveCanvas.height;
     ctx.clearRect(0,0,W,H);
-    const txt = (state.initials||'').split('').join('·');
-    if(!txt) return;
-    const f = FINISHES[state.finish];
-    const placements = { centre:[W/2, H/2, 'center'], bas:[W/2, H*0.78, 'center'], coin:[W*0.18, H*0.18, 'left'] };
-    const p = placements[state.placement] || placements.centre;
-    ctx.font = '600 110px "Cormorant Garamond", serif';
-    ctx.textBaseline='middle';
-    ctx.textAlign = p[2];
+    const initials = (state.initials||'').trim().toUpperCase().slice(0,3);
+    if(!initials) { engraveTex.needsUpdate = true; return; }
+    // Format luxe : separateur point fin entre lettres (ex: N·B)
+    const txt = initials.split('').join('·');
+    const f = FINISHES[state.finish] || FINISHES.or;
     const col = '#'+f.hex.toString(16).padStart(6,'0');
-    ctx.shadowColor = col; ctx.shadowBlur = 18;
-    ctx.fillStyle = col;
-    ctx.fillText(txt, p[0], p[1]);
+    // Police serif lettres CAPITALES — comme sur les photos client
+    ctx.font = '600 360px "Cormorant Garamond", "Times New Roman", serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    if (state.finish === 'aveugle'){
+      // Gravure aveugle : effet emboss subtil
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#000';
+      ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+      ctx.fillText(txt, W/2, H/2 + 4);
+      ctx.shadowOffsetY = 0;
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(txt, W/2, H/2 - 2);
+    } else {
+      // Or / Argent : couleur dorée vive
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = col; ctx.shadowBlur = 22;
+      ctx.fillStyle = col;
+      ctx.fillText(txt, W/2, H/2);
+      // Surlignage métallique
+      ctx.shadowBlur = 0;
+      const grad = ctx.createLinearGradient(0, H*0.4, 0, H*0.6);
+      grad.addColorStop(0, 'rgba(255,255,255,.45)');
+      grad.addColorStop(0.5, col);
+      grad.addColorStop(1, 'rgba(0,0,0,.25)');
+      ctx.fillStyle = grad;
+      ctx.fillText(txt, W/2, H/2);
+    }
     engraveTex.needsUpdate = true;
   }
 
