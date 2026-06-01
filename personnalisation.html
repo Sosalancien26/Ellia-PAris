@@ -215,7 +215,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=18', (gltf)=>{
+  loader.load('assets/pochette.glb?v=19', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -363,7 +363,6 @@ function initConfigurator(){
     const p = window.__engravePlane;
     if(!p) return;
     const b = p.userData.box;
-      const w = b.X - b.x, hH = b.Y - b.y;
     const w = b.X - b.x, hH = b.Y - b.y;
     const mx = w * 0.18, my = hH * 0.20;
     const positions = {
