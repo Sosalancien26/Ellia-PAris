@@ -205,9 +205,9 @@ function initConfigurator(){
   let pochetteMesh = null;
   const loader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   loader.setDRACOLoader(dracoLoader);
-  loader.load('assets/pochette.glb?v=14', (gltf)=>{
+  loader.load('assets/pochette.glb?v=15', (gltf)=>{
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
     const bbox = new THREE.Box3().setFromObject(obj);
@@ -267,10 +267,17 @@ function initConfigurator(){
     paint();
   }, (xhr)=>{
     // onProgress
-    if(xhr.lengthComputable){ console.log('Pochette 3D :', Math.round(xhr.loaded/xhr.total*100)+'%'); }
+    if(xhr.lengthComputable){
+      const pct = Math.round(xhr.loaded/xhr.total*100);
+      console.log('Pochette 3D :', pct + '% (' + Math.round(xhr.loaded/1024/1024) + ' / ' + Math.round(xhr.total/1024/1024) + ' MB)');
+    }
   }, (err)=>{
-    console.error('GLB load error', err);
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:#7a7363;font-family:Jost,sans-serif;font-size:13px;letter-spacing:.1em">Chargement du modèle 3D impossible.<br>Vérifiez la connexion.</div>';
+    console.error('=== GLB load error ===');
+    console.error('Type:', err && err.type);
+    console.error('Message:', err && err.message);
+    console.error('Stack:', err && err.stack);
+    console.error('Full:', err);
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#7a7363;font-family:Jost,sans-serif;font-size:13px;letter-spacing:.1em">Erreur de chargement du modèle 3D.<br>Ouvrez la console (F12) pour le détail.</div>';
   });
 
   function makeLeatherTexture(W,H){
