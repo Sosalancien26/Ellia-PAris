@@ -630,15 +630,10 @@ header.on-dark:not(.scrolled) .burger span{background:#fff}
   header.on-dark:not(.scrolled) .nav-logo{height:86px}
 }
 
-/* ============ HERO CINEMA — TEXTE À DROITE ============ */
-.hero-cinema{justify-content:flex-end;padding-left:50%}
-.hero-cinema .content{max-width:560px;text-align:left}
-/* Garde-fou : sur écran < 1100px, on remet le texte tout à gauche (sinon trop serré) */
-@media (max-width:1100px){
-  .hero-cinema{padding-left:60px;justify-content:flex-start}
-  .hero-cinema .content{max-width:600px}
-  .hero-cinema .veil{background:linear-gradient(90deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 45%,rgba(0,0,0,.1) 100%),linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(0,0,0,.5) 100%)}
-}
+/* ============ HERO CINEMA — TEXTE EN BAS À GAUCHE (nouvelle composition) ============ */
+.hero-cinema{justify-content:flex-start !important;align-items:flex-end !important;padding:120px 80px 90px !important}
+.hero-cinema .content{max-width:640px !important;text-align:left !important;margin:0 !important}
+.hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.35) 65%,rgba(0,0,0,.78) 100%),linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 30%,rgba(0,0,0,0) 55%) !important}
 @media (max-width:768px){
   .hero-cinema{padding:120px 28px 90px;justify-content:flex-start;align-items:flex-end}
   .hero-cinema .content{max-width:100%}
