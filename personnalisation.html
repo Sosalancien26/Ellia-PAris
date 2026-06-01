@@ -386,11 +386,19 @@ function initConfigurator(){
         ).replace(
           '#include <roughnessmap_fragment>',
           '#include <roughnessmap_fragment>\n' +
-          'roughnessFactor = mix(roughnessFactor, 0.28, _engA * 0.85);'
+          // La gravure foil est tres lisse (roughness basse = brillante)
+          'roughnessFactor = mix(roughnessFactor, 0.15, _engA * 0.95);'
         ).replace(
           '#include <metalnessmap_fragment>',
           '#include <metalnessmap_fragment>\n' +
-          'metalnessFactor = mix(metalnessFactor, 0.7, _engA * 0.7);'
+          // Foil = metallique
+          'metalnessFactor = mix(metalnessFactor, 0.85, _engA * 0.85);'
+        ).replace(
+          '#include <normal_fragment_maps>',
+          '#include <normal_fragment_maps>\n' +
+          // CRUCIAL : a l'endroit de la gravure, on aplati la normale pour effacer
+          // les grains du cuir. Le foil devient lisse comme un metal poli.
+          'normal = normalize(mix(normal, normalize(vNormal), _engA * 0.95));'
         );
 
         cuirMat.userData.shader = shader;
