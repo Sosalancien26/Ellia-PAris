@@ -29,7 +29,7 @@
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html" aria-label="ELLIA PARIS"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
     <nav class="links">
       <a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a>
       <a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
@@ -47,8 +47,8 @@
     <div id="cartFooter"></div>
   </div>
 </section>
-<script src="app.js?v=23"></script>
-<script src="cart.js?v=23"></script>
+<script src="app.js?v=24" defer></script>
+<script src="cart.js?v=24" defer></script>
 <script>
 (function(){
   const list=document.getElementById('cartList'), foot=document.getElementById('cartFooter');
@@ -67,7 +67,7 @@
   }
   function previewImg(it){
     if(!it.preview) return '';
-    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0" />';
+    return '<img loading="lazy" decoding="async" src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0" />';
   }
   function render(){
     const items=Cart.items();
@@ -76,17 +76,4 @@
       foot.innerHTML=''; return;
     }
     list.innerHTML=items.map((it,i)=>
-      '<div class="cart-line" style="align-items:center">'+previewImg(it)+
-      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette Ellia')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
-      '<div class="pr">'+eur(it.prix)+'</div>'+
-      '<button class="rm" data-i="'+i+'">Retirer</button></div>').join('');
-    foot.innerHTML='<div class="cart-sum"><span class="l">Total</span><span class="v">'+eur(Cart.total())+'</span></div>'+
-      '<div class="cta-row" style="justify-content:flex-end"><a href="pochette.html" class="btn">Continuer mes achats</a><a href="checkout.html" class="btn solid">Passer la commande</a></div>';
-    list.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{Cart.removeAt(Number(b.dataset.i));render();}));
-  }
-  render();
-})();
-</script>
-<script src="cookies-banner.js?v=1" defer></script>
-</body>
-</html>
+      '<div class="cart-line" style="a
