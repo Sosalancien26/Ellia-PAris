@@ -63,6 +63,7 @@
           <span class="field-label">Finition</span>
           <div class="swatches" id="swatches">
             <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
             <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
             <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
           </div>
@@ -131,8 +132,9 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const FINISHES = {
   or:      { name:'Or',      hex:0xd4af37, alpha:1.0 },
+  orrose:  { name:'Or rose', hex:0xc98e86, alpha:1.0 },
   argent:  { name:'Argent',  hex:0xc7c7c7, alpha:1.0 },
-  aveugle: { name:'Aveugle', hex:0x0c0c0c, alpha:0.45 }   // gravure sans couleur, juste l'embossage
+  aveugle: { name:'Aveugle', hex:0x0c0c0c, alpha:0.45 }
 };
 
 const container = document.getElementById('viewer3d');
@@ -415,57 +417,50 @@ function initConfigurator(){
     const cx = W/2, cy = H/2;
 
     if (state.finish === 'aveugle'){
-      // === GRAVURE AVEUGLE (embossage cuir, pas de couleur) ===
-      // Ombre creusée pour effet emboss naturel
-      ctx.globalAlpha = 0.65;
-      ctx.fillStyle = '#000';
-      ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 14; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 6;
-      ctx.fillText(txt, cx, cy + 6);
-      // Lumière supérieure (highlight)
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(txt, cx, cy - 4);
-    } else {
-      // === GRAVURE OR / ARGENT — effet métallique luxe ===
-      // Couche 1 : ombre portée sous la lettre (effet relief, comme estampée dans le cuir)
-      ctx.shadowColor = 'rgba(0,0,0,.55)';
-      ctx.shadowBlur = 18;
+      // === GRAVURE AVEUGLE — embossage cuir sans couleur (comme photo cuir bordeaux) ===
+      // Ombre interne sous la lettre (donne effet creusé)
+      ctx.shadowColor = 'rgba(0,0,0,.7)';
+      ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 5;
-      ctx.fillStyle = col;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillText(txt, cx, cy + 2);
+      // Léger highlight haut
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(txt, cx, cy - 3);
       ctx.globalAlpha = 1;
+    } else {
+      // === GRAVURE OR / OR ROSE / ARGENT — foil stamping luxe sobre ===
+      // Couleurs unies par finition, comme un vrai marquage à chaud
+      let baseCol, hiCol;
+      if (state.finish === 'or')          { baseCol = '#caa14a'; hiCol = '#f5e29a'; }
+      else if (state.finish === 'orrose') { baseCol = '#bd8276'; hiCol = '#f0c8bd'; }
+      else                                { baseCol = '#b8b8b8'; hiCol = '#f4f4f4'; }
+      
+      // Ombre douce sous la lettre (effet pression dans le cuir)
+      ctx.shadowColor = 'rgba(0,0,0,.35)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 3;
+      ctx.fillStyle = baseCol;
       ctx.fillText(txt, cx, cy);
-
-      // Couche 2 : gradient métallique principal (3 stops pour effet doré profond)
+      
+      // Très subtil highlight en haut des lettres (foil reflète la lumière du haut)
       ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      const grad = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy + fontSize*0.45);
-      if (state.finish === 'or') {
-        grad.addColorStop(0,    '#fff5cc');     // reflet haut éclatant
-        grad.addColorStop(0.18, '#f4d36b');
-        grad.addColorStop(0.42, '#d4af37');     // or de base
-        grad.addColorStop(0.65, '#a8841e');     // creux ombré
-        grad.addColorStop(0.85, '#7a5e10');     // ombre profonde
-        grad.addColorStop(1,    '#3d2f08');     // base sombre
-      } else { // argent
-        grad.addColorStop(0,    '#ffffff');
-        grad.addColorStop(0.20, '#e8e8e8');
-        grad.addColorStop(0.45, '#c0c0c0');
-        grad.addColorStop(0.70, '#7d7d7d');
-        grad.addColorStop(1,    '#3a3a3a');
-      }
-      ctx.fillStyle = grad;
-      ctx.fillText(txt, cx, cy);
-
-      // Couche 3 : highlight blanc en haut des lettres (brillance)
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
       ctx.globalCompositeOperation = 'source-atop';
-      const high = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy - fontSize*0.10);
-      high.addColorStop(0, 'rgba(255,255,255,.7)');
-      high.addColorStop(1, 'rgba(255,255,255,0)');
+      const high = ctx.createLinearGradient(0, cy - fontSize*0.45, 0, cy + fontSize*0.05);
+      high.addColorStop(0,   hiCol);
+      high.addColorStop(0.45, 'rgba(255,255,255,0)');
+      high.addColorStop(1,   'rgba(0,0,0,0)');
       ctx.fillStyle = high;
+      ctx.globalAlpha = 0.55;
       ctx.fillText(txt, cx, cy);
       ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
     }
     engraveTex.needsUpdate = true;
   }
@@ -505,9 +500,23 @@ function initConfigurator(){
   }
   window.addEventListener('resize', resize);
 
-  // Boucle de rendu — PAS d'auto-rotation, l'utilisateur tourne manuellement avec la souris
+  // Boucle de rendu — PAS d'auto-rotation
+  // Cache la gravure quand la camera regarde le dos ou le profil
+  const _engraveDir = new THREE.Vector3(0, 0, 1); // direction face avant (vers +Z)
+  const _camToTarget = new THREE.Vector3();
   function tick(){
     controls.update();
+    // Visibility de la gravure selon angle camera vs face avant
+    if (window.__engravePlane) {
+      _camToTarget.subVectors(camera.position, controls.target).normalize();
+      const dot = _camToTarget.dot(_engraveDir);
+      // dot > 0.15 = on regarde la face avant. Sous ce seuil → invisible
+      window.__engravePlane.visible = dot > 0.15;
+      // Fade-out progressif pour transition douce
+      if (window.__engravePlane.material) {
+        window.__engravePlane.material.opacity = Math.max(0, Math.min(1, (dot - 0.15) * 4));
+      }
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
