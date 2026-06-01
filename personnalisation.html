@@ -273,7 +273,7 @@ function initConfigurator(){
       uEngraveMap:    { value: engraveTex },
       uEngraveCenter: { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
       uEngraveSize:   { value: new THREE.Vector2(fsize.x * 0.30, fsize.y * 0.15) },
-      uEngraveOpacity:{ value: 1.0 }
+      uEngraveOpacity:{ value: 1.15 }   // legere amplification pour plus de presence
     };
 
     if (cuirMat) {
@@ -305,11 +305,11 @@ function initConfigurator(){
           '#include <color_fragment>',
           '#include <color_fragment>\n' +
           'vec3 _engToFrag = vEngraveWorldPos - uEngraveCenter;\n' +
-          'vec2 _engUV = vec2((_engToFrag.x / uEngraveSize.x) + 0.5, 0.5 - (_engToFrag.y / uEngraveSize.y));\n' +
+          'vec2 _engUV = vec2((_engToFrag.x / uEngraveSize.x) + 0.5, (_engToFrag.y / uEngraveSize.y) + 0.5);\n' +
           // Limiter en X/Y (zone du decal) et en Z (uniquement face avant)
           'bool _engIn = _engUV.x > 0.0 && _engUV.x < 1.0 && _engUV.y > 0.0 && _engUV.y < 1.0 && _engToFrag.z > -0.025 && _engToFrag.z < 0.03;\n' +
           'vec4 _engCol = _engIn ? texture2D(uEngraveMap, _engUV) : vec4(0.0);\n' +
-          'float _engA = _engCol.a * uEngraveOpacity;\n' +
+          'float _engA = clamp(_engCol.a * uEngraveOpacity, 0.0, 1.0);\n' +
           'diffuseColor.rgb = mix(diffuseColor.rgb, _engCol.rgb, _engA);'
         ).replace(
           '#include <roughnessmap_fragment>',
@@ -486,9 +486,9 @@ function initConfigurator(){
     } else {
       // ===== Foil stamping métallique (or / or rose / argent) =====
       let foilBase, foilHi, foilShade;
-      if (state.finish === 'or')          { foilBase = '#a07d2c'; foilHi = '#d5b35a'; foilShade = '#4a3608'; }
-      else if (state.finish === 'orrose') { foilBase = '#925f54'; foilHi = '#c89889'; foilShade = '#502c25'; }
-      else                                { foilBase = '#878787'; foilHi = '#c2c2c2'; foilShade = '#3a3a3a'; }
+      if (state.finish === 'or')          { foilBase = '#d4a83a'; foilHi = '#f4dd86'; foilShade = '#5a4010'; }
+      else if (state.finish === 'orrose') { foilBase = '#c08778'; foilHi = '#edc4b5'; foilShade = '#6a3a32'; }
+      else                                { foilBase = '#c5c5c5'; foilHi = '#f0f0f0'; foilShade = '#555555'; }
 
       // 1. SILLON NOIR : un trait noir sous la lettre simule la depression dans le cuir
       ctx.save();
