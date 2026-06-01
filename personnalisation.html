@@ -235,9 +235,9 @@ function initConfigurator(){
   leatherNormal.repeat.set(8,8);
   leatherTex.colorSpace = THREE.SRGBColorSpace;
 
-  // === Canvas 1 : INITIALES (texte) ===
+  // === Canvas 1 : INITIALES (texte) — ratio 2.625:1 pour accommoder noms longs ===
   const engraveCanvas = document.createElement('canvas');
-  engraveCanvas.width = 2048; engraveCanvas.height = 1024;
+  engraveCanvas.width = 2688; engraveCanvas.height = 1024;
   const engraveTex = new THREE.CanvasTexture(engraveCanvas);
   engraveTex.colorSpace = THREE.SRGBColorSpace;
   engraveTex.anisotropy = 16;
@@ -319,12 +319,12 @@ function initConfigurator(){
     }
     const cuirMat = pochetteMesh ? pochetteMesh.material : null;
 
-    // Uniforms : DEUX decals independants (initiales + flamme) — proportions resserrees
+    // Uniforms : DEUX decals independants (initiales + flamme)
     const engraveUniforms = {
-      // Initiales (texte) — moins large, plus compact
+      // Initiales (texte) — zone large pour accommoder noms longs
       uEngraveMap:     { value: engraveTex },
       uEngraveCenter:  { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
-      uEngraveSize:    { value: new THREE.Vector2(fsize.x * 0.22, fsize.y * 0.14) },  // X -35%, Y -18%
+      uEngraveSize:    { value: new THREE.Vector2(fsize.x * 0.42, fsize.y * 0.16) },  // X large pour noms longs, Y compact
       uEngraveOpacity: { value: 1.15 },
       // Flamme (symbole) — independant, plus etroite
       uFlameMap:       { value: flameTex },
@@ -526,7 +526,7 @@ function initConfigurator(){
     const b = window.__engraveBox;
     if (!u || !b) return;
     const w = b.X - b.x, hH = b.Y - b.y;
-    const mx = w * 0.20, my = hH * 0.20;
+    const mx = w * 0.23, my = hH * 0.22;  // marges legerement augmentees pour zone large
     const positions = {
       centre: [ (b.x + b.X)/2,      (b.y + b.Y)/2 ],
       hg:     [ b.x + mx,           b.Y - my ],
@@ -757,13 +757,15 @@ function initConfigurator(){
     // On grave exactement ce que tape le client (pas d'upperCase ni de slice)
     const initials = (state.initials||'');
     if (initials.length > 0) {
-      // Taille de police adaptee a la longueur (auto), modulee par state.fontScale (50%-150%)
+      // Taille auto adaptee a la longueur (canvas elargi a 2688px pour noms longs)
       let baseSize;
-      if (initials.length <= 2)      baseSize = 720;
-      else if (initials.length <= 4) baseSize = 540;
-      else if (initials.length <= 6) baseSize = 420;
-      else if (initials.length <= 9) baseSize = 320;
-      else                           baseSize = 240;
+      if (initials.length <= 2)        baseSize = 720;
+      else if (initials.length <= 4)   baseSize = 560;
+      else if (initials.length <= 6)   baseSize = 440;
+      else if (initials.length <= 9)   baseSize = 340;
+      else if (initials.length <= 12)  baseSize = 270;
+      else if (initials.length <= 15)  baseSize = 215;
+      else                             baseSize = 175;
       const fontSize = Math.round(baseSize * (state.fontScale || 1.0));
       drawInitialsText(ctx1, W1/2, H1/2, initials, state.finish, fontSize);
     }

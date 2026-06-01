@@ -13,18 +13,29 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const req = e.request;
-  const url = new URL(req.url);
-  // API et HTML : network-first
-  if (url.pathname.startsWith('/api/') || req.headers.get('accept')?.includes('text/html')) {
-    e.respondWith(fetch(req).catch(() => caches.match(req)));
+  // On skip les requetes non-GET et les schemes non-http (chrome-extension, etc.)
+  if (req.method !== 'GET') return;
+  let url;
+  try { url = new URL(req.url); } catch(_) { return; }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // API et HTML : network-first avec fallback cache puis reponse vide pour eviter "Failed to fetch"
+  if (url.pathname.startsWith('/api/') || (req.headers.get('accept')||'').includes('text/html')) {
+    e.respondWith(
+      fetch(req)
+        .catch(() => caches.match(req))
+        .then(r => r || new Response('', { status:504, statusText:'offline' }))
+    );
     return;
   }
-  // Assets : cache-first
-  e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {
-    if (res.ok && req.method === 'GET') {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(req, clone)).catch(()=>{});
-    }
-    return res;
-  })));
+  // Assets : cache-first avec catch global pour ne jamais planter le SW
+  e.respondWith(
+    caches.match(req).then(r => r || fetch(req).then(res => {
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(req, clone)).catch(()=>{});
+      }
+      return res;
+    })).catch(() => new Response('', { status:504, statusText:'offline' }))
+  );
 });
