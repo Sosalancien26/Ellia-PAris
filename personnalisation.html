@@ -272,7 +272,7 @@ function initConfigurator(){
     const engraveUniforms = {
       uEngraveMap:    { value: engraveTex },
       uEngraveCenter: { value: new THREE.Vector3(fctr.x, fctr.y, fbox.max.z) },
-      uEngraveSize:   { value: new THREE.Vector2(fsize.x * 0.30, fsize.y * 0.15) },
+      uEngraveSize:   { value: new THREE.Vector2(fsize.x * 0.34, fsize.y * 0.17) },  // +15%
       uEngraveOpacity:{ value: 1.15 }   // legere amplification pour plus de presence
     };
 
@@ -455,8 +455,8 @@ function initConfigurator(){
     const col = '#'+f.hex.toString(16).padStart(6,'0');
 
     // Police serif majuscules — taille adaptée au nb de lettres (2 lettres = plus grande)
-    const fontSize = initials.length <= 2 ? 620 : 520;
-    ctx.font = '700 ' + fontSize + 'px "Cormorant Garamond", "Times New Roman", serif';
+    const fontSize = initials.length <= 2 ? 720 : 600;  // 15% plus gros
+    ctx.font = '800 ' + fontSize + 'px "Cormorant Garamond", "Times New Roman", serif';  // bolder
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     const cx = W/2, cy = H/2;
@@ -470,8 +470,10 @@ function initConfigurator(){
       ctx.shadowBlur = 14;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 5;
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = 'rgba(0,0,0,.55)';
+      ctx.lineWidth = Math.max(10, fontSize * 0.025);
+      ctx.strokeStyle = 'rgba(0,0,0,.6)';
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.strokeText(txt, cx, cy + 1);
       ctx.restore();
       // Lettre creusée sombre
@@ -486,9 +488,9 @@ function initConfigurator(){
     } else {
       // ===== Foil stamping métallique (or / or rose / argent) =====
       let foilBase, foilHi, foilShade;
-      if (state.finish === 'or')          { foilBase = '#d4a83a'; foilHi = '#f4dd86'; foilShade = '#5a4010'; }
-      else if (state.finish === 'orrose') { foilBase = '#c08778'; foilHi = '#edc4b5'; foilShade = '#6a3a32'; }
-      else                                { foilBase = '#c5c5c5'; foilHi = '#f0f0f0'; foilShade = '#555555'; }
+      if (state.finish === 'or')          { foilBase = '#e6b942'; foilHi = '#ffe89a'; foilShade = '#5a4010'; }   // or vif
+      else if (state.finish === 'orrose') { foilBase = '#d09385'; foilHi = '#f6cfbf'; foilShade = '#6a3a32'; }   // rose vif
+      else                                { foilBase = '#dcdcdc'; foilHi = '#ffffff'; foilShade = '#555555'; }   // argent eclatant
 
       // 1. SILLON NOIR : un trait noir sous la lettre simule la depression dans le cuir
       ctx.save();
@@ -501,7 +503,12 @@ function initConfigurator(){
       ctx.strokeText(txt, cx, cy + 1);
       ctx.restore();
 
-      // 2. FOIL DE BASE — la lettre remplie de la couleur foil (ton moyen)
+      // 2. FOIL DE BASE + STROKE pour epaissir les traits fins (ex: crossbar du A)
+      ctx.lineWidth = Math.max(8, fontSize * 0.025);  // epaisseur du stroke proportionelle
+      ctx.strokeStyle = foilBase;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeText(txt, cx, cy);
       ctx.fillStyle = foilBase;
       ctx.fillText(txt, cx, cy);
 
