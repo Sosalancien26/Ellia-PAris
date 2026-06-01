@@ -57,7 +57,11 @@
   function persoTxt(it){
     if(!it.initiales && !(it.flame && it.flame.enabled)) return 'Sans gravure';
     var parts=[];
-    if(it.initiales) parts.push('« '+esc(it.initiales)+' » · '+esc(it.finition||'')+' · '+esc(it.emplacement||''));
+    if(it.initiales) {
+      var ini='« '+esc(it.initiales)+' » · '+esc(it.finition||'')+' · '+esc(it.emplacement||'');
+      if(it.fontScale && it.fontScale!==100) ini += ' · taille '+it.fontScale+'%';
+      parts.push(ini);
+    }
     if(it.flame && it.flame.enabled) parts.push('Flamme : '+esc(it.flame.finish||'')+' · '+esc(it.flame.placement||''));
     return 'Gravure : '+parts.join(' / ');
   }

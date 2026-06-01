@@ -63,6 +63,13 @@
         <div class="block">
           <span class="field-label">Votre texte de gravure</span>
           <input class="initials-input" id="initials" maxlength="18" value="AB" placeholder="VOTRE TEXTE" autocomplete="off" />
+          <div style="margin-top:18px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+              <span style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a7363">Taille de la gravure</span>
+              <span id="fontSizeVal" style="font-size:11px;color:#0d0d0d;font-variant-numeric:tabular-nums">100 %</span>
+            </div>
+            <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
+          </div>
           <label for="hebrewToggle" style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:#5c5852;letter-spacing:.06em;user-select:none">
             <input type="checkbox" id="hebrewToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
             <span>Graver aussi une <strong style="color:#0d0d0d">flamme</strong> — <em>Aesh Sheli</em></span>
@@ -246,7 +253,7 @@ function initConfigurator(){
   flameTex.minFilter = THREE.LinearFilter;
   flameTex.magFilter = THREE.LinearFilter;
 
-  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, flamePlacement:'hg', flameFinish:'or' };
+  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, flamePlacement:'hg', flameFinish:'or', fontScale:1.0 };
 
   let pochetteMesh = null;
   
@@ -750,13 +757,14 @@ function initConfigurator(){
     // On grave exactement ce que tape le client (pas d'upperCase ni de slice)
     const initials = (state.initials||'');
     if (initials.length > 0) {
-      // Taille de police adaptee a la longueur du texte
-      let fontSize;
-      if (initials.length <= 2)      fontSize = 720;
-      else if (initials.length <= 4) fontSize = 540;
-      else if (initials.length <= 6) fontSize = 420;
-      else if (initials.length <= 9) fontSize = 320;
-      else                           fontSize = 240;
+      // Taille de police adaptee a la longueur (auto), modulee par state.fontScale (50%-150%)
+      let baseSize;
+      if (initials.length <= 2)      baseSize = 720;
+      else if (initials.length <= 4) baseSize = 540;
+      else if (initials.length <= 6) baseSize = 420;
+      else if (initials.length <= 9) baseSize = 320;
+      else                           baseSize = 240;
+      const fontSize = Math.round(baseSize * (state.fontScale || 1.0));
       drawInitialsText(ctx1, W1/2, H1/2, initials, state.finish, fontSize);
     }
     engraveTex.needsUpdate = true;
@@ -785,6 +793,17 @@ function initConfigurator(){
       schedulePaint();
     });
     state.initials = initialsInput.value || 'AB';
+  }
+  // Slider taille de la police
+  const fontScaleInput = document.getElementById('fontScale');
+  const fontSizeVal   = document.getElementById('fontSizeVal');
+  if (fontScaleInput) {
+    fontScaleInput.addEventListener('input', ()=>{
+      const pct = parseInt(fontScaleInput.value, 10) || 100;
+      state.fontScale = pct / 100;
+      if (fontSizeVal) fontSizeVal.textContent = pct + ' %';
+      schedulePaint();
+    });
   }
   document.querySelectorAll('#swatches .sw').forEach(s=>{
     s.addEventListener('click',()=>{
@@ -857,6 +876,7 @@ function initConfigurator(){
       placement: state.flamePlacement
     } : null;
   };
+  window.__getFontScale = function(){ return state.fontScale || 1.0; };
 
   // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
   let visible = true;
