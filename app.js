@@ -1,14 +1,13 @@
 /* ELLIA PARIS — interactions partagees */
 (function(){
-  /* Preloader RAPIDE : se cache des que la page est interactive, max 1.5s d'attente */
+  /* Preloader EQUILIBRE : ~2.5s d'animation luxe, puis cache. Visite repetee = instantanee */
   function hidePreloader(){var p=document.getElementById('preloader');if(p){p.classList.add('done');setTimeout(function(){if(p&&p.parentNode)p.parentNode.removeChild(p);},700);}}
-  // Visite repetee : on cache instantanement (le cookie indique qu'on a deja vu l'anim)
   if(sessionStorage.getItem('ellia_seen')==='1'){
-    setTimeout(hidePreloader,100);
+    setTimeout(hidePreloader,150);
   } else {
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,1500);});
-    window.addEventListener('load',function(){setTimeout(hidePreloader,1200);});
-    setTimeout(hidePreloader,3000); // garde-fou max 3s
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,2700);});
+    window.addEventListener('load',function(){setTimeout(hidePreloader,2500);});
+    setTimeout(hidePreloader,4500); // garde-fou max 4.5s
     sessionStorage.setItem('ellia_seen','1');
   }
 
