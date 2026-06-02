@@ -17,7 +17,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1780400812">
+<link rel="stylesheet" href="styles.css?v=1780405000">
+<style>
+  /* Selecteur de symbole (Flamme / Hamsa / Peace / Ellia) */
+  .sym-btn{background:#fff;border:1px solid #e0ddd6;padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s,background .2s,transform .2s;font-family:inherit}
+  .sym-btn:hover{border-color:#0d0d0d}
+  .sym-btn.active{border-color:#0d0d0d;background:#fafaf7;box-shadow:0 0 0 1px #0d0d0d inset}
+  .sym-btn .sym-ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;object-fit:contain;filter:none}
+  .sym-btn small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5c5852;line-height:1}
+  .sym-btn.active small{color:#0d0d0d;font-weight:500}
+  @media (max-width:560px){.sym-btn small{font-size:8.5px}}
+</style>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -73,10 +83,16 @@
             </div>
             <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
           </div>
-          <label for="hebrewToggle" style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:#5c5852;letter-spacing:.06em;user-select:none">
-            <input type="checkbox" id="hebrewToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
-            <span>Graver aussi une <strong style="color:#0d0d0d">flamme</strong> — <em>Aesh Sheli</em></span>
-          </label>
+          <div style="margin-top:18px">
+            <span class="field-label">Graver aussi un symbole</span>
+            <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
+              <button type="button" class="sym-btn active" data-symbol="none" title="Aucun symbole"><div class="sym-ic" style="font-family:Cormorant Garamond,serif;font-size:22px;color:#5c5852">—</div><small>Aucun</small></button>
+              <button type="button" class="sym-btn" data-symbol="flame" title="Flamme Aesh Sheli"><img class="sym-ic" src="assets/flame.png?v=2" alt="" /><small>Flamme</small></button>
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+            </div>
+          </div>
         </div>
         <div class="block">
           <span class="field-label">Finition des initiales</span>
@@ -102,14 +118,14 @@
           </div>
         </div>
         <div class="block" id="flameOptions" style="display:none;border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px;animation:slideDown .45s cubic-bezier(.16,1,.3,1) both">
-          <span class="field-label" style="color:#0d0d0d">Finition de la flamme</span>
+          <span class="field-label" style="color:#0d0d0d">Finition du symbole</span>
           <div class="swatches" id="flameSwatches">
             <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
             <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
             <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
             <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
           </div>
-          <span class="field-label" style="margin-top:14px;display:block">Emplacement de la flamme</span>
+          <span class="field-label" style="margin-top:14px;display:block">Emplacement du symbole</span>
           <div class="placements" id="flamePlacements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <button class="place-btn active" data-pos="hg">Haut gauche</button>
             <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
@@ -277,7 +293,16 @@ function initConfigurator(){
   flameTex.minFilter = THREE.LinearFilter;
   flameTex.magFilter = THREE.LinearFilter;
 
-  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, flamePlacement:'hg', flameFinish:'or', fontScale:1.0 };
+  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, symbol:'flame', flamePlacement:'hg', flameFinish:'or', fontScale:1.0 };
+
+  // Sources image par symbole — toutes les images sont 1024x1024 transparentes monochrome
+  const SYMBOL_SRC = {
+    flame: 'assets/flame.png?v=2',
+    hamsa: 'assets/symbol-hamsa.png?v=1',
+    peace: 'assets/symbol-peace.png?v=1',
+    ellia: 'assets/symbol-ellia.png?v=1'
+  };
+  const SYMBOL_NAME = { flame:'Flamme Aesh Sheli', hamsa:'Main de Fatma', peace:'Peace', ellia:'Logo Ellia Paris' };
 
   let pochetteMesh = null;
   
@@ -591,8 +616,15 @@ function initConfigurator(){
   // === Image flamme — chargée une fois, redessine quand prête ===
   const flameImg = new Image();
   flameImg.crossOrigin = 'anonymous';
-  flameImg.src = 'assets/flame.png?v=2';
+  flameImg.src = SYMBOL_SRC[state.symbol] || SYMBOL_SRC.flame;
   flameImg.onload = () => { if (state.useHebrew && typeof paint === 'function') paint(); };
+  // Helper : change la source du symbole et redessine quand chargee
+  function setSymbolImage(sym){
+    if (!SYMBOL_SRC[sym]) return;
+    if (flameImg.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return; // deja charge
+    flameImg.onload = () => { if (typeof paint === 'function') paint(); };
+    flameImg.src = SYMBOL_SRC[sym];
+  }
 
   // === Dessine la flamme PNG avec EXACTEMENT les memes couleurs / etapes que les initiales ===
   function drawFlame(ctx, cx, cy, size, finish){
@@ -868,16 +900,25 @@ function initConfigurator(){
     });
   });
 
-  // Toggle symbole "Aesh Sheli" (flamme) — coexiste avec les initiales, position + couleur independantes
-  const hebrewToggle = document.getElementById('hebrewToggle');
+  // Selecteur de symbole (Flamme / Hamsa / Peace / Ellia / Aucun) — coexiste avec les initiales
   const flameOptions = document.getElementById('flameOptions');
-  if (hebrewToggle) {
-    hebrewToggle.addEventListener('change', ()=>{
-      state.useHebrew = hebrewToggle.checked;
-      if (flameOptions) flameOptions.style.display = hebrewToggle.checked ? 'block' : 'none';
+  document.querySelectorAll('#symbolPicker .sym-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#symbolPicker .sym-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      const sym = b.dataset.symbol;
+      if (sym === 'none') {
+        state.useHebrew = false;
+        if (flameOptions) flameOptions.style.display = 'none';
+      } else {
+        state.useHebrew = true;
+        state.symbol = sym;
+        if (flameOptions) flameOptions.style.display = 'block';
+        setSymbolImage(sym);
+      }
       paint();
     });
-  }
+  });
   // Swatches flamme (finition independante)
   document.querySelectorAll('#flameSwatches .sw').forEach(s=>{
     s.addEventListener('click',()=>{
@@ -916,6 +957,8 @@ function initConfigurator(){
   window.__getFlameState = function(){
     return state.useHebrew ? {
       enabled: true,
+      symbol: state.symbol,
+      symbol_name: SYMBOL_NAME[state.symbol] || 'Flamme',
       finish: state.flameFinish,
       placement: state.flamePlacement
     } : null;
