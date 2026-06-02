@@ -14,8 +14,140 @@
 <meta property="og:image" content="https://ellia-paris.fr/assets/social-share-wide.jpg?v=8">
 <meta property="og:url" content="https://ellia-paris.fr/pochette.html">
 <meta name="twitter:card" content="summary_large_image">
+<!-- Product Schema (rich snippet Google Shopping) -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Product","name":"La Pochette Ellia","image":["https://ellia-paris.fr/assets/product-1.jpg","https://ellia-paris.fr/assets/product-2.jpg","https://ellia-paris.fr/assets/product-3.jpg"],"description":"Pochette en cuir de veau grainé à fermeture par empreinte digitale, personnalisable de vos initiales.","brand":{"@type":"Brand","name":"ELLIA PARIS"},"offers":{"@type":"Offer","priceCurrency":"EUR","price":"159.00","availability":"https://schema.org/InStock","url":"https://ellia-paris.fr/pochette.html"}}
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "@id": "https://ellia-paris.fr/pochette.html#product",
+  "name": "La Pochette Ellia",
+  "alternateName": "Pochette ELLIA PARIS personnalisée à fermeture biométrique",
+  "image": [
+    "https://ellia-paris.fr/assets/pochette-back.webp",
+    "https://ellia-paris.fr/assets/pochette-fingerprint.jpg",
+    "https://ellia-paris.fr/assets/lookbook/pochette-ecrin.webp",
+    "https://ellia-paris.fr/assets/pochette-hero.jpg"
+  ],
+  "description": "Pochette en cuir de veau pleine fleur grainé, à fermeture éclair gunmetal verrouillée par empreinte digitale. Personnalisable de vos initiales et d'un symbole gravé (Aesh Sheli, Main de Fatma, Peace, ou picto ELLIA). Façonnée à Paris.",
+  "brand": {
+    "@type": "Brand",
+    "name": "ELLIA PARIS",
+    "logo": "https://ellia-paris.fr/assets/logo_black_trim.png"
+  },
+  "manufacturer": {
+    "@type": "Organization",
+    "name": "ELLIA PARIS",
+    "url": "https://ellia-paris.fr"
+  },
+  "category": "Maroquinerie de luxe",
+  "material": "Cuir de veau pleine fleur grainé",
+  "color": "Noir",
+  "countryOfOrigin": "FR",
+  "sku": "ELLIA-NOIR",
+  "mpn": "EP-POCHETTE-001",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "La Pochette Ellia — sans personnalisation",
+      "priceCurrency": "EUR",
+      "price": "159.00",
+      "availability": "https://schema.org/InStock",
+      "url": "https://ellia-paris.fr/pochette.html",
+      "priceValidUntil": "2027-12-31",
+      "itemCondition": "https://schema.org/NewCondition",
+      "seller": { "@type": "Organization", "name": "ELLIA PARIS" },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "EUR" },
+        "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "FR" },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "DAY" },
+          "transitTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "DAY" }
+        }
+      },
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "FR",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 14,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "La Pochette Ellia — personnalisée (gravure)",
+      "priceCurrency": "EUR",
+      "price": "218.00",
+      "availability": "https://schema.org/InStock",
+      "url": "https://ellia-paris.fr/personnalisation.html",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  ]
+}
+</script>
+
+<!-- Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://ellia-paris.fr/" },
+    { "@type": "ListItem", "position": 2, "name": "La Pochette", "item": "https://ellia-paris.fr/pochette.html" }
+  ]
+}
+</script>
+
+<!-- FAQ Schema (résultats riches Google avec questions dépliables) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Comment fonctionne la fermeture à empreinte digitale ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Le curseur de la fermeture éclair intègre un capteur biométrique. Vous enregistrez votre empreinte en quelques secondes ; une simple pression du doigt ouvre alors la pochette. Discret, instantané, sans application requise ni connexion internet." }
+    },
+    {
+      "@type": "Question",
+      "name": "Mes données biométriques sont-elles stockées en ligne ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Non. Les empreintes sont stockées uniquement en local dans la puce du capteur, sous forme chiffrée. Aucune donnée n'est envoyée à internet, à Ellia Paris ou à des tiers — conformément au RGPD." }
+    },
+    {
+      "@type": "Question",
+      "name": "Combien d'empreintes puis-je enregistrer ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Jusqu'à 5 empreintes (vous et vos proches). Une notice détaillée est livrée avec la pochette." }
+    },
+    {
+      "@type": "Question",
+      "name": "Quelle est l'autonomie de la fermeture biométrique ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Plusieurs mois d'utilisation normale (jusqu'à 6 mois). Rechargement USB-C dissimulé à l'intérieur. Une LED signale la batterie faible." }
+    },
+    {
+      "@type": "Question",
+      "name": "Combien de temps pour la livraison ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Pour une pochette personnalisée : 5 à 10 jours ouvrés. Sans gravure : 2 à 3 jours ouvrés. Livraison Colissimo suivie offerte en France métropolitaine." }
+    },
+    {
+      "@type": "Question",
+      "name": "Puis-je retourner ma pochette ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, sous 14 jours pour une pochette non personnalisée (art. L221-18). Les pochettes personnalisées ne sont pas reprises (art. L221-28), sauf défaut de fabrication." }
+    },
+    {
+      "@type": "Question",
+      "name": "Existe-t-il une garantie ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, 2 ans sur les défauts de fabrication (couture, cuir, capteur biométrique)." }
+    },
+    {
+      "@type": "Question",
+      "name": "Quels modes de paiement acceptez-vous ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Carte bancaire (Visa, Mastercard, American Express) via Stripe, paiement sécurisé 3D Secure." }
+    }
+  ]
+}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

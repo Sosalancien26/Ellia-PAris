@@ -22,6 +22,51 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
+<!-- Organization Schema (knowledge graph Google) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://ellia-paris.fr/#organization",
+  "name": "ELLIA PARIS",
+  "alternateName": "Ellia",
+  "url": "https://ellia-paris.fr/",
+  "logo": "https://ellia-paris.fr/assets/logo_black_trim.png",
+  "image": "https://ellia-paris.fr/assets/social-share-wide.jpg",
+  "description": "Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique par empreinte digitale, gravée à votre nom.",
+  "foundingDate": "2026",
+  "foundingLocation": { "@type": "Place", "name": "Paris, France" },
+  "address": { "@type": "PostalAddress", "addressCountry": "FR", "addressLocality": "Paris" },
+  "email": "contact@ellia-paris.fr",
+  "sameAs": [
+    "https://instagram.com/ellia.paris",
+    "https://tiktok.com/@elliaparis",
+    "https://pinterest.com/elliaparis"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "email": "contact@ellia-paris.fr",
+    "availableLanguage": ["French","English"],
+    "areaServed": ["FR","EU","CH","GB","US","CA"]
+  }
+}
+</script>
+
+<!-- WebSite Schema (sitelinks search box potentiel) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://ellia-paris.fr/#website",
+  "url": "https://ellia-paris.fr/",
+  "name": "ELLIA PARIS",
+  "description": "La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.",
+  "publisher": { "@id": "https://ellia-paris.fr/#organization" },
+  "inLanguage": "fr-FR"
+}
+</script>
 </head>
 <body>
 

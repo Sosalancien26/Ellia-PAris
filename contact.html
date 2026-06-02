@@ -14,6 +14,32 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
+<!-- ContactPage + Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ContactPage",
+      "@id": "https://ellia-paris.fr/contact.html#contactpage",
+      "url": "https://ellia-paris.fr/contact.html",
+      "name": "Contact — ELLIA PARIS",
+      "description": "Service client ELLIA PARIS. Réponse sous 24h ouvrées. Du lundi au vendredi, 10h-18h heure de Paris.",
+      "inLanguage": "fr-FR",
+      "isPartOf": { "@id": "https://ellia-paris.fr/#website" },
+      "about": { "@id": "https://ellia-paris.fr/#organization" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://ellia-paris.fr/" },
+        { "@type": "ListItem", "position": 2, "name": "Contact", "item": "https://ellia-paris.fr/contact.html" }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 

@@ -31,6 +31,48 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
+<!-- Personnalisation Product + Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Product",
+      "@id": "https://ellia-paris.fr/personnalisation.html#product",
+      "name": "La Pochette Ellia personnalisée",
+      "description": "Personnalisez votre pochette ELLIA PARIS : jusqu'à 3 initiales gravées au foil précieux (Or, Or rose, Argent, Aveugle), choix d'un symbole (Aesh Sheli, Main de Fatma, Peace, picto ELLIA) et de son emplacement. Configurateur 3D temps réel.",
+      "image": "https://ellia-paris.fr/assets/pochette-back.webp",
+      "brand": { "@type": "Brand", "name": "ELLIA PARIS" },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "EUR",
+        "price": "218.00",
+        "priceSpecification": {
+          "@type": "PriceSpecification",
+          "price": "218.00",
+          "priceCurrency": "EUR",
+          "description": "Pochette 159 € + personnalisation gravure 59 €"
+        },
+        "availability": "https://schema.org/InStock",
+        "url": "https://ellia-paris.fr/personnalisation.html"
+      },
+      "additionalProperty": [
+        { "@type": "PropertyValue", "name": "Caractères max", "value": "3 initiales" },
+        { "@type": "PropertyValue", "name": "Finitions disponibles", "value": "Or, Or rose, Argent, Aveugle" },
+        { "@type": "PropertyValue", "name": "Symboles disponibles", "value": "Aesh Sheli, Main de Fatma, Peace, Logo ELLIA" }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://ellia-paris.fr/" },
+        { "@type": "ListItem", "position": 2, "name": "Personnalisation", "item": "https://ellia-paris.fr/personnalisation.html" }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
