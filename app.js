@@ -122,15 +122,26 @@
           if (preview && preview.length > 500000) preview = preview.substring(0, 0); // securite si trop gros, on n'envoie pas
         }
       } catch(err){ /* silencieux : la capture est best-effort */ }
+      // Prix dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole (+159 base pochette)
+      var prixDyn = 218; // fallback
+      var persoDetail = null;
+      try {
+        if (window.__getPersoPrice) {
+          var p = window.__getPersoPrice();
+          prixDyn = p.total;
+          persoDetail = { letters:p.letters, specials:p.specials, persoInitiales:p.persoInitiales, persoSymbol:p.persoSymbol };
+        }
+      } catch(_){}
       var item = {
         ref:'ELLIA-NOIR-PERSO',
         nom:'La Pochette Ellia - Noir',
-        prix:218,
+        prix: prixDyn,
         initiales: rawText || null,
         finition: names[color],
         emplacement: place,
         fontScale: (window.__getFontScale ? Math.round(window.__getFontScale()*100) : 100),
         flame: (window.__getFlameState ? window.__getFlameState() : null),
+        perso_detail: persoDetail,
         preview: preview
       };
       var ok=true;
