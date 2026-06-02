@@ -1,6 +1,8 @@
-/* ELLIA PARIS — Service Worker (PWA admin)
-   Strategy : network-first pour HTML/API, cache-first pour assets statiques. */
-const CACHE = 'ellia-admin-v1';
+/* ELLIA PARIS — Service Worker
+   Strategy : network-first pour HTML/API, cache-first pour assets statiques.
+   v3 : bypass complet pour le configurateur 3D (GLB / Three.js modules) qui ne doit
+        jamais etre servi en offline pour eviter un canvas WebGL casse. */
+const CACHE = 'ellia-admin-v3';
 const ASSETS = ['/assets/logo_black_trim.png','/assets/picto_black_trim.png','/styles.css?v=23'];
 
 self.addEventListener('install', e => {
@@ -19,8 +21,18 @@ self.addEventListener('fetch', e => {
   try { url = new URL(req.url); } catch(_) { return; }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
+  // BYPASS COMPLET pour les assets du configurateur 3D : on laisse le navigateur gerer
+  // (sinon un GLB en cache obsolete + une coupure reseau = canvas blanc + erreur 504)
+  const p = url.pathname;
+  if (p.endsWith('.glb') || p.endsWith('.bin') ||
+      p.includes('three.module') || p.includes('GLTFLoader') ||
+      p.includes('DRACOLoader') || p.includes('OrbitControls') ||
+      p.includes('RoomEnvironment') || p.includes('jsdelivr') || p.includes('unpkg')) {
+    return; // pas de respondWith -> requete reseau directe
+  }
+
   // API et HTML : network-first avec fallback cache puis reponse vide pour eviter "Failed to fetch"
-  if (url.pathname.startsWith('/api/') || (req.headers.get('accept')||'').includes('text/html')) {
+  if (p.startsWith('/api/') || (req.headers.get('accept')||'').includes('text/html')) {
     e.respondWith(
       fetch(req)
         .catch(() => caches.match(req))

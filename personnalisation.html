@@ -178,7 +178,20 @@ const FINISHES = {
 };
 
 const container = document.getElementById('viewer3d');
-if (container && window.WebGLRenderingContext) initConfigurator();
+
+// BFCache : si la page est restauree depuis le back/forward cache, on force un reload
+// (sinon le canvas WebGL peut etre vide ou figé)
+window.addEventListener('pageshow', function(ev){
+  if (ev.persisted) { location.reload(); }
+});
+
+if (container && window.WebGLRenderingContext) {
+  try { initConfigurator(); }
+  catch(err){
+    console.error('[Configurateur 3D] init failed', err);
+    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:#5c5852;text-align:center;padding:30px"><div style="font-family:Cormorant Garamond,serif;font-size:22px;margin-bottom:14px">Erreur de chargement du configurateur</div><button onclick="location.reload()" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer">Recharger la page</button></div>';
+  }
+}
 
 function initConfigurator(){
   const w = ()=>container.clientWidth, h = ()=>container.clientHeight||container.clientWidth;
@@ -190,6 +203,14 @@ function initConfigurator(){
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.20;   // legerement plus lumineux
   container.appendChild(renderer.domElement);
+
+  // === Gestion perte de contexte WebGL (tab background, GPU memory pressure...) ===
+  // Si le contexte est perdu, on previent l'erreur et on recharge la page proprement
+  renderer.domElement.addEventListener('webglcontextlost', function(ev){
+    ev.preventDefault();
+    console.warn('[Configurateur 3D] WebGL context lost - reloading');
+    setTimeout(function(){ try { location.reload(); } catch(_){} }, 300);
+  }, false);
 
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -902,27 +923,37 @@ function initConfigurator(){
   window.__getFontScale = function(){ return state.fontScale || 1.0; };
 
   // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
-  let visible = true;
+  // FIX : separer "dans le viewport" (inView) de "onglet visible" (tabVisible) au lieu
+  // d'ecraser une seule variable avec un AND qui pouvait rester bloque a false.
+  let inView = true;
+  let tabVisible = true;
   const io = new IntersectionObserver((entries)=>{
-    visible = entries[0].isIntersecting;
+    inView = entries[0].isIntersecting;
   }, { threshold: 0.01 });
   io.observe(container);
 
   function tick(){
     requestAnimationFrame(tick);
-    if (!visible) return;
+    if (!inView || !tabVisible) return;
     controls.update();
     renderer.render(scene, camera);
   }
   tick();
 
-  // Pause complete quand l'onglet est cache (perf majeure)
+  // Pause quand l'onglet est cache, reprise propre quand il redevient visible
   document.addEventListener('visibilitychange', ()=>{
-    visible = document.visibilityState === 'visible' && visible;
+    tabVisible = document.visibilityState === 'visible';
+    if (tabVisible) {
+      requestAnimationFrame(()=>{ try { renderer.render(scene, camera); } catch(_){} });
+    }
+  });
+
+  // Force un re-render au retour de focus (apres alt-tab par exemple)
+  window.addEventListener('focus', ()=>{
+    requestAnimationFrame(()=>{ try { renderer.render(scene, camera); } catch(_){} });
   });
 }
 </script>
 <script src="cookies-banner.js?v=1780400812" defer></script>
 </body>
 </html>
-                      
