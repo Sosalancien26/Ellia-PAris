@@ -50,6 +50,8 @@
 <script src="app.js?v=25" defer></script>
 <script src="cart.js?v=25" defer></script>
 <script>
+// On attend que cart.js (defer) soit charge avant d'utiliser Cart
+document.addEventListener('DOMContentLoaded', function(){
 (function(){
   const list=document.getElementById('cartList'), foot=document.getElementById('cartFooter');
   const eur=n=>n.toLocaleString('fr-FR')+' €';
@@ -86,6 +88,7 @@
   }
   render();
 })();
+}); // end DOMContentLoaded
 </script>
 <script src="cookies-banner.js?v=1" defer></script>
 </body>

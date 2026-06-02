@@ -107,6 +107,8 @@
 <script src="app.js?v=25" defer></script>
 <script src="cart.js?v=25" defer></script>
 <script>
+// On attend que cart.js (defer) soit charge avant d'utiliser Cart
+document.addEventListener('DOMContentLoaded', function(){
 (function(){
   const eur=n=>Number(n).toLocaleString('fr-FR')+' €';
   const items=Cart.items();
@@ -212,9 +214,11 @@
     }
   });
 })();
+}); // end DOMContentLoaded
 </script>
 
 <script>
+document.addEventListener('DOMContentLoaded', function(){
 (function(){
   // ===== Code promo =====
   let appliedPromo = null;
@@ -285,6 +289,7 @@
     } catch(_){}
   });
 })();
+}); // end DOMContentLoaded
 </script>
 
 </body>
