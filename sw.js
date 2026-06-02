@@ -2,7 +2,7 @@
    Strategy : network-first pour HTML/API, cache-first pour assets statiques.
    v3 : bypass complet pour le configurateur 3D (GLB / Three.js modules) qui ne doit
         jamais etre servi en offline pour eviter un canvas WebGL casse. */
-const CACHE = 'ellia-admin-v3';
+const CACHE = 'ellia-admin-v4';
 const ASSETS = ['/assets/logo_black_trim.png','/assets/picto_black_trim.png','/styles.css?v=23'];
 
 self.addEventListener('install', e => {
