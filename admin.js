@@ -277,12 +277,198 @@
     }));
   }
 
+  /* ============================================================
+     STOCK PRO — gestion atomique + historique audit
+     ============================================================ */
+  const STOCK_REASONS = {
+    restock: { label:'Réception fournisseur', cls:'r-restock' },
+    order_online: { label:'Vente en ligne', cls:'r-order_online' },
+    order_manual: { label:'Vente manuelle (admin)', cls:'r-order_manual' },
+    return: { label:'Retour client', cls:'r-return' },
+    loss: { label:'Perte / casse / défaut', cls:'r-loss' },
+    inventory_correction: { label:'Correction inventaire', cls:'r-inventory_correction' },
+    manual_set: { label:'Définition manuelle', cls:'r-manual_set' }
+  };
+  const stockState = { offset:0, limit:50, reason:'', loading:false };
+  function fmtStockDate(iso){
+    try{ const d=new Date(iso); return d.toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+    catch(_){ return iso||''; }
+  }
+  function deltaCell(d){
+    const n=Number(d||0); if(n>0) return '<span class="delta-pos">+'+n+'</span>';
+    if(n<0) return '<span class="delta-neg">'+n+'</span>';
+    return '<span style="color:#888">0</span>';
+  }
+  async function loadStockPro(){
+    if(stockState.loading) return;
+    stockState.loading = true;
+    try {
+      const params = new URLSearchParams({ ref:'ELLIA-NOIR', limit:String(stockState.limit), offset:String(stockState.offset) });
+      if(stockState.reason) params.set('reason', stockState.reason);
+      const r = await fetch('/api/admin/stock/history?'+params.toString());
+      if(!r.ok){ document.getElementById('stockHistBody').innerHTML='<tr><td colspan="6" style="color:#b1432f;padding:20px">Erreur de chargement de l\'historique</td></tr>'; return; }
+      const data = await r.json();
+      const stock = (data.product && Number(data.product.stock)) || 0;
+      const seuil = (data.product && Number(data.product.seuil)) || 0;
+      document.getElementById('stockBig').textContent = stock;
+      const seuilEl = document.getElementById('stockSeuilInfo');
+      if(stock <= seuil && seuil>0) seuilEl.innerHTML = '<span style="color:#b1432f;font-weight:500">Stock bas</span> · seuil d\'alerte : '+seuil;
+      else seuilEl.textContent = 'Seuil d\'alerte : '+seuil;
+
+      const rows = data.rows || [];
+      const last = rows[0];
+      if(last && !stockState.reason && stockState.offset===0){
+        document.getElementById('stockLastWhen').textContent = fmtStockDate(last.created_at);
+        document.getElementById('stockLastDelta').innerHTML = deltaCell(last.delta) + ' <span style="font-size:14px;color:var(--gris)">→ '+last.stock_after+'</span>';
+        const r1 = STOCK_REASONS[last.reason] || { label:last.reason, cls:'r-inventory_correction' };
+        document.getElementById('stockLastReason').innerHTML = '<span class="reason-tag '+r1.cls+'">'+r1.label+'</span>';
+      } else if(!rows.length){
+        document.getElementById('stockLastWhen').textContent = '—';
+        document.getElementById('stockLastDelta').textContent = 'Aucun mouvement';
+        document.getElementById('stockLastReason').textContent = '';
+      }
+
+      const tbody = document.getElementById('stockHistBody');
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--gris);padding:24px 14px">Aucun mouvement '+(stockState.reason?'pour ce filtre':'enregistré')+'.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(h=>{
+          const r2 = STOCK_REASONS[h.reason] || { label:h.reason, cls:'r-inventory_correction' };
+          const notes = h.notes ? String(h.notes).slice(0,80).replace(/[<>]/g,'') : '<span style="color:#bbb">—</span>';
+          const ord = h.order_numero ? '<span style="font-family:var(--serif);font-size:14px">'+h.order_numero+'</span>' : '<span style="color:#bbb">—</span>';
+          return '<tr>'
+            +'<td style="white-space:nowrap;color:var(--gris);font-size:13px">'+fmtStockDate(h.created_at)+'</td>'
+            +'<td><span class="reason-tag '+r2.cls+'">'+r2.label+'</span></td>'
+            +'<td style="text-align:right;font-family:var(--serif);font-size:18px">'+deltaCell(h.delta)+'</td>'
+            +'<td style="text-align:right;color:var(--gris);font-size:13.5px">'+h.stock_before+' → <b style="color:var(--noir)">'+h.stock_after+'</b></td>'
+            +'<td>'+ord+'</td>'
+            +'<td style="color:var(--gris);font-size:13px">'+notes+'</td>'
+          +'</tr>';
+        }).join('');
+      }
+      document.getElementById('stockHistInfo').textContent = 'Affichage '+(rows.length?(stockState.offset+1):0)+'–'+(stockState.offset+rows.length)+' · page '+(Math.floor(stockState.offset/stockState.limit)+1);
+      document.getElementById('stockHistPrev').disabled = stockState.offset === 0;
+      document.getElementById('stockHistNext').disabled = rows.length < stockState.limit;
+    } catch(e){
+      console.error('loadStockPro', e);
+    } finally {
+      stockState.loading = false;
+    }
+  }
+
+  // Modal motif
+  let pendingStockAction = null; // {delta, sign} or {set, value}
+  function openReasonModal(action, preview, defaultReason){
+    pendingStockAction = action;
+    document.getElementById('stockReasonPreview').textContent = preview;
+    document.getElementById('stockReasonSelect').value = defaultReason || 'restock';
+    document.getElementById('stockReasonNotes').value = '';
+    document.getElementById('stockReasonModal').classList.add('open');
+  }
+  function closeReasonModal(){ document.getElementById('stockReasonModal').classList.remove('open'); pendingStockAction=null; }
+
+  async function confirmStockAction(){
+    if(!pendingStockAction) return;
+    const reason = document.getElementById('stockReasonSelect').value;
+    const notes  = document.getElementById('stockReasonNotes').value.trim() || null;
+    const btn = document.getElementById('stockReasonConfirm');
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    try {
+      let r;
+      if(pendingStockAction.set != null){
+        r = await fetch('/api/products/ELLIA-NOIR',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ stock: pendingStockAction.set }) });
+      } else {
+        r = await fetch('/api/admin/stock/adjust',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ref:'ELLIA-NOIR', delta:pendingStockAction.delta, reason, notes }) });
+      }
+      if(!r.ok){
+        const err = await r.json().catch(()=>({}));
+        alert('Erreur : ' + (err.error||err.detail||r.statusText));
+      } else {
+        closeReasonModal();
+        stockState.offset = 0;
+        await loadStockPro();
+      }
+    } catch(e){
+      alert('Erreur réseau : '+e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Valider le mouvement';
+    }
+  }
+
+  function bindStockPro(){
+    // Boutons quick (+1/+5/+10/+25/+50) → motif restock par défaut
+    document.querySelectorAll('.stock-quick').forEach(b=>b.addEventListener('click',()=>{
+      const delta = Number(b.dataset.delta);
+      openReasonModal({ delta }, 'Ajouter '+delta+' au stock', 'restock');
+    }));
+    // Custom add
+    document.getElementById('stockCustomAdd').addEventListener('click',()=>{
+      const v = Number(document.getElementById('stockCustomQty').value);
+      if(!v || v<1) return alert('Quantité invalide');
+      openReasonModal({ delta:v }, 'Ajouter '+v+' au stock', 'restock');
+    });
+    // Custom remove
+    document.getElementById('stockCustomRemove').addEventListener('click',()=>{
+      const v = Number(document.getElementById('stockCustomQty').value);
+      if(!v || v<1) return alert('Quantité invalide');
+      openReasonModal({ delta:-v }, 'Retirer '+v+' du stock', 'loss');
+    });
+    // Définir absolu
+    document.getElementById('stockSetBtn').addEventListener('click',()=>{
+      const v = document.getElementById('stockSetTo').value;
+      if(v==='' || isNaN(Number(v)) || Number(v)<0) return alert('Stock invalide');
+      const n = Number(v);
+      if(!confirm('Définir le stock à '+n+' ? Cette action sera enregistrée dans l\'historique.')) return;
+      // Set absolu : pas besoin de motif (motif='manual_set' côté DB)
+      pendingStockAction = { set: n };
+      confirmStockActionDirect();
+    });
+    // Modal buttons
+    document.getElementById('stockReasonClose').addEventListener('click', closeReasonModal);
+    document.getElementById('stockReasonCancel').addEventListener('click', closeReasonModal);
+    document.getElementById('stockReasonConfirm').addEventListener('click', confirmStockAction);
+    document.getElementById('stockReasonModal').addEventListener('click', e=>{ if(e.target.id==='stockReasonModal') closeReasonModal(); });
+    // Filtres
+    document.querySelectorAll('.hist-filter').forEach(f=>f.addEventListener('click',()=>{
+      document.querySelectorAll('.hist-filter').forEach(o=>o.classList.remove('active'));
+      f.classList.add('active');
+      stockState.reason = f.dataset.reason || '';
+      stockState.offset = 0;
+      loadStockPro();
+    }));
+    // Pagination
+    document.getElementById('stockHistPrev').addEventListener('click',()=>{
+      if(stockState.offset===0) return;
+      stockState.offset = Math.max(0, stockState.offset - stockState.limit);
+      loadStockPro();
+    });
+    document.getElementById('stockHistNext').addEventListener('click',()=>{
+      stockState.offset += stockState.limit;
+      loadStockPro();
+    });
+  }
+
+  async function confirmStockActionDirect(){
+    if(!pendingStockAction) return;
+    try {
+      const r = await fetch('/api/products/ELLIA-NOIR',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ stock: pendingStockAction.set }) });
+      if(!r.ok){ const err = await r.json().catch(()=>({})); alert('Erreur : ' + (err.error||err.detail||r.statusText)); return; }
+      pendingStockAction = null;
+      stockState.offset = 0;
+      await loadStockPro();
+    } catch(e){ alert('Erreur : '+e.message); }
+  }
+
+  bindStockPro();
+
   /* Tabs */
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(o=>o.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(o=>o.classList.remove('active'));
     t.classList.add('active');
     document.getElementById(t.dataset.tab).classList.add('active');
+    // Charger l'historique stock quand on entre dans l'onglet
+    if(t.dataset.tab === 'stock') loadStockPro();
   }));
 
   /* ============================================================

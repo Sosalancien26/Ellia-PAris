@@ -559,7 +559,7 @@ const server = http.createServer(async (req, res) => {
           preview: preview,
           statut: 'Nouvelle' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
-        try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte } }); }catch(_){}
+        try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte, p_order:numero } }); }catch(_){}
         // Mark abandoned cart as converted
         try{ if(d.client_email){ await sb('abandoned_carts?email=eq.'+encodeURIComponent(String(d.client_email).toLowerCase())+'&converted_at=is.null',{ method:'PATCH', body:{ converted_at: new Date().toISOString() } }); } }catch(_){}
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
@@ -784,8 +784,71 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         const stock = Math.max(0, Math.min(99999, Number(d.stock)||0));
-        await sb('products?ref=eq.'+encodeURIComponent(ref),{ method:'PATCH', body:{ stock } });
+        // Route via set_stock_absolute pour traquer dans stock_history
+        try {
+          await sb('rpc/set_stock_absolute',{ method:'POST', body:{
+            p_ref: decodeURIComponent(ref),
+            p_new_stock: stock,
+            p_notes: 'Definition manuelle depuis admin',
+            p_admin: 'admin'
+          }});
+        } catch(e) {
+          return sendJSON(res,{ ok:false, error:'stock_update_failed', detail:String(e.message||e) }, 500);
+        }
         return sendJSON(res,{ ok:true });
+      }
+
+      /* ===== STOCK PRO : ajustement avec motif + historique ===== */
+      if (req.method==='POST' && pathname==='/api/admin/stock/adjust'){
+        if(!isAuthed(req)) return sendJSON(res,{ error:'unauthorized' }, 401);
+        if(!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const ref = clean(d.ref, 60) || 'ELLIA-NOIR';
+        const delta = Number(d.delta);
+        const reason = clean(d.reason, 40);
+        const notes = clean(d.notes, 500) || null;
+        const validReasons = ['restock','return','loss','inventory_correction','manual_set'];
+        if(!validReasons.includes(reason)) return sendJSON(res,{ ok:false, error:'invalid_reason' }, 400);
+        if(!Number.isFinite(delta) || delta === 0) return sendJSON(res,{ ok:false, error:'invalid_delta' }, 400);
+        if(Math.abs(delta) > 9999) return sendJSON(res,{ ok:false, error:'delta_too_large' }, 400);
+        try {
+          const r = await sb('rpc/adjust_stock',{ method:'POST', body:{
+            p_ref: ref,
+            p_delta: Math.round(delta),
+            p_reason: reason,
+            p_notes: notes,
+            p_admin: 'admin',
+            p_order: null,
+            p_source: 'admin'
+          }});
+          const after = Array.isArray(r) ? (r[0] && (r[0].stock_after ?? r[0])) : (r && (r.stock_after ?? r));
+          return sendJSON(res,{ ok:true, stock_after: after });
+        } catch(e) {
+          return sendJSON(res,{ ok:false, error:'rpc_failed', detail:String(e.message||e) }, 500);
+        }
+      }
+
+      if (req.method==='GET' && pathname==='/api/admin/stock/history'){
+        if(!isAuthed(req)) return sendJSON(res,{ error:'unauthorized' }, 401);
+        if(!USE_DB) return sendJSON(res,{ rows:[], demo:true });
+        const ref = (url.searchParams.get('ref') || 'ELLIA-NOIR').slice(0,60);
+        const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit'))||50));
+        const offset = Math.max(0, Number(url.searchParams.get('offset'))||0);
+        let q = 'stock_history?product_ref=eq.'+encodeURIComponent(ref)+'&order=created_at.desc&limit='+limit+'&offset='+offset;
+        const reasonFilter = url.searchParams.get('reason');
+        if(reasonFilter){
+          const allowed = ['restock','order_online','order_manual','return','loss','inventory_correction','manual_set'];
+          if(allowed.includes(reasonFilter)) q += '&reason=eq.'+encodeURIComponent(reasonFilter);
+        }
+        try {
+          const rows = await sb(q);
+          // Stock courant
+          const pr = await sb('products?ref=eq.'+encodeURIComponent(ref)+'&select=stock,seuil');
+          const product = (pr && pr[0]) ? { stock: Number(pr[0].stock), seuil: Number(pr[0].seuil) } : { stock: 0, seuil: 0 };
+          return sendJSON(res,{ ok:true, ref, product, rows: rows||[] });
+        } catch(e) {
+          return sendJSON(res,{ ok:false, error:'db', detail:String(e.message||e) }, 500);
+        }
       }
 
       /* ----- Creation manuelle de commande (admin uniquement) -----
@@ -859,6 +922,19 @@ const server = http.createServer(async (req, res) => {
         } catch(e){
           return sendJSON(res,{ ok:false, error:'db', detail:String(e.message||e) }, 500);
         }
+
+        // 3b) Decrement stock pour commande manuelle (traque dans stock_history)
+        try {
+          await sb('rpc/adjust_stock',{ method:'POST', body:{
+            p_ref:'ELLIA-NOIR',
+            p_delta: -quantite,
+            p_reason: 'order_manual',
+            p_notes: 'Commande manuelle '+numero,
+            p_admin: null,
+            p_order: numero,
+            p_source: 'system'
+          }});
+        } catch(_) {}
 
         // 4) Envoi facture UNIQUEMENT si la commande est creee en statut "Expediee"
         //    (sinon, l'envoi se declenchera au changement de statut)
