@@ -130,7 +130,7 @@
             <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
               <button type="button" class="sym-btn active" data-symbol="none" title="Aucun symbole"><div class="sym-ic" style="font-family:Cormorant Garamond,serif;font-size:22px;color:#5c5852">—</div><small>Aucun</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa.png?v=3" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
             </div>
@@ -190,7 +190,7 @@
           <div id="extraOptions" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
             <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
             <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa.png?v=3" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
               <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
@@ -229,7 +229,7 @@
           <div id="extra2Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
             <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
             <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa.png?v=3" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
               <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
@@ -266,7 +266,7 @@
           <div id="extra3Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
             <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
             <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa.png?v=3" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
               <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
@@ -500,7 +500,7 @@ function initConfigurator(){
   // Sources image par symbole — toutes les images sont 1024x1024 transparentes monochrome
   const SYMBOL_SRC = {
     flame: 'assets/flame.png?v=2',
-    hamsa: 'assets/symbol-hamsa-final.png?v=1',
+    hamsa: 'assets/symbol-hamsa.png?v=3',
     peace: 'assets/symbol-peace.png?v=2',
     ellia: 'assets/symbol-ellia.png?v=2'
   };
@@ -932,59 +932,111 @@ function initConfigurator(){
     u.uExtra3Opacity.value  = hasExtra3 ? 1.15 : 0.0;
   }
 
+  // === Helper : convertit toute image (silhouette noire sur fond blanc OU silhouette blanche sur transparent)
+  //     en alpha-mask propre. Le shader/foil a besoin d'une silhouette opaque sur fond transparent.
+  //     Cette conversion est faite cote navigateur a chaque chargement -> robuste a n'importe quelle source. ===
+  function makeAlphaMask(srcImg){
+    if (!srcImg || !srcImg.naturalWidth) return srcImg;
+    const w = srcImg.naturalWidth, h = srcImg.naturalHeight;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d');
+    cx.drawImage(srcImg, 0, 0);
+    const id = cx.getImageData(0, 0, w, h);
+    const px = id.data;
+    // Detection rapide : si l'image a deja un alpha utile (au moins 10% de pixels semi-transparents), on la garde telle quelle
+    let nbTransparent = 0;
+    const sample = Math.min(px.length/4, 5000);
+    for (let i=0; i<sample; i++) { if (px[i*4+3] < 240) nbTransparent++; }
+    const hasAlpha = (nbTransparent / sample) > 0.1;
+    if (hasAlpha) return srcImg;
+    // Sinon : on traite l'image comme silhouette sombre sur fond clair -> alpha = 1 - luminance
+    for (let i=0; i<px.length; i+=4) {
+      const r=px[i], g=px[i+1], b=px[i+2];
+      const lum = (r*299 + g*587 + b*114) / 1000;
+      const alpha = lum > 240 ? 0 : Math.max(0, 255 - lum);
+      px[i] = 255; px[i+1] = 255; px[i+2] = 255; // silhouette blanche
+      px[i+3] = alpha;
+    }
+    cx.putImageData(id, 0, 0);
+    // On retourne un objet compatible drawImage : on remplace l'image par le canvas
+    const out = new Image();
+    out.width = w; out.height = h;
+    // Hack : on ajoute des proprietes pour que `drawImage(img,...)` et le check `.complete && .naturalWidth` marchent
+    Object.defineProperty(out, 'naturalWidth', { value: w });
+    Object.defineProperty(out, 'naturalHeight', { value: h });
+    Object.defineProperty(out, 'complete', { value: true });
+    // Comme `out` n'est pas vraiment chargee, on retourne directement le canvas (drawImage accepte un canvas)
+    return cv;
+  }
+  // Wrapper sur l'evenement load : remplace l'objet par la version alpha-mask, puis appelle le callback original
+  function wrapImageLoad(img, onReady){
+    img.addEventListener('load', () => {
+      const masked = makeAlphaMask(img);
+      // Remplace les proprietes utilisees par drawFlame : complete + naturalWidth + drawImage source
+      img._masked = masked;
+      // On override drawImage de maniere a ce que drawFlame voit le canvas masque
+      // Au lieu de tout reecrire, on remplace l'objet par un proxy minimal
+      onReady && onReady();
+    }, { once: false });
+  }
+
   // === Image flamme — chargée une fois, redessine quand prête ===
   const flameImg = new Image();
   flameImg.crossOrigin = 'anonymous';
   flameImg.src = SYMBOL_SRC[state.symbol] || SYMBOL_SRC.flame;
-  flameImg.onload = () => { if (state.useHebrew && typeof paint === 'function') paint(); };
+  flameImg.onload = () => { flameImg._masked = makeAlphaMask(flameImg); if (state.useHebrew && typeof paint === 'function') paint(); };
 
   // === Images des gravures supplémentaires (2e, 3e, 4e) — independantes ===
   const extraImg = new Image();
   extraImg.crossOrigin = 'anonymous';
   extraImg.src = SYMBOL_SRC[state.extraSymbol] || SYMBOL_SRC.hamsa;
-  extraImg.onload = () => { if (state.useExtra && typeof paint === 'function') paint(); };
+  extraImg.onload = () => { extraImg._masked = makeAlphaMask(extraImg); if (state.useExtra && typeof paint === 'function') paint(); };
   function setExtraImage(sym, dataURL){
-    if (dataURL) { extraImg.onload = () => paint(); extraImg.src = dataURL; return; }
+    if (dataURL) { extraImg.onload = () => { extraImg._masked = makeAlphaMask(extraImg); paint(); }; extraImg.src = dataURL; return; }
     if (!SYMBOL_SRC[sym]) return;
     if (extraImg.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
-    extraImg.onload = () => paint(); extraImg.src = SYMBOL_SRC[sym];
+    extraImg.onload = () => { extraImg._masked = makeAlphaMask(extraImg); paint(); }; extraImg.src = SYMBOL_SRC[sym];
   }
 
   const extraImg2 = new Image();
   extraImg2.crossOrigin = 'anonymous';
   extraImg2.src = SYMBOL_SRC[state.extra2Symbol] || SYMBOL_SRC.peace;
-  extraImg2.onload = () => { if (state.useExtra2 && typeof paint === 'function') paint(); };
+  extraImg2.onload = () => { extraImg2._masked = makeAlphaMask(extraImg2); if (state.useExtra2 && typeof paint === 'function') paint(); };
   function setExtra2Image(sym, dataURL){
-    if (dataURL) { extraImg2.onload = () => paint(); extraImg2.src = dataURL; return; }
+    if (dataURL) { extraImg2.onload = () => { extraImg2._masked = makeAlphaMask(extraImg2); paint(); }; extraImg2.src = dataURL; return; }
     if (!SYMBOL_SRC[sym]) return;
     if (extraImg2.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
-    extraImg2.onload = () => paint(); extraImg2.src = SYMBOL_SRC[sym];
+    extraImg2.onload = () => { extraImg2._masked = makeAlphaMask(extraImg2); paint(); }; extraImg2.src = SYMBOL_SRC[sym];
   }
 
   const extraImg3 = new Image();
   extraImg3.crossOrigin = 'anonymous';
   extraImg3.src = SYMBOL_SRC[state.extra3Symbol] || SYMBOL_SRC.ellia;
-  extraImg3.onload = () => { if (state.useExtra3 && typeof paint === 'function') paint(); };
+  extraImg3.onload = () => { extraImg3._masked = makeAlphaMask(extraImg3); if (state.useExtra3 && typeof paint === 'function') paint(); };
   function setExtra3Image(sym, dataURL){
-    if (dataURL) { extraImg3.onload = () => paint(); extraImg3.src = dataURL; return; }
+    if (dataURL) { extraImg3.onload = () => { extraImg3._masked = makeAlphaMask(extraImg3); paint(); }; extraImg3.src = dataURL; return; }
     if (!SYMBOL_SRC[sym]) return;
     if (extraImg3.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
-    extraImg3.onload = () => paint(); extraImg3.src = SYMBOL_SRC[sym];
+    extraImg3.onload = () => { extraImg3._masked = makeAlphaMask(extraImg3); paint(); }; extraImg3.src = SYMBOL_SRC[sym];
   }
   // Helper : change la source du symbole et redessine quand chargee
   function setSymbolImage(sym){
     if (!SYMBOL_SRC[sym]) return;
     if (flameImg.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return; // deja charge
-    flameImg.onload = () => { if (typeof paint === 'function') paint(); };
+    flameImg.onload = () => { flameImg._masked = makeAlphaMask(flameImg); if (typeof paint === 'function') paint(); };
     flameImg.src = SYMBOL_SRC[sym];
   }
 
   // === Dessine la flamme PNG avec EXACTEMENT les memes couleurs / etapes que les initiales ===
   function drawFlame(ctx, cx, cy, size, finish, imgArg){
-    const img = imgArg || flameImg;
-    if (!img.complete || !img.naturalWidth) return;
-
-    const ratio = img.naturalWidth / img.naturalHeight;
+    const srcImg = imgArg || flameImg;
+    if (!srcImg.complete || !srcImg.naturalWidth) return;
+    // Si une version alpha-mask existe (canvas), on l'utilise. Sinon on prend l'image telle quelle.
+    const img = srcImg._masked || srcImg;
+    // Dimensions : on prend celles du srcImg natif (canvas a width/height OK aussi)
+    const nW = srcImg.naturalWidth, nH = srcImg.naturalHeight;
+    const ratio = nW / nH;
     let w, h;
     if (ratio >= 1) { w = size; h = size / ratio; }
     else            { h = size; w = size * ratio; }
