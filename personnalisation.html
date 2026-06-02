@@ -190,6 +190,51 @@
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
+        <!-- ===== GRAVURE SUPPLEMENTAIRE (2e symbole/image) ===== -->
+        <div class="block" id="extraBlock" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
+            <input type="checkbox" id="extraToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
+            <span>Ajouter une <strong style="color:#0d0d0d">2<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
+          </label>
+
+          <div id="extraOptions" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
+            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+            <div id="extraPicker" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px">
+              <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+              <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+              <button type="button" class="sym-btn" data-symbol="custom" title="Importer mon image" onclick="document.getElementById('extraCustomFile').click(); return false;">
+                <svg class="sym-ic" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                <small>Mon image</small>
+              </button>
+              <input type="file" id="extraCustomFile" accept="image/png,image/jpeg,image/webp" style="display:none" />
+            </div>
+
+            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+            <div class="swatches" id="extraSwatches">
+              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+            </div>
+
+            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+            <div class="placements" id="extraPlacements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <button class="place-btn" data-pos="hg">Haut gauche</button>
+              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="hd">Haut droit</button>
+              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="centre">Centre</button>
+              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="bg">Bas gauche</button>
+              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
+              <button class="place-btn active" data-pos="bd">Bas droit</button>
+            </div>
+            <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par les initiales ou le premier symbole.</p>
+          </div>
+        </div>
+
         <!-- Détail tarif personnalisation -->
         <div id="persoPriceBreakdown" style="margin-top:18px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#5c5852;display:none">
           <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-bottom:8px">Détail tarif</div>
@@ -345,7 +390,7 @@ function initConfigurator(){
   engraveTex.minFilter = THREE.LinearFilter;
   engraveTex.magFilter = THREE.LinearFilter;
 
-  // === Canvas 2 : FLAMME (symbole, position independante) ===
+  // === Canvas 2 : FLAMME (symbole principal, position independante) ===
   const flameCanvas = document.createElement('canvas');
   flameCanvas.width = 1024; flameCanvas.height = 1024;
   const flameTex = new THREE.CanvasTexture(flameCanvas);
@@ -354,7 +399,22 @@ function initConfigurator(){
   flameTex.minFilter = THREE.LinearFilter;
   flameTex.magFilter = THREE.LinearFilter;
 
-  const state = { initials:'AB', finish:'or', placement:'centre', useHebrew:false, symbol:'flame', flamePlacement:'hg', flameFinish:'or', fontScale:1.0 };
+  // === Canvas 3 : EXTRA (2e symbole/image, position independante) ===
+  const extraCanvas = document.createElement('canvas');
+  extraCanvas.width = 1024; extraCanvas.height = 1024;
+  const extraTex = new THREE.CanvasTexture(extraCanvas);
+  extraTex.colorSpace = THREE.SRGBColorSpace;
+  extraTex.anisotropy = 16;
+  extraTex.minFilter = THREE.LinearFilter;
+  extraTex.magFilter = THREE.LinearFilter;
+
+  const state = {
+    initials:'AB', finish:'or', placement:'centre', fontScale:1.0,
+    // Symbole principal
+    useHebrew:false, symbol:'flame', flamePlacement:'hg', flameFinish:'or',
+    // Gravure supplementaire (2e symbole)
+    useExtra:false, extraSymbol:'hamsa', extraPlacement:'bd', extraFinish:'or', extraDataURL:null
+  };
 
   // Sources image par symbole — toutes les images sont 1024x1024 transparentes monochrome
   const SYMBOL_SRC = {
@@ -439,8 +499,13 @@ function initConfigurator(){
       // Flamme (symbole) — independant, plus etroite
       uFlameMap:       { value: flameTex },
       uFlameCenter:    { value: new THREE.Vector3(fctr.x - fsize.x*0.25, fctr.y + fsize.y*0.20, fbox.max.z) },
-      uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },  // X -30%, Y -14% (proportions plus verticales)
-      uFlameOpacity:   { value: 1.15 }
+      uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
+      uFlameOpacity:   { value: 1.15 },
+      // EXTRA (2e symbole/image) — meme parametres que Flame, placement different
+      uExtraMap:       { value: extraTex },
+      uExtraCenter:    { value: new THREE.Vector3(fctr.x + fsize.x*0.25, fctr.y - fsize.y*0.20, fbox.max.z) },
+      uExtraSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
+      uExtraOpacity:   { value: 1.15 }
     };
 
     if (cuirMat) {
@@ -453,6 +518,10 @@ function initConfigurator(){
         shader.uniforms.uFlameCenter    = engraveUniforms.uFlameCenter;
         shader.uniforms.uFlameSize      = engraveUniforms.uFlameSize;
         shader.uniforms.uFlameOpacity   = engraveUniforms.uFlameOpacity;
+        shader.uniforms.uExtraMap       = engraveUniforms.uExtraMap;
+        shader.uniforms.uExtraCenter    = engraveUniforms.uExtraCenter;
+        shader.uniforms.uExtraSize      = engraveUniforms.uExtraSize;
+        shader.uniforms.uExtraOpacity   = engraveUniforms.uExtraOpacity;
 
         shader.vertexShader = shader.vertexShader.replace(
           '#include <common>',
@@ -473,6 +542,10 @@ function initConfigurator(){
           'uniform vec3 uFlameCenter;\n' +
           'uniform vec2 uFlameSize;\n' +
           'uniform float uFlameOpacity;\n' +
+          'uniform sampler2D uExtraMap;\n' +
+          'uniform vec3 uExtraCenter;\n' +
+          'uniform vec2 uExtraSize;\n' +
+          'uniform float uExtraOpacity;\n' +
           'varying vec3 vEngraveWorldPos;'
         ).replace(
           '#include <color_fragment>',
@@ -489,10 +562,17 @@ function initConfigurator(){
           'bool _in2 = _uv2.x > 0.0 && _uv2.x < 1.0 && _uv2.y > 0.0 && _uv2.y < 1.0 && _to2.z > -0.025 && _to2.z < 0.03;\n' +
           'vec4 _col2 = _in2 ? texture2D(uFlameMap, _uv2) : vec4(0.0);\n' +
           'float _a2 = clamp(_col2.a * uFlameOpacity, 0.0, 1.0);\n' +
-          // Application : initiales puis flamme par-dessus
+          // Decal 3 : EXTRA (2e symbole/image)
+          'vec3 _to3 = vEngraveWorldPos - uExtraCenter;\n' +
+          'vec2 _uv3 = vec2((_to3.x / uExtraSize.x) + 0.5, (_to3.y / uExtraSize.y) + 0.5);\n' +
+          'bool _in3 = _uv3.x > 0.0 && _uv3.x < 1.0 && _uv3.y > 0.0 && _uv3.y < 1.0 && _to3.z > -0.025 && _to3.z < 0.03;\n' +
+          'vec4 _col3 = _in3 ? texture2D(uExtraMap, _uv3) : vec4(0.0);\n' +
+          'float _a3 = clamp(_col3.a * uExtraOpacity, 0.0, 1.0);\n' +
+          // Application : initiales puis flamme puis extra par-dessus
           'diffuseColor.rgb = mix(diffuseColor.rgb, _col1.rgb, _a1);\n' +
           'diffuseColor.rgb = mix(diffuseColor.rgb, _col2.rgb, _a2);\n' +
-          'float _engA = max(_a1, _a2);'
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _col3.rgb, _a3);\n' +
+          'float _engA = max(max(_a1, _a2), _a3);'
         ).replace(
           '#include <roughnessmap_fragment>',
           '#include <roughnessmap_fragment>\n' +
@@ -667,11 +747,31 @@ function initConfigurator(){
       }
     }
     u.uFlameCenter.value.set(posFlame[0], flameY, b.z);
+    // Centre EXTRA (2e symbole) — independant aussi
+    let posExtra = positions[state.extraPlacement] || positions.bd;
+    let extraY = posExtra[1];
+    // Auto-offset si conflit avec initiales OU avec flame
+    if (state.useExtra) {
+      const dy = hH * 0.18;
+      if (state.extraPlacement === state.placement && (state.initials||'').trim().length > 0) {
+        if (state.extraPlacement === 'bg' || state.extraPlacement === 'bd') extraY = posExtra[1] + dy;
+        else extraY = posExtra[1] - dy;
+      }
+      // Si conflit avec flame, decaler horizontalement
+      if (state.useHebrew && state.extraPlacement === state.flamePlacement) {
+        const dx = w * 0.18;
+        if (state.extraPlacement === 'hg' || state.extraPlacement === 'bg') posExtra[0] = posExtra[0] + dx;
+        else posExtra[0] = posExtra[0] - dx;
+      }
+    }
+    u.uExtraCenter.value.set(posExtra[0], extraY, b.z);
     // Opacite : on coupe une gravure si elle n'est pas demandee
     const hasInit  = (state.initials||'').trim().length > 0;
     const hasFlame = !!state.useHebrew;
+    const hasExtra = !!state.useExtra;
     u.uEngraveOpacity.value = hasInit  ? 1.15 : 0.0;
     u.uFlameOpacity.value   = hasFlame ? 1.15 : 0.0;
+    u.uExtraOpacity.value   = hasExtra ? 1.15 : 0.0;
   }
 
   // === Image flamme — chargée une fois, redessine quand prête ===
@@ -679,6 +779,23 @@ function initConfigurator(){
   flameImg.crossOrigin = 'anonymous';
   flameImg.src = SYMBOL_SRC[state.symbol] || SYMBOL_SRC.flame;
   flameImg.onload = () => { if (state.useHebrew && typeof paint === 'function') paint(); };
+
+  // === Image extra (2e symbole) — independante ===
+  const extraImg = new Image();
+  extraImg.crossOrigin = 'anonymous';
+  extraImg.src = SYMBOL_SRC[state.extraSymbol] || SYMBOL_SRC.hamsa;
+  extraImg.onload = () => { if (state.useExtra && typeof paint === 'function') paint(); };
+  function setExtraImage(sym, dataURL){
+    if (dataURL) {
+      extraImg.onload = () => { if (typeof paint === 'function') paint(); };
+      extraImg.src = dataURL;
+      return;
+    }
+    if (!SYMBOL_SRC[sym]) return;
+    if (extraImg.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
+    extraImg.onload = () => { if (typeof paint === 'function') paint(); };
+    extraImg.src = SYMBOL_SRC[sym];
+  }
   // Helper : change la source du symbole et redessine quand chargee
   function setSymbolImage(sym){
     if (!SYMBOL_SRC[sym]) return;
@@ -688,10 +805,11 @@ function initConfigurator(){
   }
 
   // === Dessine la flamme PNG avec EXACTEMENT les memes couleurs / etapes que les initiales ===
-  function drawFlame(ctx, cx, cy, size, finish){
-    if (!flameImg.complete || !flameImg.naturalWidth) return;
+  function drawFlame(ctx, cx, cy, size, finish, imgArg){
+    const img = imgArg || flameImg;
+    if (!img.complete || !img.naturalWidth) return;
 
-    const ratio = flameImg.naturalWidth / flameImg.naturalHeight;
+    const ratio = img.naturalWidth / img.naturalHeight;
     let w, h;
     if (ratio >= 1) { w = size; h = size / ratio; }
     else            { h = size; w = size * ratio; }
@@ -710,7 +828,7 @@ function initConfigurator(){
     ctx.shadowBlur = 9;
     ctx.shadowOffsetY = 3;
     ctx.globalAlpha = 0.55;
-    ctx.drawImage(flameImg, x, y+1, w, h);
+    ctx.drawImage(img,x, y+1, w, h);
     ctx.restore();
 
     if (finish === 'aveugle') {
@@ -718,7 +836,7 @@ function initConfigurator(){
       const off = document.createElement('canvas');
       off.width = Math.ceil(w); off.height = Math.ceil(h);
       const oc = off.getContext('2d');
-      oc.drawImage(flameImg, 0, 0, off.width, off.height);
+      oc.drawImage(img,0, 0, off.width, off.height);
       oc.globalCompositeOperation = 'source-in';
       oc.fillStyle = 'rgba(0,0,0,.42)';
       oc.fillRect(0, 0, off.width, off.height);
@@ -727,7 +845,7 @@ function initConfigurator(){
       ctx.save();
       ctx.globalAlpha = 0.22;
       ctx.globalCompositeOperation = 'screen';
-      ctx.drawImage(flameImg, x, y - 3, w, h);
+      ctx.drawImage(img,x, y - 3, w, h);
       ctx.restore();
       return;
     }
@@ -736,7 +854,7 @@ function initConfigurator(){
     const off = document.createElement('canvas');
     off.width = Math.ceil(w); off.height = Math.ceil(h);
     const oc = off.getContext('2d');
-    oc.drawImage(flameImg, 0, 0, off.width, off.height);
+    oc.drawImage(img,0, 0, off.width, off.height);
     oc.globalCompositeOperation = 'source-in';
     oc.fillStyle = foilBase;
     oc.fillRect(0, 0, off.width, off.height);
@@ -746,7 +864,7 @@ function initConfigurator(){
     const offShade = document.createElement('canvas');
     offShade.width = Math.ceil(w); offShade.height = Math.ceil(h);
     const ocs = offShade.getContext('2d');
-    ocs.drawImage(flameImg, 0, 0, offShade.width, offShade.height);
+    ocs.drawImage(img,0, 0, offShade.width, offShade.height);
     ocs.globalCompositeOperation = 'source-in';
     const shadeGrad = ocs.createLinearGradient(0, offShade.height/2, 0, offShade.height);
     shadeGrad.addColorStop(0, 'rgba(0,0,0,0)');
@@ -759,7 +877,7 @@ function initConfigurator(){
     const offHi = document.createElement('canvas');
     offHi.width = Math.ceil(w); offHi.height = Math.ceil(h);
     const och = offHi.getContext('2d');
-    och.drawImage(flameImg, 0, 0, offHi.width, offHi.height);
+    och.drawImage(img,0, 0, offHi.width, offHi.height);
     och.globalCompositeOperation = 'source-in';
     const hiGrad = och.createLinearGradient(0, 0, 0, offHi.height/2);
     hiGrad.addColorStop(0,   foilHi);
@@ -906,14 +1024,23 @@ function initConfigurator(){
     }
     engraveTex.needsUpdate = true;
 
-    // === Canvas 2 : FLAMME (independante - position + couleur) ===
+    // === Canvas 2 : FLAMME (symbole principal - position + couleur independantes) ===
     const ctx2 = flameCanvas.getContext('2d');
     const W2 = flameCanvas.width, H2 = flameCanvas.height;
     ctx2.clearRect(0,0,W2,H2);
     if (state.useHebrew) {
-      drawFlame(ctx2, W2/2, H2/2, Math.min(W2,H2) * 0.95, state.flameFinish);
+      drawFlame(ctx2, W2/2, H2/2, Math.min(W2,H2) * 0.95, state.flameFinish, flameImg);
     }
     flameTex.needsUpdate = true;
+
+    // === Canvas 3 : EXTRA (2e symbole/image - position + couleur independantes) ===
+    const ctx3 = extraCanvas.getContext('2d');
+    const W3 = extraCanvas.width, H3 = extraCanvas.height;
+    ctx3.clearRect(0,0,W3,H3);
+    if (state.useExtra && extraImg && extraImg.complete && extraImg.naturalWidth) {
+      drawFlame(ctx3, W3/2, H3/2, Math.min(W3,H3) * 0.95, state.extraFinish, extraImg);
+    }
+    extraTex.needsUpdate = true;
   }
 
   // Debounce paint sur la frappe pour eviter de redessiner la texture a chaque keystroke
@@ -1099,7 +1226,97 @@ function initConfigurator(){
       placement: state.flamePlacement
     } : null;
   };
+  // Etat de la 2e gravure (extra) pour le panier
+  window.__getExtraState = function(){
+    return state.useExtra ? {
+      enabled: true,
+      symbol: state.extraSymbol,
+      symbol_name: SYMBOL_NAME[state.extraSymbol] || 'Image personnalisée',
+      finish: state.extraFinish,
+      placement: state.extraPlacement
+    } : null;
+  };
   window.__getFontScale = function(){ return state.fontScale || 1.0; };
+
+  // === GRAVURE SUPPLEMENTAIRE (2e symbole) — Toggle + listeners ===
+  let extraCustomDataURL = null;
+  const extraToggle = document.getElementById('extraToggle');
+  const extraOptions = document.getElementById('extraOptions');
+  const extraCollisionWarning = document.getElementById('extraCollisionWarning');
+
+  function checkExtraCollision(){
+    if (!extraCollisionWarning) return false;
+    const ep = state.extraPlacement;
+    const init = (state.initials||'').trim().length > 0 && state.placement === ep;
+    const flam = state.useHebrew && state.flamePlacement === ep;
+    if (init || flam) {
+      extraCollisionWarning.style.display = 'block';
+      return true;
+    }
+    extraCollisionWarning.style.display = 'none';
+    return false;
+  }
+
+  if (extraToggle) {
+    extraToggle.addEventListener('change', ()=>{
+      state.useExtra = extraToggle.checked;
+      if (extraOptions) extraOptions.style.display = extraToggle.checked ? 'block' : 'none';
+      paint();
+      if (window.__updatePersoPrice) window.__updatePersoPrice();
+    });
+  }
+  // Picker extra
+  document.querySelectorAll('#extraPicker .sym-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const sym = b.dataset.symbol;
+      if (sym === 'custom') return; // Géré par le file input onclick
+      document.querySelectorAll('#extraPicker .sym-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extraSymbol = sym;
+      setExtraImage(sym);
+      paint();
+    });
+  });
+  // Custom file upload pour extra
+  const extraCustomFileInput = document.getElementById('extraCustomFile');
+  if (extraCustomFileInput) {
+    extraCustomFileInput.addEventListener('change', (ev)=>{
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      processCustomImage(file, (dataURL)=>{
+        extraCustomDataURL = dataURL;
+        document.querySelectorAll('#extraPicker .sym-btn').forEach(o=>o.classList.remove('active'));
+        const customBtn = document.querySelector('#extraPicker .sym-btn[data-symbol="custom"]');
+        if (customBtn) {
+          customBtn.classList.add('active');
+          const oldIc = customBtn.querySelector('.sym-ic');
+          if (oldIc && oldIc.tagName === 'IMG') oldIc.src = dataURL;
+        }
+        state.extraSymbol = 'custom';
+        setExtraImage(null, dataURL);
+        paint();
+      });
+    });
+  }
+  // Finitions extra
+  document.querySelectorAll('#extraSwatches .sw').forEach(s=>{
+    s.addEventListener('click', ()=>{
+      document.querySelectorAll('#extraSwatches .sw').forEach(o=>o.classList.remove('active'));
+      s.classList.add('active');
+      state.extraFinish = s.dataset.color;
+      paint();
+    });
+  });
+  // Placements extra (avec anti-collision)
+  document.querySelectorAll('#extraPlacements .place-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#extraPlacements .place-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extraPlacement = b.dataset.pos;
+      checkExtraCollision();
+      paint();
+    });
+  });
 
   // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
   const PRICE_BASE = 159;        // Pochette
@@ -1112,16 +1329,14 @@ function initConfigurator(){
     let letters = 0, specials = 0;
     for (let i = 0; i < txt.length; i++) {
       const c = txt[i];
-      // Lettres : a-z, A-Z, é, è, ê, à, ù, ç, ô, î, etc. (Unicode \p{L} pour caractères de lettre)
       if (/[\p{L}]/u.test(c)) letters++;
-      // Caractères spéciaux : tout ce qui n'est pas une lettre (point, virgule, espace, tiret, etc.)
       else if (c !== ' ' || txt.length > 1) specials++;
     }
-    // Espaces simples comptent comme caractères spéciaux
     const persoInitiales = letters * PRICE_LETTER + specials * PRICE_SPECIAL;
-    const persoSymbol = state.useHebrew ? PRICE_SYMBOL : 0;
+    const nbSymbols = (state.useHebrew ? 1 : 0) + (state.useExtra ? 1 : 0);
+    const persoSymbol = nbSymbols * PRICE_SYMBOL;
     const persoTotal = persoInitiales + persoSymbol;
-    return { letters, specials, persoInitiales, persoSymbol, persoTotal, total: PRICE_BASE + persoTotal };
+    return { letters, specials, persoInitiales, persoSymbol, nbSymbols, persoTotal, total: PRICE_BASE + persoTotal };
   }
 
   function updatePriceDisplay(){
@@ -1145,7 +1360,10 @@ function initConfigurator(){
       if (pbS) {
         if (p.persoSymbol > 0) {
           pbS.style.display = 'flex';
-          pbS.innerHTML = '<span>Symbole gravé (' + (SYMBOL_NAME[state.symbol] || '—') + ')</span><span>' + p.persoSymbol + ' €</span>';
+          const names = [];
+          if (state.useHebrew) names.push(SYMBOL_NAME[state.symbol] || '—');
+          if (state.useExtra) names.push(SYMBOL_NAME[state.extraSymbol] || '—');
+          pbS.innerHTML = '<span>' + p.nbSymbols + ' symbole' + (p.nbSymbols>1?'s':'') + ' gravé' + (p.nbSymbols>1?'s':'') + ' (' + names.join(' + ') + ')</span><span>' + p.persoSymbol + ' €</span>';
         } else { pbS.style.display = 'none'; }
       }
       if (pbT) pbT.innerHTML = p.total + ' €';

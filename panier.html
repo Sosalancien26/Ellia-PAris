@@ -71,6 +71,10 @@ document.addEventListener('DOMContentLoaded', function(){
       var symName = it.flame.symbol_name || 'Flamme';
       parts.push(esc(symName)+' : '+esc(it.flame.finish||'')+' · '+esc(it.flame.placement||''));
     }
+    if(it.extra && it.extra.enabled) {
+      var extraName = it.extra.symbol_name || 'Image personnalisée';
+      parts.push(esc(extraName)+' : '+esc(it.extra.finish||'')+' · '+esc(it.extra.placement||''));
+    }
     return 'Gravure : '+parts.join(' / ');
   }
   function previewImg(it){

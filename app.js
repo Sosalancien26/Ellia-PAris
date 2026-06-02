@@ -141,6 +141,7 @@
         emplacement: place,
         fontScale: (window.__getFontScale ? Math.round(window.__getFontScale()*100) : 100),
         flame: (window.__getFlameState ? window.__getFlameState() : null),
+        extra: (window.__getExtraState ? window.__getExtraState() : null),
         perso_detail: persoDetail,
         preview: preview
       };
