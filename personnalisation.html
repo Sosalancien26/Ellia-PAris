@@ -408,12 +408,34 @@ function initConfigurator(){
   extraTex.minFilter = THREE.LinearFilter;
   extraTex.magFilter = THREE.LinearFilter;
 
+  // === Canvas 4 : EXTRA2 (3e symbole/image) ===
+  const extra2Canvas = document.createElement('canvas');
+  extra2Canvas.width = 1024; extra2Canvas.height = 1024;
+  const extra2Tex = new THREE.CanvasTexture(extra2Canvas);
+  extra2Tex.colorSpace = THREE.SRGBColorSpace;
+  extra2Tex.anisotropy = 16;
+  extra2Tex.minFilter = THREE.LinearFilter;
+  extra2Tex.magFilter = THREE.LinearFilter;
+
+  // === Canvas 5 : EXTRA3 (4e symbole/image) ===
+  const extra3Canvas = document.createElement('canvas');
+  extra3Canvas.width = 1024; extra3Canvas.height = 1024;
+  const extra3Tex = new THREE.CanvasTexture(extra3Canvas);
+  extra3Tex.colorSpace = THREE.SRGBColorSpace;
+  extra3Tex.anisotropy = 16;
+  extra3Tex.minFilter = THREE.LinearFilter;
+  extra3Tex.magFilter = THREE.LinearFilter;
+
   const state = {
     initials:'AB', finish:'or', placement:'centre', fontScale:1.0,
-    // Symbole principal
+    // Symbole principal (1ere gravure)
     useHebrew:false, symbol:'flame', flamePlacement:'hg', flameFinish:'or',
-    // Gravure supplementaire (2e symbole)
-    useExtra:false, extraSymbol:'hamsa', extraPlacement:'bd', extraFinish:'or', extraDataURL:null
+    // 2e gravure
+    useExtra:false, extraSymbol:'hamsa', extraPlacement:'bd', extraFinish:'or', extraDataURL:null,
+    // 3e gravure
+    useExtra2:false, extra2Symbol:'peace', extra2Placement:'hd', extra2Finish:'or', extra2DataURL:null,
+    // 4e gravure
+    useExtra3:false, extra3Symbol:'ellia', extra3Placement:'bg', extra3Finish:'or', extra3DataURL:null
   };
 
   // Sources image par symbole — toutes les images sont 1024x1024 transparentes monochrome
@@ -501,11 +523,21 @@ function initConfigurator(){
       uFlameCenter:    { value: new THREE.Vector3(fctr.x - fsize.x*0.25, fctr.y + fsize.y*0.20, fbox.max.z) },
       uFlameSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
       uFlameOpacity:   { value: 1.15 },
-      // EXTRA (2e symbole/image) — meme parametres que Flame, placement different
+      // EXTRA (2e symbole/image)
       uExtraMap:       { value: extraTex },
       uExtraCenter:    { value: new THREE.Vector3(fctr.x + fsize.x*0.25, fctr.y - fsize.y*0.20, fbox.max.z) },
       uExtraSize:      { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
-      uExtraOpacity:   { value: 1.15 }
+      uExtraOpacity:   { value: 1.15 },
+      // EXTRA2 (3e symbole/image)
+      uExtra2Map:      { value: extra2Tex },
+      uExtra2Center:   { value: new THREE.Vector3(fctr.x + fsize.x*0.25, fctr.y + fsize.y*0.20, fbox.max.z) },
+      uExtra2Size:     { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
+      uExtra2Opacity:  { value: 1.15 },
+      // EXTRA3 (4e symbole/image)
+      uExtra3Map:      { value: extra3Tex },
+      uExtra3Center:   { value: new THREE.Vector3(fctr.x - fsize.x*0.25, fctr.y - fsize.y*0.20, fbox.max.z) },
+      uExtra3Size:     { value: new THREE.Vector2(fsize.x * 0.18, fsize.y * 0.22) },
+      uExtra3Opacity:  { value: 1.15 }
     };
 
     if (cuirMat) {
@@ -522,6 +554,14 @@ function initConfigurator(){
         shader.uniforms.uExtraCenter    = engraveUniforms.uExtraCenter;
         shader.uniforms.uExtraSize      = engraveUniforms.uExtraSize;
         shader.uniforms.uExtraOpacity   = engraveUniforms.uExtraOpacity;
+        shader.uniforms.uExtra2Map      = engraveUniforms.uExtra2Map;
+        shader.uniforms.uExtra2Center   = engraveUniforms.uExtra2Center;
+        shader.uniforms.uExtra2Size     = engraveUniforms.uExtra2Size;
+        shader.uniforms.uExtra2Opacity  = engraveUniforms.uExtra2Opacity;
+        shader.uniforms.uExtra3Map      = engraveUniforms.uExtra3Map;
+        shader.uniforms.uExtra3Center   = engraveUniforms.uExtra3Center;
+        shader.uniforms.uExtra3Size     = engraveUniforms.uExtra3Size;
+        shader.uniforms.uExtra3Opacity  = engraveUniforms.uExtra3Opacity;
 
         shader.vertexShader = shader.vertexShader.replace(
           '#include <common>',
@@ -546,6 +586,14 @@ function initConfigurator(){
           'uniform vec3 uExtraCenter;\n' +
           'uniform vec2 uExtraSize;\n' +
           'uniform float uExtraOpacity;\n' +
+          'uniform sampler2D uExtra2Map;\n' +
+          'uniform vec3 uExtra2Center;\n' +
+          'uniform vec2 uExtra2Size;\n' +
+          'uniform float uExtra2Opacity;\n' +
+          'uniform sampler2D uExtra3Map;\n' +
+          'uniform vec3 uExtra3Center;\n' +
+          'uniform vec2 uExtra3Size;\n' +
+          'uniform float uExtra3Opacity;\n' +
           'varying vec3 vEngraveWorldPos;'
         ).replace(
           '#include <color_fragment>',
@@ -568,11 +616,25 @@ function initConfigurator(){
           'bool _in3 = _uv3.x > 0.0 && _uv3.x < 1.0 && _uv3.y > 0.0 && _uv3.y < 1.0 && _to3.z > -0.025 && _to3.z < 0.03;\n' +
           'vec4 _col3 = _in3 ? texture2D(uExtraMap, _uv3) : vec4(0.0);\n' +
           'float _a3 = clamp(_col3.a * uExtraOpacity, 0.0, 1.0);\n' +
-          // Application : initiales puis flamme puis extra par-dessus
+          // Decal 4 : EXTRA2 (3e symbole/image)
+          'vec3 _to4 = vEngraveWorldPos - uExtra2Center;\n' +
+          'vec2 _uv4 = vec2((_to4.x / uExtra2Size.x) + 0.5, (_to4.y / uExtra2Size.y) + 0.5);\n' +
+          'bool _in4 = _uv4.x > 0.0 && _uv4.x < 1.0 && _uv4.y > 0.0 && _uv4.y < 1.0 && _to4.z > -0.025 && _to4.z < 0.03;\n' +
+          'vec4 _col4 = _in4 ? texture2D(uExtra2Map, _uv4) : vec4(0.0);\n' +
+          'float _a4 = clamp(_col4.a * uExtra2Opacity, 0.0, 1.0);\n' +
+          // Decal 5 : EXTRA3 (4e symbole/image)
+          'vec3 _to5 = vEngraveWorldPos - uExtra3Center;\n' +
+          'vec2 _uv5 = vec2((_to5.x / uExtra3Size.x) + 0.5, (_to5.y / uExtra3Size.y) + 0.5);\n' +
+          'bool _in5 = _uv5.x > 0.0 && _uv5.x < 1.0 && _uv5.y > 0.0 && _uv5.y < 1.0 && _to5.z > -0.025 && _to5.z < 0.03;\n' +
+          'vec4 _col5 = _in5 ? texture2D(uExtra3Map, _uv5) : vec4(0.0);\n' +
+          'float _a5 = clamp(_col5.a * uExtra3Opacity, 0.0, 1.0);\n' +
+          // Application en superposition
           'diffuseColor.rgb = mix(diffuseColor.rgb, _col1.rgb, _a1);\n' +
           'diffuseColor.rgb = mix(diffuseColor.rgb, _col2.rgb, _a2);\n' +
           'diffuseColor.rgb = mix(diffuseColor.rgb, _col3.rgb, _a3);\n' +
-          'float _engA = max(max(_a1, _a2), _a3);'
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _col4.rgb, _a4);\n' +
+          'diffuseColor.rgb = mix(diffuseColor.rgb, _col5.rgb, _a5);\n' +
+          'float _engA = max(max(max(_a1, _a2), max(_a3, _a4)), _a5);'
         ).replace(
           '#include <roughnessmap_fragment>',
           '#include <roughnessmap_fragment>\n' +
@@ -765,13 +827,50 @@ function initConfigurator(){
       }
     }
     u.uExtraCenter.value.set(posExtra[0], extraY, b.z);
+    // Extra2 (3e gravure)
+    let posExtra2 = positions[state.extra2Placement] || positions.hd;
+    let extra2X = posExtra2[0], extra2Y = posExtra2[1];
+    if (state.useExtra2) {
+      const dy = hH * 0.18, dx = w * 0.18;
+      const conflict = (state.extra2Placement === state.placement && (state.initials||'').trim().length>0)
+                    || (state.useHebrew && state.extra2Placement === state.flamePlacement)
+                    || (state.useExtra && state.extra2Placement === state.extraPlacement);
+      if (conflict) {
+        if (state.extra2Placement === 'bg' || state.extra2Placement === 'bd') extra2Y = posExtra2[1] + dy*0.6;
+        else extra2Y = posExtra2[1] - dy*0.6;
+        if (state.extra2Placement === 'hg' || state.extra2Placement === 'bg') extra2X = posExtra2[0] + dx*0.6;
+        else extra2X = posExtra2[0] - dx*0.6;
+      }
+    }
+    u.uExtra2Center.value.set(extra2X, extra2Y, b.z);
+    // Extra3 (4e gravure)
+    let posExtra3 = positions[state.extra3Placement] || positions.bg;
+    let extra3X = posExtra3[0], extra3Y = posExtra3[1];
+    if (state.useExtra3) {
+      const dy = hH * 0.18, dx = w * 0.18;
+      const conflict = (state.extra3Placement === state.placement && (state.initials||'').trim().length>0)
+                    || (state.useHebrew && state.extra3Placement === state.flamePlacement)
+                    || (state.useExtra && state.extra3Placement === state.extraPlacement)
+                    || (state.useExtra2 && state.extra3Placement === state.extra2Placement);
+      if (conflict) {
+        if (state.extra3Placement === 'bg' || state.extra3Placement === 'bd') extra3Y = posExtra3[1] + dy*0.6;
+        else extra3Y = posExtra3[1] - dy*0.6;
+        if (state.extra3Placement === 'hg' || state.extra3Placement === 'bg') extra3X = posExtra3[0] + dx*0.6;
+        else extra3X = posExtra3[0] - dx*0.6;
+      }
+    }
+    u.uExtra3Center.value.set(extra3X, extra3Y, b.z);
     // Opacite : on coupe une gravure si elle n'est pas demandee
     const hasInit  = (state.initials||'').trim().length > 0;
     const hasFlame = !!state.useHebrew;
     const hasExtra = !!state.useExtra;
+    const hasExtra2 = !!state.useExtra2;
+    const hasExtra3 = !!state.useExtra3;
     u.uEngraveOpacity.value = hasInit  ? 1.15 : 0.0;
     u.uFlameOpacity.value   = hasFlame ? 1.15 : 0.0;
     u.uExtraOpacity.value   = hasExtra ? 1.15 : 0.0;
+    u.uExtra2Opacity.value  = hasExtra2 ? 1.15 : 0.0;
+    u.uExtra3Opacity.value  = hasExtra3 ? 1.15 : 0.0;
   }
 
   // === Image flamme — chargée une fois, redessine quand prête ===
@@ -780,21 +879,38 @@ function initConfigurator(){
   flameImg.src = SYMBOL_SRC[state.symbol] || SYMBOL_SRC.flame;
   flameImg.onload = () => { if (state.useHebrew && typeof paint === 'function') paint(); };
 
-  // === Image extra (2e symbole) — independante ===
+  // === Images des gravures supplémentaires (2e, 3e, 4e) — independantes ===
   const extraImg = new Image();
   extraImg.crossOrigin = 'anonymous';
   extraImg.src = SYMBOL_SRC[state.extraSymbol] || SYMBOL_SRC.hamsa;
   extraImg.onload = () => { if (state.useExtra && typeof paint === 'function') paint(); };
   function setExtraImage(sym, dataURL){
-    if (dataURL) {
-      extraImg.onload = () => { if (typeof paint === 'function') paint(); };
-      extraImg.src = dataURL;
-      return;
-    }
+    if (dataURL) { extraImg.onload = () => paint(); extraImg.src = dataURL; return; }
     if (!SYMBOL_SRC[sym]) return;
     if (extraImg.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
-    extraImg.onload = () => { if (typeof paint === 'function') paint(); };
-    extraImg.src = SYMBOL_SRC[sym];
+    extraImg.onload = () => paint(); extraImg.src = SYMBOL_SRC[sym];
+  }
+
+  const extraImg2 = new Image();
+  extraImg2.crossOrigin = 'anonymous';
+  extraImg2.src = SYMBOL_SRC[state.extra2Symbol] || SYMBOL_SRC.peace;
+  extraImg2.onload = () => { if (state.useExtra2 && typeof paint === 'function') paint(); };
+  function setExtra2Image(sym, dataURL){
+    if (dataURL) { extraImg2.onload = () => paint(); extraImg2.src = dataURL; return; }
+    if (!SYMBOL_SRC[sym]) return;
+    if (extraImg2.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
+    extraImg2.onload = () => paint(); extraImg2.src = SYMBOL_SRC[sym];
+  }
+
+  const extraImg3 = new Image();
+  extraImg3.crossOrigin = 'anonymous';
+  extraImg3.src = SYMBOL_SRC[state.extra3Symbol] || SYMBOL_SRC.ellia;
+  extraImg3.onload = () => { if (state.useExtra3 && typeof paint === 'function') paint(); };
+  function setExtra3Image(sym, dataURL){
+    if (dataURL) { extraImg3.onload = () => paint(); extraImg3.src = dataURL; return; }
+    if (!SYMBOL_SRC[sym]) return;
+    if (extraImg3.src.endsWith(SYMBOL_SRC[sym].split('?')[0])) return;
+    extraImg3.onload = () => paint(); extraImg3.src = SYMBOL_SRC[sym];
   }
   // Helper : change la source du symbole et redessine quand chargee
   function setSymbolImage(sym){
@@ -1033,7 +1149,7 @@ function initConfigurator(){
     }
     flameTex.needsUpdate = true;
 
-    // === Canvas 3 : EXTRA (2e symbole/image - position + couleur independantes) ===
+    // === Canvas 3 : EXTRA (2e gravure) ===
     const ctx3 = extraCanvas.getContext('2d');
     const W3 = extraCanvas.width, H3 = extraCanvas.height;
     ctx3.clearRect(0,0,W3,H3);
@@ -1041,6 +1157,24 @@ function initConfigurator(){
       drawFlame(ctx3, W3/2, H3/2, Math.min(W3,H3) * 0.95, state.extraFinish, extraImg);
     }
     extraTex.needsUpdate = true;
+
+    // === Canvas 4 : EXTRA2 (3e gravure) ===
+    const ctx4 = extra2Canvas.getContext('2d');
+    const W4 = extra2Canvas.width, H4 = extra2Canvas.height;
+    ctx4.clearRect(0,0,W4,H4);
+    if (state.useExtra2 && extraImg2 && extraImg2.complete && extraImg2.naturalWidth) {
+      drawFlame(ctx4, W4/2, H4/2, Math.min(W4,H4) * 0.95, state.extra2Finish, extraImg2);
+    }
+    extra2Tex.needsUpdate = true;
+
+    // === Canvas 5 : EXTRA3 (4e gravure) ===
+    const ctx5 = extra3Canvas.getContext('2d');
+    const W5 = extra3Canvas.width, H5 = extra3Canvas.height;
+    ctx5.clearRect(0,0,W5,H5);
+    if (state.useExtra3 && extraImg3 && extraImg3.complete && extraImg3.naturalWidth) {
+      drawFlame(ctx5, W5/2, H5/2, Math.min(W5,H5) * 0.95, state.extra3Finish, extraImg3);
+    }
+    extra3Tex.needsUpdate = true;
   }
 
   // Debounce paint sur la frappe pour eviter de redessiner la texture a chaque keystroke
