@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Three middle fingers (rounded tip rectangles) -->
+    <!-- Left middle finger -->
+    <path d="M 360 460 L 360 175 Q 360 130 405 130 Q 450 130 450 175 L 450 460" />
+    <!-- Center middle finger (slightly taller) -->
+    <path d="M 467 460 L 467 130 Q 467 80 512 80 Q 557 80 557 130 L 557 460" />
+    <!-- Right middle finger -->
+    <path d="M 574 460 L 574 175 Q 574 130 619 130 Q 664 130 664 175 L 664 460" />
+
+    <!-- Main palm body + two symmetric thumbs curving outward
+         Drawn as ONE continuous outline going around the whole shape -->
+    <path d="
+      M 360 460
+      C 360 460, 280 410, 220 460
+      C 145 525, 130 595, 140 660
+      C 148 715, 180 750, 230 760
+      C 250 765, 290 760, 310 740
+      C 310 740, 330 800, 380 855
+      C 460 935, 580 935, 660 855
+      C 710 800, 720 750, 720 740
+      C 740 760, 780 765, 800 760
+      C 850 750, 880 715, 888 660
+      C 895 600, 880 525, 805 460
+      C 745 410, 665 460, 664 460
+      "/>
+
+    <!-- Eye in palm: large almond shape -->
+    <path d="M 380 605
+             Q 512 510, 644 605
+             Q 512 700, 380 605 Z"/>
+
+    <!-- Pupil (filled circle) -->
+    <circle cx="512" cy="605" r="42" fill="#000" stroke="none"/>
+    <!-- Pupil highlight ring -->
+    <circle cx="512" cy="605" r="62" fill="none" stroke="#000" stroke-width="18"/>
+
+  </g>
+</svg>
