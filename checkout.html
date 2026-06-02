@@ -85,8 +85,16 @@
       </div>
 
       <div class="pay-note" style="background:rgba(13,13,13,.04);border:1px solid rgba(13,13,13,.12);color:#0d0d0d">Paiement sécurisé par carte (Visa, Mastercard, Amex) via Stripe. Vous serez redirigé après validation pour finaliser votre commande.</div>
+
+      <!-- Acceptation CGV (obligation légale Art. L121-19 Code consommation) -->
+      <label class="co-check" style="align-items:flex-start;margin:18px 0 22px;padding:14px 16px;background:#fafaf7;border:1px solid var(--ligne);font-size:13.5px;line-height:1.5;cursor:pointer">
+        <input type="checkbox" id="acceptCgv" required style="margin-top:3px;flex-shrink:0">
+        <span>J'ai lu et j'accepte les <a href="cgv.html" target="_blank" style="color:var(--noir);text-decoration:underline">Conditions Générales de Vente</a> ainsi que la <a href="confidentialite.html" target="_blank" style="color:var(--noir);text-decoration:underline">Politique de confidentialité</a> d'ELLIA PARIS. <span style="color:#b1432f">*</span></span>
+      </label>
+
       <button class="btn solid" id="validate" style="width:100%;text-align:center">Valider ma commande</button>
       <div class="err" id="err"></div>
+      <p style="font-size:12px;color:var(--gris-txt);margin-top:14px;text-align:center;line-height:1.5">En validant votre commande, vous reconnaissez avoir pris connaissance et accepté les <a href="cgv.html" target="_blank" style="color:inherit;text-decoration:underline">CGV</a>. <br>Droit de rétractation : 14 jours à compter de la réception, sauf produits personnalisés (art. L221-28 du Code de la consommation).</p>
     </form>
 
     <div class="co-summary">
@@ -154,6 +162,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const err=document.getElementById('err'); err.textContent='';
     if(!v('prenom')||!v('nom')||!v('email')){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
     if(!v('l_adresse')||!v('l_cp')||!v('l_ville')){ err.textContent='Merci de compléter l\'adresse de livraison.'; return; }
+    // CGV obligatoires (Art. L121-19 Code conso)
+    var cgv = document.getElementById('acceptCgv');
+    if(cgv && !cgv.checked){ err.textContent='Vous devez accepter les Conditions Générales de Vente pour finaliser la commande.'; cgv.focus(); return; }
     const perso=items.find(i=>i.initiales)||{};
     // Extraire UNE preview (premier item qui en a une) au niveau racine du payload,
     // et retirer le champ preview des items pour ne pas tout dupliquer.
