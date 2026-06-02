@@ -1,15 +1,10 @@
 /* ELLIA PARIS — interactions partagees */
 (function(){
-  /* Preloader EQUILIBRE : ~2.5s d'animation luxe, puis cache. Visite repetee = instantanee */
+  /* Preloader UNIFORME : meme duree sur toutes les pages (~2.5s d'animation luxe) */
   function hidePreloader(){var p=document.getElementById('preloader');if(p){p.classList.add('done');setTimeout(function(){if(p&&p.parentNode)p.parentNode.removeChild(p);},700);}}
-  if(sessionStorage.getItem('ellia_seen')==='1'){
-    setTimeout(hidePreloader,150);
-  } else {
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,2700);});
-    window.addEventListener('load',function(){setTimeout(hidePreloader,2500);});
-    setTimeout(hidePreloader,4500); // garde-fou max 4.5s
-    sessionStorage.setItem('ellia_seen','1');
-  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,2700);});
+  window.addEventListener('load',function(){setTimeout(hidePreloader,2500);});
+  setTimeout(hidePreloader,4500); // garde-fou max 4.5s
 
   /* Bandeau cookies (RGPD) */
   if(localStorage.getItem('ellia_cookies')!=='ok'){
