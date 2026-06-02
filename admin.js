@@ -51,6 +51,26 @@
 
   const TRANSPORTEURS=['','Colissimo','Chronopost','Mondial Relay','UPS','DHL','Autre'];
   function gravure(o){ return (o.initiales && o.initiales!=='—') ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure'; }
+  // Construit la liste complete des gravures (initiales + flame + extras 1/2/3) — items_data est un JSONB en DB
+  function gravureFull(o){
+    var parts = [];
+    // Initiales
+    if (o.initiales && o.initiales !== '—') {
+      parts.push('Initiales <b>« '+esc(o.initiales)+' »</b> · '+esc(o.finition||'—')+' · '+esc(o.emplacement||'—'));
+    }
+    // Items_data : array d'items du panier, chaque item peut avoir flame/extra/extra2/extra3
+    var items = Array.isArray(o.items_data) ? o.items_data : [];
+    items.forEach(function(it){
+      ['flame','extra','extra2','extra3'].forEach(function(k){
+        var s = it && it[k];
+        if (s && s.enabled) {
+          parts.push((esc(s.symbol_name||s.symbol||'Symbole'))+' : '+esc(s.finish||'—')+' · '+esc(s.placement||'—'));
+        }
+      });
+    });
+    if (!parts.length) return 'Sans gravure';
+    return '<div style="line-height:1.85">· '+parts.join('<br/>· ')+'</div>';
+  }
   let ORDERS=[], FILTER='', SEARCH='';
   function ocard(o){
     return '<div class="ord-row" data-id="'+o.id+'">'+
@@ -127,7 +147,7 @@
       '<div style="height:14px"></div>'+
       omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
       omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
-      omRow('Personnalisation',gravure(o))+
+      omRow('Personnalisation',gravureFull(o))+
       previewBlock+
       omRow('Total','<b>'+eur(o.total)+'</b>')+
       payRow+invoiceRow+

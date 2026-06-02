@@ -127,23 +127,13 @@
           </div>
           <div style="margin-top:18px">
             <span class="field-label">Graver aussi un symbole</span>
-            <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px">
+            <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
               <button type="button" class="sym-btn active" data-symbol="none" title="Aucun symbole"><div class="sym-ic" style="font-family:Cormorant Garamond,serif;font-size:22px;color:#5c5852">—</div><small>Aucun</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
               <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-              <button type="button" class="sym-btn" data-symbol="custom" title="Importer mon image" onclick="document.getElementById('symbolCustomFile').click(); return false;">
-                <svg class="sym-ic" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <circle cx="9" cy="9" r="2"/>
-                  <path d="M21 15l-5-5L5 21"/>
-                </svg>
-                <small>Mon image</small>
-              </button>
-              <input type="file" id="symbolCustomFile" accept="image/png,image/jpeg,image/webp" style="display:none" />
             </div>
-            <p style="font-size:11.5px;color:#8a857d;margin-top:8px;letter-spacing:.04em">Choisissez un symbole ou importez votre propre image (logo, dessin, photo). L'image sera convertie en silhouette monochrome pour la gravure foil.</p>
           </div>
         </div>
         <div class="block">
@@ -199,16 +189,11 @@
 
           <div id="extraOptions" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
             <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-            <div id="extraPicker" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px">
+            <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
               <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
               <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
               <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
               <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-              <button type="button" class="sym-btn" data-symbol="custom" title="Importer mon image" onclick="document.getElementById('extraCustomFile').click(); return false;">
-                <svg class="sym-ic" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
-                <small>Mon image</small>
-              </button>
-              <input type="file" id="extraCustomFile" accept="image/png,image/jpeg,image/webp" style="display:none" />
             </div>
 
             <span class="field-label" style="margin-top:14px;display:block">Finition</span>
@@ -231,7 +216,81 @@
               <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
               <button class="place-btn active" data-pos="bd">Bas droit</button>
             </div>
-            <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par les initiales ou le premier symbole.</p>
+            <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+          </div>
+        </div>
+
+        <!-- 3e gravure -->
+        <div class="block" id="extra2Block" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
+            <input type="checkbox" id="extra2Toggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
+            <span>Ajouter une <strong style="color:#0d0d0d">3<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
+          </label>
+          <div id="extra2Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
+            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+            <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+              <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+            </div>
+            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+            <div class="swatches" id="extra2Swatches">
+              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+            </div>
+            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+            <div class="placements" id="extra2Placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <button class="place-btn" data-pos="hg">Haut gauche</button>
+              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
+              <button class="place-btn active" data-pos="hd">Haut droit</button>
+              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="centre">Centre</button>
+              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="bg">Bas gauche</button>
+              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="bd">Bas droit</button>
+            </div>
+            <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+          </div>
+        </div>
+
+        <!-- 4e gravure -->
+        <div class="block" id="extra3Block" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
+            <input type="checkbox" id="extra3Toggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
+            <span>Ajouter une <strong style="color:#0d0d0d">4<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
+          </label>
+          <div id="extra3Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
+            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+            <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-final.png?v=1" alt="" /><small>Hamsa</small></button>
+              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+              <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+              <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+            </div>
+            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+            <div class="swatches" id="extra3Swatches">
+              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+            </div>
+            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+            <div class="placements" id="extra3Placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <button class="place-btn" data-pos="hg">Haut gauche</button>
+              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="hd">Haut droit</button>
+              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="centre">Centre</button>
+              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
+              <button class="place-btn active" data-pos="bg">Bas gauche</button>
+              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
+              <button class="place-btn" data-pos="bd">Bas droit</button>
+            </div>
+            <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
           </div>
         </div>
 
@@ -1365,9 +1424,29 @@ function initConfigurator(){
     return state.useExtra ? {
       enabled: true,
       symbol: state.extraSymbol,
-      symbol_name: SYMBOL_NAME[state.extraSymbol] || 'Image personnalisée',
+      symbol_name: SYMBOL_NAME[state.extraSymbol] || '—',
       finish: state.extraFinish,
       placement: state.extraPlacement
+    } : null;
+  };
+  // Etat de la 3e gravure
+  window.__getExtra2State = function(){
+    return state.useExtra2 ? {
+      enabled: true,
+      symbol: state.extra2Symbol,
+      symbol_name: SYMBOL_NAME[state.extra2Symbol] || '—',
+      finish: state.extra2Finish,
+      placement: state.extra2Placement
+    } : null;
+  };
+  // Etat de la 4e gravure
+  window.__getExtra3State = function(){
+    return state.useExtra3 ? {
+      enabled: true,
+      symbol: state.extra3Symbol,
+      symbol_name: SYMBOL_NAME[state.extra3Symbol] || '—',
+      finish: state.extra3Finish,
+      placement: state.extra3Placement
     } : null;
   };
   window.__getFontScale = function(){ return state.fontScale || 1.0; };
@@ -1452,6 +1531,101 @@ function initConfigurator(){
     });
   });
 
+  // === GRAVURE 3 (extra2) ===
+  function checkExtra2Collision(){
+    const el = document.getElementById('extra2CollisionWarning'); if(!el) return false;
+    const ep = state.extra2Placement;
+    const conflict = ((state.initials||'').trim().length>0 && state.placement === ep)
+                  || (state.useHebrew && state.flamePlacement === ep)
+                  || (state.useExtra && state.extraPlacement === ep);
+    el.style.display = conflict ? 'block' : 'none';
+    return conflict;
+  }
+  const extra2Toggle = document.getElementById('extra2Toggle');
+  const extra2Options = document.getElementById('extra2Options');
+  if (extra2Toggle) {
+    extra2Toggle.addEventListener('change', ()=>{
+      state.useExtra2 = extra2Toggle.checked;
+      if (extra2Options) extra2Options.style.display = extra2Toggle.checked ? 'block' : 'none';
+      paint();
+      if (window.__updatePersoPrice) window.__updatePersoPrice();
+    });
+  }
+  document.querySelectorAll('#extra2Picker .sym-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra2Picker .sym-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extra2Symbol = b.dataset.symbol;
+      setExtra2Image(state.extra2Symbol);
+      paint();
+    });
+  });
+  document.querySelectorAll('#extra2Swatches .sw').forEach(s=>{
+    s.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra2Swatches .sw').forEach(o=>o.classList.remove('active'));
+      s.classList.add('active');
+      state.extra2Finish = s.dataset.color;
+      paint();
+    });
+  });
+  document.querySelectorAll('#extra2Placements .place-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra2Placements .place-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extra2Placement = b.dataset.pos;
+      checkExtra2Collision();
+      paint();
+    });
+  });
+
+  // === GRAVURE 4 (extra3) ===
+  function checkExtra3Collision(){
+    const el = document.getElementById('extra3CollisionWarning'); if(!el) return false;
+    const ep = state.extra3Placement;
+    const conflict = ((state.initials||'').trim().length>0 && state.placement === ep)
+                  || (state.useHebrew && state.flamePlacement === ep)
+                  || (state.useExtra && state.extraPlacement === ep)
+                  || (state.useExtra2 && state.extra2Placement === ep);
+    el.style.display = conflict ? 'block' : 'none';
+    return conflict;
+  }
+  const extra3Toggle = document.getElementById('extra3Toggle');
+  const extra3Options = document.getElementById('extra3Options');
+  if (extra3Toggle) {
+    extra3Toggle.addEventListener('change', ()=>{
+      state.useExtra3 = extra3Toggle.checked;
+      if (extra3Options) extra3Options.style.display = extra3Toggle.checked ? 'block' : 'none';
+      paint();
+      if (window.__updatePersoPrice) window.__updatePersoPrice();
+    });
+  }
+  document.querySelectorAll('#extra3Picker .sym-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra3Picker .sym-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extra3Symbol = b.dataset.symbol;
+      setExtra3Image(state.extra3Symbol);
+      paint();
+    });
+  });
+  document.querySelectorAll('#extra3Swatches .sw').forEach(s=>{
+    s.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra3Swatches .sw').forEach(o=>o.classList.remove('active'));
+      s.classList.add('active');
+      state.extra3Finish = s.dataset.color;
+      paint();
+    });
+  });
+  document.querySelectorAll('#extra3Placements .place-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#extra3Placements .place-btn').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      state.extra3Placement = b.dataset.pos;
+      checkExtra3Collision();
+      paint();
+    });
+  });
+
   // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
   const PRICE_BASE = 159;        // Pochette
   const PRICE_LETTER = 5;        // Par lettre
@@ -1467,7 +1641,7 @@ function initConfigurator(){
       else if (c !== ' ' || txt.length > 1) specials++;
     }
     const persoInitiales = letters * PRICE_LETTER + specials * PRICE_SPECIAL;
-    const nbSymbols = (state.useHebrew ? 1 : 0) + (state.useExtra ? 1 : 0);
+    const nbSymbols = (state.useHebrew ? 1 : 0) + (state.useExtra ? 1 : 0) + (state.useExtra2 ? 1 : 0) + (state.useExtra3 ? 1 : 0);
     const persoSymbol = nbSymbols * PRICE_SYMBOL;
     const persoTotal = persoInitiales + persoSymbol;
     return { letters, specials, persoInitiales, persoSymbol, nbSymbols, persoTotal, total: PRICE_BASE + persoTotal };
@@ -1497,6 +1671,8 @@ function initConfigurator(){
           const names = [];
           if (state.useHebrew) names.push(SYMBOL_NAME[state.symbol] || '—');
           if (state.useExtra) names.push(SYMBOL_NAME[state.extraSymbol] || '—');
+          if (state.useExtra2) names.push(SYMBOL_NAME[state.extra2Symbol] || '—');
+          if (state.useExtra3) names.push(SYMBOL_NAME[state.extra3Symbol] || '—');
           pbS.innerHTML = '<span>' + p.nbSymbols + ' symbole' + (p.nbSymbols>1?'s':'') + ' gravé' + (p.nbSymbols>1?'s':'') + ' (' + names.join(' + ') + ')</span><span>' + p.persoSymbol + ' €</span>';
         } else { pbS.style.display = 'none'; }
       }

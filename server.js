@@ -160,13 +160,24 @@ function htmlToText(html){
     .replace(/[ \t]+/g, ' ')
     .trim();
 }
+function engravingLines(it){
+  // Affiche TOUS les details de gravure : initiales + jusqu'a 4 symboles
+  const parts = [];
+  if (it.initiales) parts.push('Initiales « ' + it.initiales + ' » · ' + (it.finition||'') + ' · ' + (it.emplacement||''));
+  if (it.flame && it.flame.enabled) parts.push((it.flame.symbol_name||'Symbole') + ' : ' + (it.flame.finish||'') + ' · ' + (it.flame.placement||''));
+  if (it.extra && it.extra.enabled) parts.push((it.extra.symbol_name||'Symbole') + ' : ' + (it.extra.finish||'') + ' · ' + (it.extra.placement||''));
+  if (it.extra2 && it.extra2.enabled) parts.push((it.extra2.symbol_name||'Symbole') + ' : ' + (it.extra2.finish||'') + ' · ' + (it.extra2.placement||''));
+  if (it.extra3 && it.extra3.enabled) parts.push((it.extra3.symbol_name||'Symbole') + ' : ' + (it.extra3.finish||'') + ' · ' + (it.extra3.placement||''));
+  if (!parts.length) return '';
+  return '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d;line-height:1.7">Gravure :<br/>· ' + parts.join('<br/>· ') + '</span>';
+}
 function lineItems(items){
   if(!items || !items.length) return '';
   const rows = items.map(it => '<tr>' +
     '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + (it.nom||'La Pochette Ellia') +
-    (it.initiales ? '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d">Gravure ' + it.initiales + ' · ' + (it.finition||'') + ' · ' + (it.emplacement||'') + '</span>' : '') +
+    engravingLines(it) +
     '</td>' +
-    '<td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap">' + euro(it.prix) + '</td></tr>').join('');
+    '<td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap;vertical-align:top">' + euro(it.prix) + '</td></tr>').join('');
   return '<table style="width:100%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:18px 0">' + rows + '</table>';
 }
 function addressBlock(d){
@@ -211,17 +222,29 @@ function sendMailWithAttachment(to, subject, html, attachments){
     .catch(e=>{ console.warn('Mail+PJ KO :', e.message); return false; });
 }
 function notifyNewOrder(d, numero){
-  const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:18px"><img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/></div>' +
-    '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Merci pour votre commande</h1>' +
+  // Email client APRES paiement confirme — inclut preview pochette personnalisee
+  return _notifyNewOrderInternal(d, numero);
+}
+function _notifyNewOrderInternal(d, numero){
+  // Header image : preview pochette personnalisee (base64) OU product-1.jpg en fallback
+  const headerImg = (d.preview && /^data:image\//.test(d.preview))
+    ? '<img src="' + d.preview + '" alt="Votre pochette personnalisee" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
+    : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
+  // Si preview existe, ajouter une mention "Apercu de votre personnalisation"
+  const previewLabel = (d.preview && /^data:image\//.test(d.preview))
+    ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
+    : '';
+  const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:22px 18px">' + headerImg + previewLabel + '</div>' +
+    '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Paiement reçu — merci !</h1>' +
     '<p style="margin:0 0 8px">Bonjour ' + (d.client_nom||'') + ',</p>' +
-    '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> a bien été enregistrée. En voici le détail :</p>' +
+    '<p style="margin:0 0 4px">Votre paiement a bien été reçu et votre commande <b>' + numero + '</b> est confirmée. En voici le détail :</p>' +
     lineItems(d.items) +
     '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>' +
-      '<td><b style="font-family:Georgia,serif;font-size:17px">Total</b></td>' +
+      '<td><b style="font-family:Georgia,serif;font-size:17px">Total payé</b></td>' +
       '<td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">' + euro(d.montant_total) + '</b></td></tr></table>' +
     addressBlock(d) +
-    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Le paiement et l\'expédition vous seront confirmés par e-mail. Avec soin,<br/>ELLIA PARIS</p>';
-  sendMail(d.client_email, 'Votre commande ELLIA PARIS — '+numero, emailLayout(inner));
+    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Votre pochette est en cours de préparation dans nos ateliers. Nous vous notifierons dès qu\'elle sera expédiée.<br/><br/>Avec soin,<br/>ELLIA PARIS</p>';
+  sendMail(d.client_email, 'Commande confirmée — '+numero, emailLayout(inner));
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
     emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + numero + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + (d.client_nom||'') + ' — ' + (d.client_email||'') + (d.telephone?(' — '+d.telephone):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d)));
 }
@@ -365,7 +388,7 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,created_at&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,items_data,created_at&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
@@ -376,6 +399,7 @@ async function getOrders(){
     invoice_number:r.invoice_number||'', manual:!!r.manual_order,
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
     preview:r.preview||null,
+    items_data: r.items_data || null,
     adresse_livraison:r.adresse_livraison||'', cp_livraison:r.cp_livraison||'', ville_livraison:r.ville_livraison||'', pays_livraison:r.pays_livraison||'France',
     adresse_facturation:r.adresse_facturation||'', cp_facturation:r.cp_facturation||'', ville_facturation:r.ville_facturation||'', pays_facturation:r.pays_facturation||'France',
     adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
@@ -586,18 +610,33 @@ const server = http.createServer(async (req, res) => {
         if(err) return sendJSON(res,{ ok:false, error:'validation', field:err }, 400);
         const numero = 'EP-'+Date.now().toString().slice(-6);
         const qte = (Array.isArray(d.items) && d.items.length) ? d.items.length : 1;
+        // MODE DEMO uniquement : envoi mail immediat (pas de Stripe pour valider)
         if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
         try{
           const sr = await sb('products?ref=eq.ELLIA-NOIR&select=stock');
           const stock = (sr && sr[0]) ? Number(sr[0].stock) : 0;
           if(stock < qte) return sendJSON(res,{ ok:false, error:'rupture', stock }, 409);
         }catch(_){}
-        notifyNewOrder(d, numero);
+        // PAS de notifyNewOrder ici — l'email partira UNIQUEMENT apres confirmation Stripe (webhook)
         // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
         let preview = null;
         if (typeof d.preview === 'string' && d.preview.length > 0 && d.preview.length < 220000) {
           if (/^data:image\/(jpeg|png|webp);base64,/i.test(d.preview)) preview = d.preview;
         }
+        // Items_data : on serialise tout le panier (incluant flame/extra/extra2/extra3) pour reconstruire la commande apres paiement
+        let itemsData = null;
+        try {
+          if (Array.isArray(d.items)) {
+            // Nettoyage : on supprime le preview de chaque item (deja stocke separement) pour limiter la taille
+            const lite = d.items.map(it => {
+              const c = Object.assign({}, it);
+              delete c.preview; // evite le double stockage du PNG
+              return c;
+            });
+            const s = JSON.stringify(lite);
+            if (s.length < 60000) itemsData = lite;
+          }
+        } catch(_){}
         const row = { numero,
           client_nom: clean(d.client_nom, 120),
           client_email: clean(String(d.client_email||'').toLowerCase(), 254),
@@ -616,7 +655,8 @@ const server = http.createServer(async (req, res) => {
           user_id: d.user_id || null,
           montant_total: Math.min(100000, Math.max(0, Number(d.montant_total) || 0)),
           preview: preview,
-          statut: 'Nouvelle' };
+          items_data: itemsData,
+          statut: 'En attente paiement' };
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte, p_order:numero } }); }catch(_){}
         // Mark abandoned cart as converted
@@ -703,12 +743,49 @@ const server = http.createServer(async (req, res) => {
             const obj = event.data.object;
             const numero = (obj.metadata && obj.metadata.numero) || null;
             if (numero && USE_DB) {
+              // 1. Marquer la commande comme payee
               await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{
                 payment_status:'Payee',
                 payment_date: new Date().toISOString(),
-                statut: 'En préparation'
+                statut: 'Nouvelle'
               }});
               console.log('[Stripe webhook] Commande', numero, 'marquee payee');
+              // 2. Envoyer l'email de confirmation au client AVEC le preview
+              try {
+                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=*');
+                if (rows && rows[0]) {
+                  const o = rows[0];
+                  // Eviter double envoi : si deja envoye, on skip
+                  if (!o.email_sent_at) {
+                    const orderForEmail = {
+                      client_nom: o.client_nom,
+                      client_email: o.client_email,
+                      telephone: o.telephone,
+                      adresse_livraison: o.adresse_livraison,
+                      cp_livraison: o.cp_livraison,
+                      ville_livraison: o.ville_livraison,
+                      pays_livraison: o.pays_livraison,
+                      adresse_facturation: o.adresse_facturation,
+                      cp_facturation: o.cp_facturation,
+                      ville_facturation: o.ville_facturation,
+                      pays_facturation: o.pays_facturation,
+                      montant_total: o.montant_total,
+                      preview: o.preview, // INCLUS dans l'email !
+                      // Reconstruit items depuis items_data (JSONB) OU fallback sur initiales seules
+                      items: Array.isArray(o.items_data) && o.items_data.length ? o.items_data : [{
+                        nom:'La Pochette Ellia', prix: o.montant_total,
+                        initiales: o.initiales, finition: o.finition, emplacement: o.emplacement
+                      }]
+                    };
+                    notifyNewOrder(orderForEmail, numero);
+                    // Marquer comme envoye
+                    await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ email_sent_at: new Date().toISOString() }});
+                    console.log('[Stripe webhook] Email confirmation envoye a', o.client_email);
+                  }
+                }
+              } catch(mailErr) {
+                console.error('[Stripe webhook] erreur envoi mail:', mailErr.message);
+              }
             }
           } else if (event.type === 'payment_intent.payment_failed' || event.type === 'checkout.session.expired') {
             const obj = event.data.object;

@@ -142,6 +142,8 @@
         fontScale: (window.__getFontScale ? Math.round(window.__getFontScale()*100) : 100),
         flame: (window.__getFlameState ? window.__getFlameState() : null),
         extra: (window.__getExtraState ? window.__getExtraState() : null),
+        extra2: (window.__getExtra2State ? window.__getExtra2State() : null),
+        extra3: (window.__getExtra3State ? window.__getExtra3State() : null),
         perso_detail: persoDetail,
         preview: preview
       };
