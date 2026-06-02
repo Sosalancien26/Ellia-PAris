@@ -110,7 +110,16 @@ const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_
 function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner){
-  return '<div style="margin:0;padding:40px 12px;background:#f3f1ec">' +
+  // Email HTML complet avec doctype + <html><body> pour deliverability (SpamAssassin)
+  return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' +
+  '<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">' +
+  '<head>' +
+    '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>' +
+    '<title>ELLIA PARIS</title>' +
+  '</head>' +
+  '<body style="margin:0;padding:0;background:#f3f1ec;font-family:Georgia,\'Times New Roman\',serif">' +
+  '<div style="margin:0;padding:40px 12px;background:#f3f1ec">' +
   '<div style="max-width:580px;margin:0 auto;background:#ffffff;box-shadow:0 30px 60px -25px rgba(0,0,0,.12)">' +
     '<div style="text-align:center;padding:36px 0 14px">' +
       '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:46px;width:auto" />' +
@@ -121,9 +130,35 @@ function emailLayout(inner){
     '<div style="background:#0d0d0d;padding:28px 44px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.18em;color:#bdb8af">' +
       '<div style="margin-bottom:10px;color:#ffffff;letter-spacing:.4em">ELLIA &nbsp; PARIS</div>' +
       '<div style="margin-bottom:14px"><a href="https://ellia-paris.fr" style="color:#bdb8af;text-decoration:none">ellia-paris.fr</a> · <a href="https://ellia-paris.fr/contact.html" style="color:#bdb8af;text-decoration:none">Contact</a> · <a href="https://ellia-paris.fr/entretien.html" style="color:#bdb8af;text-decoration:none">Entretien</a></div>' +
-      '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© 2026 ELLIA PARIS — Tous droits réservés.</div>' +
+      '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© 2026 ELLIA PARIS — Maison de maroquinerie française · Tous droits réservés.</div>' +
     '</div>' +
-  '</div></div>';
+  '</div></div>' +
+  '</body></html>';
+}
+
+// Convertit le HTML en version texte brut pour le multipart text/plain
+// (requis par SpamAssassin pour ne pas pénaliser les emails HTML-only)
+function htmlToText(html){
+  return String(html||'')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/td>/gi, '  ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&euro;/g, '€')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
 }
 function lineItems(items){
   if(!items || !items.length) return '';
@@ -141,13 +176,37 @@ function addressBlock(d){
     (d.client_nom||'') + '<br/>' + d.adresse_livraison + '<br/>' + (d.cp_livraison||'') + ' ' + (d.ville_livraison||'') + '<br/>' + (d.pays_livraison||'France') +
     (d.telephone ? ('<br/>'+d.telephone) : '') + '</p>';
 }
+// Headers communs pour bonne deliverability (compat SpamAssassin + RFC 8058)
+function mailHeaders(){
+  return {
+    'List-Unsubscribe': '<mailto:contact@ellia-paris.fr?subject=Désinscription>, <https://ellia-paris.fr/contact.html>',
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    'X-Mailer': 'ELLIA PARIS Mailer',
+    'X-Entity-Ref-ID': String(Date.now())
+  };
+}
 function sendMail(to, subject, html){
   if (!transporter || !to) return;
-  transporter.sendMail({ from: MAIL_FROM, to, subject, html }).catch(e=>console.warn('Mail KO :', e.message));
+  transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject,
+    html,
+    text: htmlToText(html),  // version text/plain (multipart alternative)
+    headers: mailHeaders()
+  }).catch(e=>console.warn('Mail KO :', e.message));
 }
 function sendMailWithAttachment(to, subject, html, attachments){
   if (!transporter || !to) return Promise.resolve(false);
-  return transporter.sendMail({ from: MAIL_FROM, to, subject, html, attachments })
+  return transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject,
+    html,
+    text: htmlToText(html),
+    attachments,
+    headers: mailHeaders()
+  })
     .then(()=>true)
     .catch(e=>{ console.warn('Mail+PJ KO :', e.message); return false; });
 }
