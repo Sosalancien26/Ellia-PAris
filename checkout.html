@@ -81,7 +81,7 @@
         <div class="co-field"><label>Pays</label><input id="f_pays" value="France"></div>
       </div>
 
-      <div class="pay-note">Paiement par carte (Stripe) — bientôt disponible. Votre commande est enregistrée et vous recevez un e-mail de confirmation ; nous vous contactons pour le règlement.</div>
+      <div class="pay-note" style="background:rgba(13,13,13,.04);border:1px solid rgba(13,13,13,.12);color:#0d0d0d">Paiement sécurisé par carte (Visa, Mastercard, Amex) via Stripe. Vous serez redirigé après validation pour finaliser votre commande.</div>
       <button class="btn solid" id="validate" style="width:100%;text-align:center">Valider ma commande</button>
       <div class="err" id="err"></div>
     </form>
@@ -171,17 +171,45 @@
       preview: orderPreview
     };
     let numero='EP-'+Date.now().toString().slice(-6);
+    const validateBtn = document.getElementById('validate');
+    const oldBtnText = validateBtn.textContent;
+    validateBtn.textContent = 'Création de la commande…';
+    validateBtn.disabled = true;
     try{
       const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(r.status===409){ err.textContent='Désolé, La Pochette est actuellement en rupture de stock.'; return; }
+      if(r.status===409){ err.textContent='Désolé, La Pochette est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
       if(r.ok){ const dd=await r.json(); if(dd&&dd.numero) numero=dd.numero; }
-    }catch(e){}
+      else { err.textContent='Erreur lors de la création de la commande. Réessayez.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
+    }catch(e){ err.textContent='Connexion impossible. Vérifiez votre connexion internet.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
     // Si connecté, on enregistre l'adresse dans le profil pour le pré-remplissage la prochaine fois
     if(userId && window.SB){
       try{ await SB.from('profiles').upsert({ id:userId, nom:v('prenom')+' '+v('nom'), telephone:v('telephone'), adresse:v('l_adresse'), cp:v('l_cp'), ville:v('l_ville'), pays:v('l_pays')||'France' }); }catch(_){}
     }
-    Cart.clear();
-    location.href='confirmation.html?n='+encodeURIComponent(numero);
+    // === REDIRECTION VERS STRIPE CHECKOUT ===
+    validateBtn.textContent = 'Redirection vers le paiement…';
+    try{
+      const sr = await fetch('/api/checkout/session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ numero: numero })
+      });
+      const sd = await sr.json();
+      if(sd.ok && sd.url){
+        Cart.clear();
+        // Stripe Checkout : la page sécurisée hébergée par Stripe
+        window.location.href = sd.url;
+        return;
+      } else {
+        // Fallback : si Stripe pas dispo, on va à la confirmation classique (paiement à organiser manuellement)
+        console.warn('Stripe indisponible :', sd.error);
+        Cart.clear();
+        location.href='confirmation.html?n='+encodeURIComponent(numero);
+      }
+    } catch(e){
+      console.error('Erreur Stripe :', e);
+      Cart.clear();
+      location.href='confirmation.html?n='+encodeURIComponent(numero);
+    }
   });
 })();
 </script>

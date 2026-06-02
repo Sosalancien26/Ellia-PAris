@@ -30,6 +30,13 @@ catch(e){ console.warn('Module promo.js indisponible :', e.message); }
 let totpMod = null;
 try { totpMod = require('./totp'); }
 catch(e){ console.warn('Module totp.js indisponible :', e.message); }
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    console.log('[Stripe] Mode', process.env.STRIPE_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST', 'initialise');
+  }
+} catch(e){ console.warn('Module stripe indisponible :', e.message); }
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -556,6 +563,103 @@ const server = http.createServer(async (req, res) => {
         // Mark abandoned cart as converted
         try{ if(d.client_email){ await sb('abandoned_carts?email=eq.'+encodeURIComponent(String(d.client_email).toLowerCase())+'&converted_at=is.null',{ method:'PATCH', body:{ converted_at: new Date().toISOString() } }); } }catch(_){}
         return sendJSON(res,{ ok:true, numero, order:created&&created[0] });
+      }
+
+      /* ===== STRIPE : creation session de paiement ===== */
+      if (req.method==='POST' && pathname==='/api/checkout/session'){
+        if (!stripe) return sendJSON(res,{ ok:false, error:'stripe_not_configured' }, 500);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const numero = clean(d.numero, 30);
+        if (!numero) return sendJSON(res,{ ok:false, error:'numero_required' }, 400);
+        try {
+          let amount = 0, clientEmail = '', items = [];
+          if (USE_DB) {
+            const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,client_email,montant_total,initiales,finition,emplacement');
+            if (!rows || !rows[0]) return sendJSON(res,{ ok:false, error:'order_not_found' }, 404);
+            const o = rows[0];
+            amount = Math.round(Number(o.montant_total) * 100);
+            clientEmail = o.client_email || '';
+            items = [{
+              name: 'La Pochette ELLIA' + (o.initiales ? ' personnalisee' : ''),
+              description: o.initiales ? ('Gravure "' + o.initiales + '" - ' + (o.finition||'') + ' - ' + (o.emplacement||'')) : 'Pochette en cuir graine',
+              amount: amount
+            }];
+          } else {
+            amount = Math.round(Number(d.amount||218) * 100);
+            clientEmail = clean(d.email, 254);
+            items = [{ name:'La Pochette ELLIA', description:'Mode demo', amount: amount }];
+          }
+          if (amount < 50) return sendJSON(res,{ ok:false, error:'amount_too_low' }, 400);
+          const origin = (req.headers.origin || 'https://ellia-paris.fr').replace(/\/$/,'');
+          const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            payment_method_types: ['card'],
+            customer_email: clientEmail || undefined,
+            line_items: items.map(it => ({
+              price_data: { currency:'eur', product_data:{ name:it.name, description:it.description }, unit_amount: it.amount },
+              quantity: 1
+            })),
+            metadata: { numero: numero },
+            success_url: origin + '/confirmation.html?n=' + encodeURIComponent(numero) + '&session_id={CHECKOUT_SESSION_ID}',
+            cancel_url:  origin + '/checkout.html?cancelled=1&n=' + encodeURIComponent(numero),
+            locale: 'fr',
+            shipping_address_collection: { allowed_countries: ['FR','BE','CH','LU','MC','GB','DE','ES','IT','US','CA'] }
+          });
+          if (USE_DB) {
+            try { await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_method:'Stripe', payment_status:'En attente' } }); } catch(_){}
+          }
+          return sendJSON(res,{ ok:true, url: session.url, session_id: session.id });
+        } catch(e) {
+          console.error('[Stripe] checkout session error:', e.message);
+          return sendJSON(res,{ ok:false, error:'stripe_error', message: e.message }, 500);
+        }
+      }
+
+      /* ===== STRIPE : webhook (paiement confirme) ===== */
+      if (req.method==='POST' && pathname==='/api/stripe/webhook'){
+        if (!stripe) return sendJSON(res,{ ok:false, error:'stripe_not_configured' }, 500);
+        const sig = req.headers['stripe-signature'];
+        const secret = process.env.STRIPE_WEBHOOK_SECRET;
+        let rawBody = '';
+        try {
+          await new Promise((resolve, reject) => {
+            req.on('data', c => { rawBody += c.toString('utf8'); });
+            req.on('end', resolve);
+            req.on('error', reject);
+          });
+        } catch(_){ return sendJSON(res,{ received:false }, 400); }
+        let event;
+        try {
+          if (secret) {
+            event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+          } else {
+            event = JSON.parse(rawBody);
+          }
+        } catch (err) {
+          console.error('[Stripe webhook] signature invalide:', err.message);
+          return sendJSON(res,{ received:false, error:'invalid_signature' }, 400);
+        }
+        try {
+          if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
+            const obj = event.data.object;
+            const numero = (obj.metadata && obj.metadata.numero) || null;
+            if (numero && USE_DB) {
+              await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{
+                payment_status:'Payee',
+                payment_date: new Date().toISOString(),
+                statut: 'En préparation'
+              }});
+              console.log('[Stripe webhook] Commande', numero, 'marquee payee');
+            }
+          } else if (event.type === 'payment_intent.payment_failed' || event.type === 'checkout.session.expired') {
+            const obj = event.data.object;
+            const numero = (obj.metadata && obj.metadata.numero) || null;
+            if (numero && USE_DB) {
+              await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_status:'Echouee' }});
+            }
+          }
+        } catch(e) { console.error('[Stripe webhook] handler error:', e.message); }
+        return sendJSON(res,{ received:true });
       }
 
       if (USE_DB && promoMod && req.method==='POST' && pathname==='/api/promo/validate'){

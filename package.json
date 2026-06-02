@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "nodemailer": "^8.0.10",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "stripe": "^17.5.0"
   },
   "engines": {
     "node": ">=18"
