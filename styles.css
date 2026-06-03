@@ -1010,10 +1010,22 @@ header#header.on-dark:not(.scrolled) .burger span{background:#fff}
 .hero-cinema .content{max-width:640px !important;text-align:left !important;margin:0 !important}
 .hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.35) 65%,rgba(0,0,0,.78) 100%),linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 30%,rgba(0,0,0,0) 55%) !important}
 @media (max-width:768px){
-  .hero-cinema{padding:120px 28px 90px;justify-content:flex-start;align-items:flex-end}
+  .hero-cinema{padding:100px 24px 80px !important;justify-content:flex-start;align-items:flex-end;min-height:88vh !important;min-height:88dvh !important}
   .hero-cinema .content{max-width:100%}
-  .hero-cinema .bg img{object-position:60% center}
-  .hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.1) 30%,rgba(0,0,0,.75) 75%,rgba(0,0,0,.92) 100%)}
+  /* v10 : descendre la photo dans le cadre pour mieux voir le sunset/horizon */
+  .hero-cinema .bg img{object-position:center 28% !important}
+  /* v10 : voile dégradé chaud sunset au lieu de noir uni (transition douce vers le texte) */
+  .hero-cinema .veil{
+    background:
+      linear-gradient(180deg,
+        rgba(0,0,0,.18) 0%,
+        rgba(0,0,0,0) 22%,
+        rgba(0,0,0,0) 42%,
+        rgba(45,18,22,.30) 55%,
+        rgba(28,10,18,.62) 72%,
+        rgba(14,6,12,.94) 100%
+      ) !important
+  }
 }
 
 /* ============ PHASE 3 : POLISH GLOBAL ============ */
@@ -1420,3 +1432,31 @@ html{overflow-x:hidden}
 
 .reviews-form-wrap{margin-top:50px;text-align:center}
 .reviews-form-wrap summary::-webkit-details-marker{display:non
+/* ============================================================
+   v10 HERO-CINEMA MOBILE — descendre la photo + voile dégradé sunset
+   (au lieu de noir uni qui crée une zone vide entre photo et texte)
+   ============================================================ */
+@media (max-width:768px){
+  /* Photo : descendre l'objet (montrer plus du sunset/horizon, moins du ciel) */
+  .hero-cinema .bg img{
+    object-position: center 28% !important;
+  }
+  /* Voile : dégradé sunset chaud → sombre, plus doux que le noir uni */
+  .hero-cinema .veil{
+    background:
+      linear-gradient(180deg,
+        rgba(0,0,0,.18) 0%,
+        rgba(0,0,0,0) 22%,
+        rgba(0,0,0,0) 42%,
+        rgba(45,18,22,.28) 55%,
+        rgba(28,10,18,.58) 72%,
+        rgba(14,6,12,.92) 100%
+      ) !important;
+  }
+  /* Hero : un peu moins grand pour que tout tienne dans le viewport */
+  .hero-cinema{
+    min-height: 88vh !important;
+    min-height: 88dvh !important;
+    padding: 100px 24px 80px !important;
+  }
+}
