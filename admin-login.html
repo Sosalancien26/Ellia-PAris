@@ -56,9 +56,4 @@
           err.textContent = ''; err.style.color = '#8a857d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
         } else { err.style.color = '#b1432f'; err.textContent = j.error || 'Code incorrect.'; }
       }
-      else { err.style.color='#b1432f'; err.textContent = j.error || 'Mot de passe incorrect.'; }
-    }catch(e){ err.textContent='Connexion impossible (lancez le serveur : npm start).'; }
-  });
-</script>
-</body>
-</html>
+      else { err.s
