@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f3f1ec" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <title>Personnalisation — ELLIA PARIS</title>
 <meta name="description" content="Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés, 4 symboles superposables (flamme, hamsa, paix, signature), 4 finitions précieuses (Or, Or rose, Argent, Aveugle), emplacements au choix. Configurateur 3D temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -126,7 +129,7 @@
             <div style="width:180px;height:1px;background:rgba(0,0,0,.12);overflow:hidden;border-radius:1px"><div id="viewer3d-bar" style="height:100%;width:0%;background:#0d0d0d;transition:width 200ms linear"></div></div>
           </div>
         </div>
-        <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px">Glissez pour tourner · molette pour zoomer</div>
+        <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px" class="viewer-hint"><span class="hint-desktop">Glissez pour tourner · molette pour zoomer</span><span class="hint-mobile" style="display:none">Glissez pour tourner · pincez pour zoomer</span></div>
         <div id="engrave" style="display:none">A·B</div>
         <div id="monoFinish" style="display:none">Finition Or</div>
       </div>
@@ -427,11 +430,24 @@ window.addEventListener('pageshow', function(ev){
   if (ev.persisted) { location.reload(); }
 });
 
-if (container && window.WebGLRenderingContext) {
-  try { initConfigurator(); }
-  catch(err){
-    console.error('[Configurateur 3D] init failed', err);
-    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:#5c5852;text-align:center;padding:30px"><div style="font-family:Cormorant Garamond,serif;font-size:22px;margin-bottom:14px">Erreur de chargement du configurateur</div><button onclick="location.reload()" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer">Recharger la page</button></div>';
+// Détection WebGL : iOS < 16.4 / Android low-end peuvent ne pas l'avoir
+function hasWebGL(){
+  try{
+    const cv = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (cv.getContext('webgl') || cv.getContext('experimental-webgl')));
+  } catch(_) { return false; }
+}
+
+if (container) {
+  if (!hasWebGL()) {
+    console.warn('[Configurateur 3D] WebGL non disponible — fallback statique');
+    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;color:#5c5852;text-align:center;padding:36px;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 60%,#c4bdae 100%)"><img src="assets/pochette-back.webp" alt="La Pochette ELLIA" style="max-width:80%;height:auto;margin-bottom:20px;border:1px solid rgba(0,0,0,.08)"/><div style="font-family:Cormorant Garamond,serif;font-size:20px;color:#0d0d0d;margin-bottom:8px">Aperçu de votre pochette</div><div style="font-family:Jost,sans-serif;font-size:12px;color:#5c5852;line-height:1.5;max-width:300px">Votre navigateur ne supporte pas la 3D temps réel. Personnalisez votre pochette ci-dessous — le rendu sera réalisé en atelier.</div></div>';
+  } else {
+    try { initConfigurator(); }
+    catch(err){
+      console.error('[Configurateur 3D] init failed', err);
+      container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:#5c5852;text-align:center;padding:30px;background:#f3f1ec"><div style="font-family:Cormorant Garamond,serif;font-size:22px;margin-bottom:14px;color:#0d0d0d">Le configurateur n\'a pas pu démarrer</div><div style="font-size:13px;margin-bottom:18px;max-width:300px;line-height:1.5">' + (err && err.message ? String(err.message).substring(0,120) : 'Erreur inconnue') + '</div><button onclick="location.reload()" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer">Recharger la page</button></div>';
+    }
   }
 }
 
@@ -580,7 +596,23 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
+  // === Timeout de sécurité : si pas chargé après 25s, afficher message d'erreur (utile iPhone Safari) ===
+  let glbLoadedFlag = false;
+  const loadTimeout = setTimeout(function(){
+    if (glbLoadedFlag) return;
+    console.error('[Ellia 3D] Timeout 25s — connexion lente ou WebGL bloqué');
+    const loader3d = document.getElementById('viewer3d-loader');
+    if (loader3d) {
+      loader3d.innerHTML = '<div style="font-family:Cormorant Garamond,serif;font-size:22px;color:#0d0d0d;margin-bottom:18px;text-align:center;padding:0 30px">Le configurateur 3D est trop long à charger sur votre connexion.</div>' +
+        '<div style="font-family:Jost,sans-serif;font-size:12.5px;color:#5c5852;line-height:1.5;text-align:center;padding:0 30px;margin-bottom:22px;max-width:340px">Vous pouvez quand même personnaliser votre pochette — choisissez vos initiales et finition, le rendu se fera côté atelier.</div>' +
+        '<button onclick="document.getElementById(&quot;viewer3d-loader&quot;).style.display=&quot;none&quot;" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:13px 26px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer;border-radius:0">Continuer sans la 3D</button>' +
+        '<button onclick="location.reload()" style="margin-top:10px;font-family:Jost,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 24px;border:1px solid #c4bdae;background:transparent;color:#5c5852;cursor:pointer">Réessayer</button>';
+      loader3d.style.opacity = '1';
+    }
+  }, 25000);
   loader.load('assets/pochette.glb?v=27', (gltf)=>{
+    glbLoadedFlag = true;
+    clearTimeout(loadTimeout);
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -1958,75 +1990,4 @@ function initConfigurator(){
     const nbSymbols = (state.useHebrew ? 1 : 0) + (state.useExtra ? 1 : 0) + (state.useExtra2 ? 1 : 0) + (state.useExtra3 ? 1 : 0);
     const persoSymbol = nbSymbols * PRICE_SYMBOL;
     const persoTotal = persoInitiales + persoSymbol;
-    return { letters, specials, persoInitiales, persoSymbol, nbSymbols, persoTotal, total: PRICE_BASE + persoTotal };
-  }
-
-  function updatePriceDisplay(){
-    const p = computePersoPrice();
-    // Total principal
-    const totalEl = document.getElementById('total');
-    if (totalEl) totalEl.innerHTML = p.total + '&nbsp;€';
-    // Détail tarif
-    const bd = document.getElementById('persoPriceBreakdown');
-    const pbI = document.getElementById('pbInitiales');
-    const pbS = document.getElementById('pbSymbol');
-    const pbT = document.getElementById('pbTotal');
-    if (p.persoTotal > 0 && bd) {
-      bd.style.display = 'block';
-      if (pbI) {
-        if (p.persoInitiales > 0) {
-          pbI.style.display = 'flex';
-          pbI.innerHTML = '<span>Gravure (' + p.letters + ' lettre' + (p.letters>1?'s':'') + (p.specials>0 ? ' + ' + p.specials + ' caractère' + (p.specials>1?'s':'') + ' spécial' + (p.specials>1?'s':'') : '') + ')</span><span>' + p.persoInitiales + ' €</span>';
-        } else { pbI.style.display = 'none'; }
-      }
-      if (pbS) {
-        if (p.persoSymbol > 0) {
-          pbS.style.display = 'flex';
-          const names = [];
-          if (state.useHebrew) names.push(SYMBOL_NAME[state.symbol] || '—');
-          if (state.useExtra) names.push(SYMBOL_NAME[state.extraSymbol] || '—');
-          if (state.useExtra2) names.push(SYMBOL_NAME[state.extra2Symbol] || '—');
-          if (state.useExtra3) names.push(SYMBOL_NAME[state.extra3Symbol] || '—');
-          pbS.innerHTML = '<span>' + p.nbSymbols + ' symbole' + (p.nbSymbols>1?'s':'') + ' gravé' + (p.nbSymbols>1?'s':'') + ' (' + names.join(' + ') + ')</span><span>' + p.persoSymbol + ' €</span>';
-        } else { pbS.style.display = 'none'; }
-      }
-      if (pbT) pbT.innerHTML = p.total + ' €';
-    } else if (bd) {
-      bd.style.display = 'none';
-    }
-  }
-
-  // Expose pour app.js (prix au moment de l'ajout panier)
-  window.__getPersoPrice = computePersoPrice;
-  window.__updatePersoPrice = updatePriceDisplay;
-
-  // Recalculer le prix à chaque changement du state
-  // (intercepter input texte, changement de symbole, finition, placement)
-  const _input = document.getElementById('initials');
-  if (_input) _input.addEventListener('input', updatePriceDisplay);
-  // Hooks autour des fonctions existantes
-  setTimeout(updatePriceDisplay, 100); // initial render
-
-  // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
-  // FIX : separer "dans le viewport" (inView) de "onglet visible" (tabVisible) au lieu
-  // d'ecraser une seule variable avec un AND qui pouvait rester bloque a false.
-  let inView = true;
-  let tabVisible = true;
-  const io = new IntersectionObserver((entries)=>{
-    inView = entries[0].isIntersecting;
-  }, { threshold: 0.01 });
-  io.observe(container);
-
-  function tick(){
-    requestAnimationFrame(tick);
-    if (!inView || !tabVisible) return;
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  tick();
-
-  // Pause quand l'onglet est cache, reprise propre quand il redevient visible
-  document.addEventListener('visibilitychange', ()=>{
-    tabVisible = document.visibilityState === 'visible';
-    if (tabVisible) {
-      requestAnimationFrame(()=>{ try { renderer.render(scene, cam
+    return { letters, specials, persoInitiales, persoSymbol, nbSymbols, pe

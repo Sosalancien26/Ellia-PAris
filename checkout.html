@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f3f1ec" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <title>Commande — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -86,16 +89,16 @@
       </div>
       <div class="frow">
         <div class="co-field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
-        <div class="co-field"><label>Téléphone</label><input id="telephone" type="tel" autocomplete="tel"></div>
+        <div class="co-field"><label>Téléphone</label><input id="telephone" type="tel" autocomplete="tel" inputmode="tel"></div>
       </div>
 
       <div class="co-sep"><h3>Adresse de livraison</h3></div>
       <div class="co-field"><label>Adresse</label><input id="l_adresse" autocomplete="shipping street-address"></div>
       <div class="frow">
-        <div class="co-field"><label>Code postal</label><input id="l_cp"></div>
-        <div class="co-field"><label>Ville</label><input id="l_ville"></div>
+        <div class="co-field"><label>Code postal</label><input id="l_cp" inputmode="numeric" pattern="[0-9]{4,6}" autocomplete="shipping postal-code" maxlength="6"></div>
+        <div class="co-field"><label>Ville</label><input id="l_ville" autocomplete="shipping address-level2"></div>
       </div>
-      <div class="co-field"><label>Pays</label><input id="l_pays" value="France"></div>
+      <div class="co-field"><label>Pays</label><input id="l_pays" value="France" autocomplete="shipping country-name"></div>
 
       <label class="co-check"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
 
@@ -103,10 +106,10 @@
         <div class="co-sep"><h3>Adresse de facturation</h3></div>
         <div class="co-field"><label>Adresse</label><input id="f_adresse"></div>
         <div class="frow">
-          <div class="co-field"><label>Code postal</label><input id="f_cp"></div>
-          <div class="co-field"><label>Ville</label><input id="f_ville"></div>
+          <div class="co-field"><label>Code postal</label><input id="f_cp" inputmode="numeric" pattern="[0-9]{4,6}" autocomplete="billing postal-code" maxlength="6"></div>
+          <div class="co-field"><label>Ville</label><input id="f_ville" autocomplete="billing address-level2"></div>
         </div>
-        <div class="co-field"><label>Pays</label><input id="f_pays" value="France"></div>
+        <div class="co-field"><label>Pays</label><input id="f_pays" value="France" autocomplete="billing country-name"></div>
       </div>
 
       <div class="pay-note" style="background:rgba(13,13,13,.04);border:1px solid rgba(13,13,13,.12);color:#0d0d0d">Paiement sécurisé par carte (Visa, Mastercard, Amex) via Stripe. Vous serez redirigé après validation pour finaliser votre commande.</div>
@@ -299,37 +302,4 @@ document.addEventListener('DOMContentLoaded', function(){
         $msg.textContent = msgs[j.error] || 'Code invalide';
       }
     } catch(e){ $msg.style.color='#b1432f'; $msg.textContent = 'Erreur réseau'; }
-    $btn.disabled = false; $btn.textContent = 'Appliquer';
-    updateTotal();
-  });
-  // Expose for order submission
-  window.elliaPromoApplied = function(){ return appliedPromo; };
-  window.elliaUpdateTotal = updateTotal;
-
-  // ===== Capture panier abandonné =====
-  const $email = document.getElementById('email');
-  let captured = false;
-  if($email) $email.addEventListener('blur', async function(){
-    const email = ($email.value||'').trim().toLowerCase();
-    if(!email || captured) return;
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-    captured = true;
-    try {
-      const items = (typeof Cart !== 'undefined' && Cart.list) ? Cart.list() : [];
-      if(items.length === 0) return;
-      const data = {
-        email,
-        client_prenom: (document.getElementById('prenom')||{}).value || '',
-        client_nom: (document.getElementById('nom')||{}).value || '',
-        cart_total: Cart.total(),
-        cart_data: items
-      };
-      await fetch('/api/abandoned-cart', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-    } catch(_){}
-  });
-})();
-}); // end DOMContentLoaded
-</script>
-
-</body>
-</html>
+    $btn.disabled = false; $btn.textContent 

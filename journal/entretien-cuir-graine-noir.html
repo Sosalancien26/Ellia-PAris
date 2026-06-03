@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f3f1ec" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <title>Entretien d'une pochette en cuir grainé noir : guide complet — ELLIA PARIS</title>
 <meta name="description" content="Le cuir grainé est vivant. Il accepte la patine, refuse l'eau salée, redoute la chaleur. Guide exhaustif pour faire durer votre pochette ELLIA quinze ans. 10 minutes de lecture." />
 <meta name="robots" content="index,follow">
@@ -124,7 +127,11 @@
   </header>
 
   <figure class="article-cover">
-    <img src="../assets/pochette-hero.webp" alt="Pochette en cuir grainé noir ELLIA PARIS" loading="eager">
+    <picture>
+      <source media="(max-width: 800px)" srcset="../assets/pochette-hero-mobile.webp" type="image/webp">
+      <source srcset="../assets/pochette-hero.webp" type="image/webp">
+      <img src="../assets/pochette-hero.webp" alt="Pochette en cuir grainé noir ELLIA PARIS" loading="eager" decoding="async" fetchpriority="high" width="1100" height="733">
+    </picture>
     <figcaption>Quinze ans plus tard, le cuir est plus beau qu'au premier jour.</figcaption>
   </figure>
 
