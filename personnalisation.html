@@ -825,29 +825,15 @@ function initConfigurator(){
     scene.add(obj);
     window.__pochetteRoot = obj;
 
-    // === Fade-in luxe : opacite 0 -> 1 sur 800ms + leger zoom ===
+    // === v11 : pas de fadeIn — la pochette s'affiche directement en pleine opacité ===
+    // (le fadeIn d'avant laissait certains meshes — "angle" et "pochette" — bloqués à opacity 0)
     obj.traverse(o => {
       if (o.isMesh && o.material) {
-        o.material.transparent = true;
-        o.material.opacity = 0;
+        o.material.transparent = false;
+        o.material.opacity = 1;
+        o.material.needsUpdate = true;
       }
     });
-    const startScale = obj.scale.x;
-    obj.scale.setScalar(startScale * 0.92);
-    const t0 = performance.now();
-    const fadeDuration = 850;
-    function fadeIn(){
-      const elapsed = performance.now() - t0;
-      const k = Math.min(elapsed / fadeDuration, 1);
-      const ease = 1 - Math.pow(1 - k, 3); // easeOutCubic
-      obj.traverse(o => {
-        if (o.isMesh && o.material) o.material.opacity = ease;
-      });
-      obj.scale.setScalar(startScale * (0.92 + 0.08 * ease));
-      if (k < 1) requestAnimationFrame(fadeIn);
-      else obj.traverse(o => { if (o.isMesh && o.material) { o.material.transparent = false; o.material.needsUpdate = true; } });
-    }
-    requestAnimationFrame(fadeIn);
 
     // Hide loader si present
     const loader3d = document.getElementById('viewer3d-loader');
@@ -1976,4 +1962,3 @@ function initConfigurator(){
 </script>
 </body>
 </html>
-    
