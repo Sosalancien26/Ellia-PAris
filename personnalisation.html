@@ -126,16 +126,6 @@
             </div>
             <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
           </div>
-          <div style="margin-top:18px">
-            <span class="field-label">Graver aussi un symbole</span>
-            <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn active" data-symbol="none" title="Aucun symbole"><div class="sym-ic" style="font-family:Cormorant Garamond,serif;font-size:22px;color:#5c5852">—</div><small>Aucun</small></button>
-              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
-              <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
-              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-            </div>
-          </div>
         </div>
         <div class="block">
           <span class="field-label">Finition des initiales</span>
@@ -156,137 +146,208 @@
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
-        <div class="block" id="flameOptions" style="display:none;border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px;animation:slideDown .45s cubic-bezier(.16,1,.3,1) both">
-          <span class="field-label" style="color:#0d0d0d">Finition du symbole</span>
-          <div class="swatches" id="flameSwatches">
-            <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
-            <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-            <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+
+        <!-- ========== CARTES SYMBOLES (accordion compact) ========== -->
+        <div style="margin-top:30px">
+          <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9a9286;margin-bottom:12px">Symboles gravés</div>
+
+          <!-- Carte 1 : Symbole principal (anciennement "flame" / useHebrew) -->
+          <div class="eng-card eng-card-empty" id="card-flame" data-card="flame">
+            <div class="eng-card-head" data-card-head="flame">
+              <div class="eng-card-summary">
+                <div class="eng-card-ic" id="card-flame-ic">+</div>
+                <div style="min-width:0">
+                  <div class="eng-card-title" id="card-flame-title">Ajouter un 1<sup>er</sup> symbole</div>
+                  <div class="eng-card-meta" id="card-flame-meta">+10 €</div>
+                </div>
+              </div>
+              <div class="eng-card-right">
+                <button type="button" class="eng-card-toggle add" id="card-flame-add">Ajouter</button>
+                <svg class="eng-card-chevron" viewBox="0 0 14 14" style="display:none" aria-hidden="true"><path d="M2 4l5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.4"/></svg>
+              </div>
+            </div>
+            <div class="eng-card-body" id="flameOptions">
+              <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+              <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+                <button type="button" class="sym-btn active" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+              <div class="swatches" id="flameSwatches">
+                <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+                <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+                <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+                <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+              <div class="placements grid3" id="flamePlacements" data-owner="flame">
+                <button class="place-btn active" data-pos="hg">Haut gauche</button>
+                <button class="place-btn" data-pos="hd">Haut droit</button>
+                <button class="place-btn" data-pos="centre">Centre</button>
+                <button class="place-btn" data-pos="bg">Bas gauche</button>
+                <button class="place-btn" data-pos="bd">Bas droit</button>
+              </div>
+              <button type="button" class="eng-card-remove" data-remove="flame" style="margin-top:14px">Retirer ce symbole</button>
+            </div>
           </div>
-          <span class="field-label" style="margin-top:14px;display:block">Emplacement du symbole</span>
-          <div class="placements grid3" id="flamePlacements" data-owner="flame">
-            <button class="place-btn active" data-pos="hg">Haut gauche</button>
-            <button class="place-btn" data-pos="hd">Haut droit</button>
-            <button class="place-btn" data-pos="centre">Centre</button>
-            <button class="place-btn" data-pos="bg">Bas gauche</button>
-            <button class="place-btn" data-pos="bd">Bas droit</button>
+
+          <!-- Carte 2 : Symbole 2 (anciennement "extra") -->
+          <div class="eng-card eng-card-empty" id="card-extra" data-card="extra">
+            <div class="eng-card-head" data-card-head="extra">
+              <div class="eng-card-summary">
+                <div class="eng-card-ic" id="card-extra-ic">+</div>
+                <div style="min-width:0">
+                  <div class="eng-card-title" id="card-extra-title">Ajouter un 2<sup>e</sup> symbole</div>
+                  <div class="eng-card-meta" id="card-extra-meta">+10 €</div>
+                </div>
+              </div>
+              <div class="eng-card-right">
+                <button type="button" class="eng-card-toggle add" id="card-extra-add">Ajouter</button>
+                <svg class="eng-card-chevron" viewBox="0 0 14 14" style="display:none" aria-hidden="true"><path d="M2 4l5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.4"/></svg>
+              </div>
+            </div>
+            <div class="eng-card-body" id="extraOptions">
+              <!-- Hidden checkbox compat : la logique JS existante surveille extraToggle -->
+              <input type="checkbox" id="extraToggle" style="display:none" />
+              <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+              <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+                <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+              <div class="swatches" id="extraSwatches">
+                <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+                <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+                <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+                <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+              <div class="placements grid3" id="extraPlacements" data-owner="extra">
+                <button class="place-btn" data-pos="hg">Haut gauche</button>
+                <button class="place-btn" data-pos="hd">Haut droit</button>
+                <button class="place-btn" data-pos="centre">Centre</button>
+                <button class="place-btn" data-pos="bg">Bas gauche</button>
+                <button class="place-btn active" data-pos="bd">Bas droit</button>
+              </div>
+              <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <button type="button" class="eng-card-remove" data-remove="extra" style="margin-top:14px">Retirer ce symbole</button>
+            </div>
+          </div>
+
+          <!-- Carte 3 : Symbole 3 (anciennement "extra2") -->
+          <div class="eng-card eng-card-empty" id="card-extra2" data-card="extra2">
+            <div class="eng-card-head" data-card-head="extra2">
+              <div class="eng-card-summary">
+                <div class="eng-card-ic" id="card-extra2-ic">+</div>
+                <div style="min-width:0">
+                  <div class="eng-card-title" id="card-extra2-title">Ajouter un 3<sup>e</sup> symbole</div>
+                  <div class="eng-card-meta" id="card-extra2-meta">+10 €</div>
+                </div>
+              </div>
+              <div class="eng-card-right">
+                <button type="button" class="eng-card-toggle add" id="card-extra2-add">Ajouter</button>
+                <svg class="eng-card-chevron" viewBox="0 0 14 14" style="display:none" aria-hidden="true"><path d="M2 4l5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.4"/></svg>
+              </div>
+            </div>
+            <div class="eng-card-body" id="extra2Options">
+              <input type="checkbox" id="extra2Toggle" style="display:none" />
+              <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+              <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+              <div class="swatches" id="extra2Swatches">
+                <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+                <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+                <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+                <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+              <div class="placements grid3" id="extra2Placements" data-owner="extra2">
+                <button class="place-btn" data-pos="hg">Haut gauche</button>
+                <button class="place-btn active" data-pos="hd">Haut droit</button>
+                <button class="place-btn" data-pos="centre">Centre</button>
+                <button class="place-btn" data-pos="bg">Bas gauche</button>
+                <button class="place-btn" data-pos="bd">Bas droit</button>
+              </div>
+              <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <button type="button" class="eng-card-remove" data-remove="extra2" style="margin-top:14px">Retirer ce symbole</button>
+            </div>
+          </div>
+
+          <!-- Carte 4 : Symbole 4 (anciennement "extra3") -->
+          <div class="eng-card eng-card-empty" id="card-extra3" data-card="extra3">
+            <div class="eng-card-head" data-card-head="extra3">
+              <div class="eng-card-summary">
+                <div class="eng-card-ic" id="card-extra3-ic">+</div>
+                <div style="min-width:0">
+                  <div class="eng-card-title" id="card-extra3-title">Ajouter un 4<sup>e</sup> symbole</div>
+                  <div class="eng-card-meta" id="card-extra3-meta">+10 €</div>
+                </div>
+              </div>
+              <div class="eng-card-right">
+                <button type="button" class="eng-card-toggle add" id="card-extra3-add">Ajouter</button>
+                <svg class="eng-card-chevron" viewBox="0 0 14 14" style="display:none" aria-hidden="true"><path d="M2 4l5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.4"/></svg>
+              </div>
+            </div>
+            <div class="eng-card-body" id="extra3Options">
+              <input type="checkbox" id="extra3Toggle" style="display:none" />
+              <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
+              <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Finition</span>
+              <div class="swatches" id="extra3Swatches">
+                <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+                <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+                <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+                <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+              </div>
+              <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
+              <div class="placements grid3" id="extra3Placements" data-owner="extra3">
+                <button class="place-btn" data-pos="hg">Haut gauche</button>
+                <button class="place-btn" data-pos="hd">Haut droit</button>
+                <button class="place-btn" data-pos="centre">Centre</button>
+                <button class="place-btn active" data-pos="bg">Bas gauche</button>
+                <button class="place-btn" data-pos="bd">Bas droit</button>
+              </div>
+              <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <button type="button" class="eng-card-remove" data-remove="extra3" style="margin-top:14px">Retirer ce symbole</button>
+            </div>
           </div>
         </div>
-        <!-- ===== GRAVURE SUPPLEMENTAIRE (2e symbole/image) ===== -->
-        <div class="block" id="extraBlock" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
-            <input type="checkbox" id="extraToggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
-            <span>Ajouter une <strong style="color:#0d0d0d">2<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
-          </label>
 
-          <div id="extraOptions" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
-            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-            <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
-              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
-              <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
-              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-            </div>
-
-            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
-            <div class="swatches" id="extraSwatches">
-              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
-              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
-            </div>
-
-            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements grid3" id="extraPlacements" data-owner="extra">
-              <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn" data-pos="bg">Bas gauche</button>
-              <button class="place-btn active" data-pos="bd">Bas droit</button>
-            </div>
-            <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+        <!-- Détail tarif (collapsible) -->
+        <details id="persoPriceBreakdown" style="margin-top:24px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5c5852">
+          <summary style="cursor:pointer;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;padding:8px 0;list-style:none;outline:none;display:flex;align-items:center;gap:6px">Voir le détail du tarif <span style="font-size:10px">›</span></summary>
+          <div style="margin-top:6px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc;line-height:1.7">
+            <div style="display:flex;justify-content:space-between"><span>Pochette</span><span>159 €</span></div>
+            <div id="pbInitiales" style="display:flex;justify-content:space-between"></div>
+            <div id="pbSymbol" style="display:flex;justify-content:space-between;display:none"></div>
+            <div style="height:1px;background:#e0ddd6;margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:500;color:#0d0d0d"><span>Total</span><span id="pbTotal">159 €</span></div>
+            <div style="font-size:11px;color:#9a9286;margin-top:10px;letter-spacing:.02em">5 €/lettre · 2 €/caractère spécial · 10 €/symbole</div>
           </div>
-        </div>
+        </details>
 
-        <!-- 3e gravure -->
-        <div class="block" id="extra2Block" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
-            <input type="checkbox" id="extra2Toggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
-            <span>Ajouter une <strong style="color:#0d0d0d">3<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
-          </label>
-          <div id="extra2Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
-            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-            <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
-              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
-              <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
-              <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-            </div>
-            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
-            <div class="swatches" id="extra2Swatches">
-              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
-              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
-            </div>
-            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements grid3" id="extra2Placements" data-owner="extra2">
-              <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn active" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn" data-pos="bg">Bas gauche</button>
-              <button class="place-btn" data-pos="bd">Bas droit</button>
-            </div>
-            <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+        <!-- ========== STICKY BAR : Total + Ajouter au panier ========== -->
+        <div class="cta-stickbar">
+          <div class="total-wrap">
+            <span class="total-lab">Total</span>
+            <span class="total-val" id="total">159&nbsp;€</span>
           </div>
+          <a href="#" id="addPerso" class="btn solid" style="flex-shrink:0">Ajouter au panier</a>
         </div>
-
-        <!-- 4e gravure -->
-        <div class="block" id="extra3Block" style="border-top:1px solid #e0ddd6;padding-top:18px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#5c5852;user-select:none">
-            <input type="checkbox" id="extra3Toggle" style="width:16px;height:16px;accent-color:#0d0d0d;cursor:pointer" />
-            <span>Ajouter une <strong style="color:#0d0d0d">4<sup>e</sup> gravure</strong> <span style="color:#8a857d;font-size:11.5px">(+10 €)</span></span>
-          </label>
-          <div id="extra3Options" style="display:none;margin-top:14px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc">
-            <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-            <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-              <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
-              <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
-              <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
-              <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
-            </div>
-            <span class="field-label" style="margin-top:14px;display:block">Finition</span>
-            <div class="swatches" id="extra3Swatches">
-              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
-              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
-            </div>
-            <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements grid3" id="extra3Placements" data-owner="extra3">
-              <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn active" data-pos="bg">Bas gauche</button>
-              <button class="place-btn" data-pos="bd">Bas droit</button>
-            </div>
-            <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
-          </div>
-        </div>
-
-        <!-- Détail tarif personnalisation -->
-        <div id="persoPriceBreakdown" style="margin-top:18px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#5c5852;display:none">
-          <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-bottom:8px">Détail tarif</div>
-          <div style="display:flex;justify-content:space-between"><span>Pochette</span><span>159 €</span></div>
-          <div id="pbInitiales" style="display:flex;justify-content:space-between"></div>
-          <div id="pbSymbol" style="display:flex;justify-content:space-between;display:none"></div>
-          <div style="height:1px;background:#e0ddd6;margin:8px 0"></div>
-          <div style="display:flex;justify-content:space-between;font-weight:500;color:#0d0d0d"><span>Total</span><span id="pbTotal">159 €</span></div>
-        </div>
-        <div class="perso-total" style="margin-top:18px"><span class="lab">Total</span><span class="val" id="total">159&nbsp;€</span></div>
-        <a href="#" id="addPerso" class="btn solid" style="width:100%;text-align:center">Ajouter au panier</a>
-        <p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px;letter-spacing:.04em">Rendu 3D temps réel — la finition et la gravure choisies s'appliquent instantanément sur votre pochette. <strong>5 €/lettre</strong>, <strong>2 €/caractère spécial</strong>, <strong>10 €/symbole</strong>.</p>
       </div>
     </div>
   </div>
@@ -1322,22 +1383,17 @@ function initConfigurator(){
     });
   });
 
-  // Selecteur de symbole (Flamme / Hamsa / Peace / Ellia / Aucun) — coexiste avec les initiales
-  const flameOptions = document.getElementById('flameOptions');
+  // Selecteur de symbole (Flamme / Hamsa / Peace / Ellia) — coexiste avec les initiales
+  // L'affichage du body (.eng-card-body) est pilote par la classe .open du parent .eng-card.
+  // Plus de manipulation display direct ici — la carte gère son ouverture/fermeture.
   document.querySelectorAll('#symbolPicker .sym-btn').forEach(b=>{
     b.addEventListener('click', ()=>{
       document.querySelectorAll('#symbolPicker .sym-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       const sym = b.dataset.symbol;
-      if (sym === 'none') {
-        state.useHebrew = false;
-        if (flameOptions) flameOptions.style.display = 'none';
-      } else {
-        state.useHebrew = true;
-        state.symbol = sym;
-        if (flameOptions) flameOptions.style.display = 'block';
-        setSymbolImage(sym);
-      }
+      state.useHebrew = true;
+      state.symbol = sym;
+      setSymbolImage(sym);
       if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
@@ -1409,7 +1465,7 @@ function initConfigurator(){
         }
         state.useHebrew = true;
         state.symbol = 'custom';
-        if (flameOptions) flameOptions.style.display = 'block';
+        // L'affichage du body de la carte est pilote par la classe .open du parent .eng-card
         // Charge l'image dans flameImg
         flameImg.onload = () => { if (typeof paint === 'function') paint(); };
         flameImg.src = dataURL;
@@ -1545,8 +1601,9 @@ function initConfigurator(){
   if (extraToggle) {
     extraToggle.addEventListener('change', ()=>{
       state.useExtra = extraToggle.checked;
-      if (extraOptions) extraOptions.style.display = extraToggle.checked ? 'block' : 'none';
+      // Display de extraOptions pilote par la classe .open de la carte parent — pas de display direct
       updateDisabledPlacements();
+      if (window.__refreshAllCards) window.__refreshAllCards();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1621,8 +1678,9 @@ function initConfigurator(){
   if (extra2Toggle) {
     extra2Toggle.addEventListener('change', ()=>{
       state.useExtra2 = extra2Toggle.checked;
-      if (extra2Options) extra2Options.style.display = extra2Toggle.checked ? 'block' : 'none';
+      // Display pilote par .open de la carte
       updateDisabledPlacements();
+      if (window.__refreshAllCards) window.__refreshAllCards();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1672,8 +1730,9 @@ function initConfigurator(){
   if (extra3Toggle) {
     extra3Toggle.addEventListener('change', ()=>{
       state.useExtra3 = extra3Toggle.checked;
-      if (extra3Options) extra3Options.style.display = extra3Toggle.checked ? 'block' : 'none';
+      // Display pilote par .open de la carte
       updateDisabledPlacements();
+      if (window.__refreshAllCards) window.__refreshAllCards();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1707,6 +1766,160 @@ function initConfigurator(){
   });
   // Initialiser l'etat visuel "place-btn.disabled" au demarrage de la page
   if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
+
+  // ========== CARTES ACCORDION : pilote header + accordion ==========
+  // Configuration des 4 cartes : mapping card -> state keys
+  const CARD_CONFIG = {
+    flame:  { useKey:'useHebrew', symKey:'symbol',       finKey:'flameFinish',  posKey:'flamePlacement',  label:'1er' },
+    extra:  { useKey:'useExtra',  symKey:'extraSymbol',  finKey:'extraFinish',  posKey:'extraPlacement',  label:'2e' },
+    extra2: { useKey:'useExtra2', symKey:'extra2Symbol', finKey:'extra2Finish', posKey:'extra2Placement', label:'3e' },
+    extra3: { useKey:'useExtra3', symKey:'extra3Symbol', finKey:'extra3Finish', posKey:'extra3Placement', label:'4e' }
+  };
+  const SYMBOL_LABELS = { flame:'Aesh Sheli', hamsa:'Hamsa', peace:'Peace', ellia:'Ellia' };
+  const FINISH_LABELS = { or:'Or', orrose:'Or rose', argent:'Argent', aveugle:'Aveugle' };
+  const POS_LABELS = { hg:'Haut gauche', hd:'Haut droit', centre:'Centre', bg:'Bas gauche', bd:'Bas droit' };
+
+  function updateCardHeader(cardKey){
+    const cfg = CARD_CONFIG[cardKey];
+    const card = document.getElementById('card-'+cardKey);
+    if (!card || !cfg) return;
+    const active = !!state[cfg.useKey];
+    const sym = state[cfg.symKey];
+    const fin = state[cfg.finKey];
+    const pos = state[cfg.posKey];
+    const titleEl = document.getElementById('card-'+cardKey+'-title');
+    const metaEl  = document.getElementById('card-'+cardKey+'-meta');
+    const icEl    = document.getElementById('card-'+cardKey+'-ic');
+    const addBtn  = document.getElementById('card-'+cardKey+'-add');
+    const chev    = card.querySelector('.eng-card-chevron');
+    if (active) {
+      card.classList.remove('eng-card-empty');
+      if (titleEl) titleEl.innerHTML = SYMBOL_LABELS[sym] || 'Symbole';
+      if (metaEl)  metaEl.innerHTML  = '<span class="dot-mini '+fin+'"></span><span>'+(FINISH_LABELS[fin]||'')+' · '+(POS_LABELS[pos]||'')+'</span>';
+      if (icEl) {
+        // Thumbnail du symbole choisi
+        const pickerId = (cardKey==='flame') ? 'symbolPicker' : (cardKey+'Picker');
+        const picker = document.getElementById(pickerId);
+        const btn = picker && picker.querySelector('[data-symbol="'+sym+'"] img');
+        if (btn) icEl.innerHTML = '<img src="'+btn.getAttribute('src')+'" alt=""/>';
+        else icEl.textContent = '·';
+      }
+      if (addBtn) addBtn.style.display = 'none';
+      if (chev) chev.style.display = 'inline-block';
+    } else {
+      card.classList.add('eng-card-empty');
+      // Label "1er" ou "Ne", "3e", "4e" avec mise en forme sup propre
+      const labelHTML = cfg.label === '1er' ? '1<sup>er</sup>'
+                      : cfg.label === '2e'  ? '2<sup>e</sup>'
+                      : cfg.label === '3e'  ? '3<sup>e</sup>'
+                      : '4<sup>e</sup>';
+      if (titleEl) titleEl.innerHTML = 'Ajouter un ' + labelHTML + ' symbole';
+      if (metaEl)  metaEl.innerHTML  = '+10 €';
+      if (icEl)    icEl.innerHTML    = '+';
+      if (addBtn) addBtn.style.display = 'inline-block';
+      if (chev) chev.style.display = 'none';
+      card.classList.remove('open');
+    }
+  }
+
+  function refreshAllCards(){
+    ['flame','extra','extra2','extra3'].forEach(updateCardHeader);
+  }
+
+  function openCard(cardKey){
+    // Accordion : ferme les autres
+    document.querySelectorAll('.eng-card').forEach(c => c.classList.remove('open'));
+    const card = document.getElementById('card-'+cardKey);
+    if (card) card.classList.add('open');
+  }
+
+  function activateCard(cardKey){
+    const cfg = CARD_CONFIG[cardKey];
+    state[cfg.useKey] = true;
+    // Si c'est la carte flame, on doit aussi déclencher le picker init (flameOptions visible était piloté par useHebrew)
+    // Sync checkbox hidden pour compat avec listeners existants
+    const cb = document.getElementById(cardKey === 'flame' ? null : cardKey+'Toggle');
+    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+    // Pour flame, le state.useHebrew est piloté par le picker -> on déclenche un click sur le bouton actif du picker
+    if (cardKey === 'flame') {
+      // Choisir le 1er symbole actif (par défaut "flame") si rien selectionne
+      const picker = document.getElementById('symbolPicker');
+      const cur = picker && picker.querySelector('.sym-btn.active');
+      if (cur) cur.click();
+      else {
+        const first = picker && picker.querySelector('.sym-btn');
+        if (first) first.click();
+      }
+    }
+    updateCardHeader(cardKey);
+    openCard(cardKey);
+    if (typeof paint === 'function') paint();
+    if (window.__updatePersoPrice) window.__updatePersoPrice();
+  }
+
+  function deactivateCard(cardKey){
+    const cfg = CARD_CONFIG[cardKey];
+    state[cfg.useKey] = false;
+    // Si la carte flame est desactivee : on doit aussi cacher le bloc flameOptions (visible via state.useHebrew)
+    if (cardKey === 'flame') {
+      // useHebrew = false, plus de rendu de la flamme
+    } else {
+      const cb = document.getElementById(cardKey+'Toggle');
+      if (cb && cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+    }
+    updateCardHeader(cardKey);
+    if (typeof paint === 'function') paint();
+    if (window.__updatePersoPrice) window.__updatePersoPrice();
+    if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
+  }
+
+  // Click sur le header d'une carte -> toggle open/close (seulement si active)
+  document.querySelectorAll('[data-card-head]').forEach(head => {
+    head.addEventListener('click', e => {
+      // ignore si on a clique sur le bouton "Ajouter" ou "Retirer" qui ont leur propre handler
+      if (e.target.closest('.eng-card-toggle.add') || e.target.closest('.eng-card-remove')) return;
+      const cardKey = head.dataset.cardHead;
+      const cfg = CARD_CONFIG[cardKey];
+      const active = !!state[cfg.useKey];
+      if (!active) { activateCard(cardKey); return; }
+      const card = document.getElementById('card-'+cardKey);
+      const isOpen = card.classList.contains('open');
+      if (isOpen) card.classList.remove('open'); else openCard(cardKey);
+    });
+  });
+
+  // Bouton "Ajouter" sur les cartes inactives
+  document.querySelectorAll('.eng-card-toggle.add').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.eng-card');
+      if (!card) return;
+      activateCard(card.dataset.card);
+    });
+  });
+
+  // Bouton "Retirer ce symbole" dans le body de chaque carte
+  document.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deactivateCard(btn.dataset.remove);
+    });
+  });
+
+  // Synchroniser le summary quand l'utilisateur change picker/finition/emplacement dans une carte
+  // (delegue : ecoute tous les clics sur sym-btn et place-btn et sw dans les pickers extras)
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.eng-card');
+    if (!card) return;
+    const cardKey = card.dataset.card;
+    if (!cardKey) return;
+    // Petite latence pour laisser le state se mettre a jour avant de rafraichir le summary
+    setTimeout(() => updateCardHeader(cardKey), 30);
+  });
+
+  // Premier rendu : etat initial des cartes (au demarrage useHebrew/useExtra/etc sont a false donc tout en mode empty)
+  refreshAllCards();
+  window.__refreshAllCards = refreshAllCards;
 
   // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
   const PRICE_BASE = 159;        // Pochette

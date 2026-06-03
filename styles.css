@@ -262,6 +262,48 @@ section{position:relative}
 .perso-total .lab{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt)}
 .perso-total .val{font-family:var(--serif);font-size:38px;color:var(--noir)}
 
+/* ========== Carte gravure compacte (accordion une-ligne) ========== */
+.eng-card{border:1px solid #e0ddd6;background:#fff;margin:10px 0;transition:border-color .25s,box-shadow .25s,background .25s}
+.eng-card:hover{border-color:#9a9286}
+.eng-card.open{border-color:#0d0d0d;background:#fafaf7}
+.eng-card.disabled{opacity:.62}
+.eng-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+.eng-card-summary{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
+.eng-card-ic{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fafaf7;border:1px solid #ece9e0}
+.eng-card-ic img{max-width:24px;max-height:24px;object-fit:contain}
+.eng-card-title{font-family:var(--serif);font-size:15.5px;color:var(--noir);line-height:1.2;margin:0}
+.eng-card-meta{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris-txt);margin-top:3px;display:flex;align-items:center;gap:8px}
+.eng-card-meta .dot-mini{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.08);flex-shrink:0}
+.eng-card-meta .dot-mini.or{background:linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#8a6a1d)}
+.eng-card-meta .dot-mini.orrose{background:linear-gradient(135deg,#f3d9cf,#c98e86 55%,#a96b62)}
+.eng-card-meta .dot-mini.argent{background:linear-gradient(135deg,#f0f0f0,#9a9a9a 55%,#cfcfcf)}
+.eng-card-meta .dot-mini.aveugle{background:linear-gradient(135deg,#1a1a1a,#3a3a3a)}
+.eng-card-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.eng-card-toggle{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris-txt);font-family:var(--sans);background:none;border:none;cursor:pointer;padding:6px 0}
+.eng-card-toggle.add{color:#0d0d0d;border:1px solid var(--ligne);padding:8px 14px;background:#fff}
+.eng-card-toggle.add:hover{background:#0d0d0d;color:#fff;border-color:#0d0d0d}
+.eng-card-chevron{width:14px;height:14px;color:var(--gris-txt);transition:transform .35s cubic-bezier(.4,0,.2,1);flex-shrink:0}
+.eng-card.open .eng-card-chevron{transform:rotate(180deg);color:#0d0d0d}
+.eng-card-body{display:none;padding:0 18px 18px;border-top:1px solid #ece9e0;padding-top:18px;margin-top:-1px}
+.eng-card.open .eng-card-body{display:block}
+.eng-card-empty .eng-card-title{font-family:var(--sans);font-size:13px;letter-spacing:.06em;color:var(--gris-txt)}
+.eng-card-empty .eng-card-ic{background:transparent;border:1px dashed #d1cdc0;color:#9a9286;font-size:18px;line-height:1}
+.eng-card-remove{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#9a4b3a;background:none;border:none;cursor:pointer;padding:6px 0;font-family:var(--sans)}
+.eng-card-remove:hover{text-decoration:underline}
+
+/* ========== Barre fixe "Total + Ajouter au panier" ========== */
+.cta-stickbar{position:sticky;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(6px);-webkit-backdrop-filter:saturate(180%) blur(6px);border-top:1px solid var(--ligne);padding:14px 0;margin:24px -2px -2px;display:flex;align-items:center;gap:14px;z-index:50}
+.cta-stickbar .total-wrap{flex:1;display:flex;flex-direction:column;line-height:1.1}
+.cta-stickbar .total-lab{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gris-txt)}
+.cta-stickbar .total-val{font-family:var(--serif);font-size:28px;color:var(--noir);margin-top:3px}
+.cta-stickbar .btn{padding:14px 28px;font-size:11px}
+@media (max-width:860px){
+  .cta-stickbar{position:fixed;bottom:0;left:0;right:0;padding:12px 18px;margin:0;box-shadow:0 -2px 14px rgba(0,0,0,.08);background:#fff;backdrop-filter:none}
+  .cta-stickbar .total-val{font-size:22px}
+  /* Laisse de la place pour la sticky bar mobile */
+  .perso-panel{padding-bottom:90px}
+}
+
 /* Newsletter */
 .news{text-align:center;background:var(--ivoire)}
 .news h2{font-size:clamp(32px,4.6vw,58px);margin:18px 0}
