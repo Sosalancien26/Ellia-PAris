@@ -20,19 +20,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1780600000">
-<!-- v7 FIX MOBILE FILM BLANC : préloader DÉSACTIVÉ sur mobile. Inline, priorité max. -->
+<link rel="stylesheet" href="styles.css?v=1780700000">
+<!-- v8 FIX FILM BLANC : keyframes DEHORS du @media (compat Chrome/Safari). -->
 <style>
+  /* @keyframes DOIT être au top-level, jamais dans @media */
+  @keyframes plAutoHide{
+    0%,82%{opacity:1;visibility:visible;pointer-events:auto}
+    99%{opacity:0;visibility:visible;pointer-events:none}
+    100%{opacity:0;visibility:hidden;pointer-events:none}
+  }
+  /* Mobile : préloader complètement désactivé */
   @media (max-width:768px){
     #preloader{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important}
   }
+  /* Desktop : transition luxe (animation 4s) */
   @media (min-width:769px){
     #preloader{animation:plAutoHide 4s forwards !important}
-    @keyframes plAutoHide{
-      0%,82%{opacity:1;visibility:visible;pointer-events:auto}
-      99%{opacity:0;visibility:visible;pointer-events:none}
-      100%{opacity:0;visibility:hidden;pointer-events:none;display:none}
-    }
   }
 </style>
 <!-- Garde-fou préloader : se cache après 3 secondes max, indépendamment de app.js ou du SW -->
@@ -255,7 +258,4 @@
 <!-- LOOKBOOK TEASER -->
 <section class="lookbook pad">
   <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Lookbook</div>
-      <h2>Une allure, intemporelle</h2>
-      <p>De Saint-Tro
+    <div cla
