@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Export — Photos 3D pochette ELLIA</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+  body{margin:0;background:#1a1a1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:grid;grid-template-columns:1fr 320px;height:100vh;overflow:hidden}
+  #viewer{position:relative;width:100%;height:100vh;background:transparent}
+  #stage{position:absolute;inset:0}
+  #stage canvas{display:block;width:100%;height:100%}
+  /* Le fond visible derriere la pochette : sera enleve a la capture */
+  #stage::before{content:'';position:absolute;inset:0;background:#f3f1ec;z-index:-1}
+  .panel{background:#0d0d0d;padding:24px;overflow-y:auto;border-left:1px solid #2a2a2a}
+  .panel h1{font-size:14px;letter-spacing:.18em;text-transform:uppercase;margin:0 0 6px;font-weight:500}
+  .panel h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#888;margin:24px 0 10px;font-weight:400}
+  .panel p{font-size:12px;color:#aaa;line-height:1.5;margin:0 0 14px}
+  .btn{background:#fff;color:#0d0d0d;border:none;padding:12px 16px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;width:100%;margin-bottom:8px;font-family:inherit;transition:opacity .2s}
+  .btn:hover{opacity:.88}
+  .btn.ghost{background:transparent;color:#fff;border:1px solid #444}
+  .btn.solid{background:#d4a533;color:#0d0d0d;font-weight:500}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .angles-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .angle{background:#1a1a1a;border:1px solid #2a2a2a;padding:10px 8px;cursor:pointer;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#aaa;text-align:center;font-family:inherit;transition:all .2s}
+  .angle:hover{border-color:#666;color:#fff}
+  .angle.active{background:#d4a533;color:#0d0d0d;border-color:#d4a533;font-weight:500}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888}
+  .field input[type=range]{width:100%;accent-color:#d4a533}
+  .field input[type=color]{width:100%;height:34px;border:1px solid #333;background:#1a1a1a;cursor:pointer}
+  .field .val{font-size:11px;color:#fff;font-variant-numeric:tabular-nums}
+  .status{font-size:11px;color:#999;padding:10px;background:#1a1a1a;border:1px solid #2a2a2a;margin-top:14px;min-height:30px}
+  .status.ok{color:#a3e635;border-color:#3a4a1a}
+  .status.err{color:#ef5350;border-color:#4a1a1a}
+  .loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f3f1ec;z-index:10;color:#0d0d0d;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+  .loader.hide{display:none}
+</style>
+</head>
+<body>
+
+<div id="viewer">
+  <div id="stage"></div>
+  <div class="loader" id="loader">Chargement modèle 3D…</div>
+</div>
+
+<aside class="panel">
+  <h1>Studio Export</h1>
+  <p>Capture en haute résolution de votre pochette dans 9 angles préréglés, fond transparent, pour Instagram/marketing.</p>
+
+  <h2>Angles préréglés</h2>
+  <div class="angles-grid" id="anglesGrid">
+    <button class="angle" data-i="0">01 ¾ Face</button>
+    <button class="angle" data-i="1">02 Côté biométrie</button>
+    <button class="angle" data-i="2">03 Face pure</button>
+    <button class="angle" data-i="3">04 Dessus</button>
+    <button class="angle" data-i="4">05 Dos sangle</button>
+    <button class="angle" data-i="5">06 Macro plaque</button>
+    <button class="angle" data-i="6">07 Hero bas</button>
+    <button class="angle" data-i="7">08 Face flottante</button>
+    <button class="angle" data-i="8">09 Cinéma ¾</button>
+  </div>
+
+  <h2>Réglages</h2>
+  <div class="field">
+    <label>Zoom <span class="val" id="zoomVal">1.0×</span></label>
+    <input type="range" id="zoom" min="0.5" max="2.5" step="0.05" value="1.0">
+  </div>
+  <div class="field">
+    <label>Lumière <span class="val" id="lightVal">1.0</span></label>
+    <input type="range" id="light" min="0.3" max="2.5" step="0.05" value="1.0">
+  </div>
+  <div class="field">
+    <label>Couleur fond (capture)</label>
+    <input type="color" id="bgColor" value="#f3f1ec">
+  </div>
+
+  <h2>Export</h2>
+  <button class="btn" id="btnSnap">📸 Capturer cet angle (PNG)</button>
+  <button class="btn solid" id="btnBatch">⚡ Exporter les 9 angles (ZIP)</button>
+  <button class="btn ghost" id="btnAlpha">Capture fond transparent (PNG)</button>
+  <div class="status" id="status">Prêt.</div>
+</aside>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+const stage = document.getElementById('stage');
+const loader = document.getElementById('loader');
+const status = document.getElementById('status');
+const setStatus = (msg, cls='') => { status.textContent = msg; status.className = 'status ' + cls; };
+
+const w = stage.clientWidth, h = stage.clientHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(w, h);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = null;
+
+const camera = new THREE.PerspectiveCamera(28, w/h, 0.1, 2000);
+camera.position.set(25, 16, 45);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// Lumières studio
+const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+scene.add(ambient);
+const key = new THREE.DirectionalLight(0xfff2dd, 2.2);
+key.position.set(-30, 50, 40);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xf0f4ff, 1.0);
+fill.position.set(30, 20, 30);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffdcb0, 1.3);
+rim.position.set(0, 30, -40);
+scene.add(rim);
+
+// 9 angles preregles (eye, target, fov)
+const ANGLES = [
+  { name: '01-trois-quarts',    eye: [25, 16, 45],   target: [0, 8, 0], fov: 30 },
+  { name: '02-cote-biometrique',eye: [42, 10, 0],    target: [0, 6, 0], fov: 20 },
+  { name: '03-face-pure',       eye: [0, 10, 50],    target: [0, 7, 0], fov: 24 },
+  { name: '04-vue-dessus',      eye: [5, 60, 5],     target: [0, 8, 0], fov: 28 },
+  { name: '05-dos-sangle',      eye: [-5, 12, -50],  target: [0, 8, 0], fov: 28 },
+  { name: '06-macro-plaque',    eye: [-32, 12, 8],   target: [-12, 9, 0], fov: 18 },
+  { name: '07-hero-bas',        eye: [22, 4, 38],    target: [0, 12, 0], fov: 28 },
+  { name: '08-face-flottante',  eye: [0, 14, 48],    target: [0, 12, 0], fov: 24 },
+  { name: '09-cinema-trois-quarts', eye: [35, 8, 30], target: [0, 10, 0], fov: 25 },
+];
+
+function setAngle(i) {
+  const a = ANGLES[i];
+  camera.fov = a.fov;
+  camera.updateProjectionMatrix();
+  camera.position.set(...a.eye);
+  controls.target.set(...a.target);
+  controls.update();
+  document.querySelectorAll('.angle').forEach((b, j) => b.classList.toggle('active', j === i));
+}
+
+document.querySelectorAll('.angle').forEach(b => b.addEventListener('click', () => setAngle(+b.dataset.i)));
+
+// Charge le GLB
+const gloader = new GLTFLoader();
+gloader.load('assets/pochette.glb', (gltf) => {
+  scene.add(gltf.scene);
+  // Boost materials pour rendu luxe
+  gltf.scene.traverse((o) => {
+    if (o.isMesh && o.material) {
+      o.material.envMapIntensity = 1.0;
+      if (o.material.roughness !== undefined) o.material.roughness = Math.min(o.material.roughness, 0.55);
+      if (o.material.metalness !== undefined && o.name.toLowerCase().includes('chrom')) {
+        o.material.metalness = 0.95;
+        o.material.roughness = 0.18;
+      }
+    }
+  });
+  loader.classList.add('hide');
+  setAngle(0);
+  setStatus('Modèle 3D chargé. Choisissez un angle puis capturez.', 'ok');
+}, undefined, (err) => {
+  setStatus('Erreur chargement GLB: ' + err.message, 'err');
+});
+
+// Loop
+function animate() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// Zoom
+document.getElementById('zoom').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  document.getElementById('zoomVal').textContent = v.toFixed(2) + '×';
+  camera.zoom = v;
+  camera.updateProjectionMatrix();
+});
+// Lumière
+document.getElementById('light').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  document.getElementById('lightVal').textContent = v.toFixed(2);
+  renderer.toneMappingExposure = v;
+});
+// Couleur fond
+const stageEl = document.getElementById('stage');
+document.getElementById('bgColor').addEventListener('input', e => {
+  stageEl.style.background = e.target.value;
+});
+stageEl.style.background = document.getElementById('bgColor').value;
+
+// Capture
+async function captureBlob(transparent=false) {
+  // Pour transparent: on rend SANS bg
+  const prevBg = stageEl.style.background;
+  if (transparent) stageEl.style.background = 'transparent';
+  await new Promise(r => requestAnimationFrame(r));
+  // Rendu hi-res 2048
+  const W = 2048, H = 2048;
+  const prevSize = renderer.getSize(new THREE.Vector2());
+  renderer.setSize(W, H, false);
+  camera.aspect = 1;
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  let blob;
+  if (transparent) {
+    // Capturer le canvas seul (alpha)
+    blob = await new Promise(res => renderer.domElement.toBlob(res, 'image/png'));
+  } else {
+    // Compositer : fond couleur + render
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const cx = cv.getContext('2d');
+    cx.fillStyle = document.getElementById('bgColor').value;
+    cx.fillRect(0, 0, W, H);
+    cx.drawImage(renderer.domElement, 0, 0);
+    blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+  }
+  // Restore
+  renderer.setSize(prevSize.x, prevSize.y, false);
+  camera.aspect = prevSize.x / prevSize.y;
+  camera.updateProjectionMatrix();
+  if (transparent) stageEl.style.background = prevBg;
+  return blob;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+
+document.getElementById('btnSnap').addEventListener('click', async () => {
+  setStatus('Capture en cours…');
+  const i = [...document.querySelectorAll('.angle')].findIndex(b => b.classList.contains('active'));
+  const name = ANGLES[i >= 0 ? i : 0].name;
+  const blob = await captureBlob(false);
+  downloadBlob(blob, `pochette-${name}.png`);
+  setStatus('✓ Capturé : pochette-' + name + '.png', 'ok');
+});
+
+document.getElementById('btnAlpha').addEventListener('click', async () => {
+  setStatus('Capture transparente…');
+  const i = [...document.querySelectorAll('.angle')].findIndex(b => b.classList.contains('active'));
+  const name = ANGLES[i >= 0 ? i : 0].name;
+  const blob = await captureBlob(true);
+  downloadBlob(blob, `pochette-${name}-alpha.png`);
+  setStatus('✓ Transparent : pochette-' + name + '-alpha.png', 'ok');
+});
+
+document.getElementById('btnBatch').addEventListener('click', async () => {
+  setStatus('Export batch des 9 angles…');
+  const zip = new JSZip();
+  for (let i = 0; i < ANGLES.length; i++) {
+    setStatus(`(${i+1}/9) Capture ${ANGLES[i].name}…`);
+    setAngle(i);
+    await new Promise(r => setTimeout(r, 250)); // laisse OrbitControls converger
+    const blobSolid = await captureBlob(false);
+    const blobAlpha = await captureBlob(true);
+    zip.file(`pochette-${ANGLES[i].name}.png`, blobSolid);
+    zip.file(`pochette-${ANGLES[i].name}-alpha.png`, blobAlpha);
+  }
+  setStatus('Création du ZIP…');
+  const z = await zip.generateAsync({ type: 'blob' });
+  downloadBlob(z, 'ellia-pochette-studio-export.zip');
+  setStatus('✓ ZIP téléchargé : 9 angles × 2 versions (fond + alpha)', 'ok');
+});
+
+window.addEventListener('resize', () => {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+});
+</script>
+</body>
+</html>
