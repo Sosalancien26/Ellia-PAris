@@ -540,7 +540,19 @@
         <div id="sec2faDisableMsg" style="font-size:13px;margin-top:10px"></div>
       </div>
     </div>
-  </main>
+  
+<!-- Modale détails commande -->
+<div id="ordModal" style="display:none;position:fixed;inset:0;background:rgba(13,13,13,.55);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto">
+  <div id="ordModalBox" style="background:#fff;max-width:680px;width:100%;padding:32px 30px;border-radius:4px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.3)"></div>
+</div>
+<style>
+#ordModal.open{display:flex !important}
+.om-close{position:absolute !important;top:14px;right:20px;float:none !important}
+.ord-saved{color:#5a7d4a;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.ord-save{font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 22px;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer}
+</style>
+
+</main>
 </div>
 
 <script src="admin.js?v=1781400000" defer></script>
