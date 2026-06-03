@@ -1051,3 +1051,23 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* === v14 FIX JOURNAL : image cover article ne déborde pas sur le titre === */
 .article-cover{max-width:780px !important;clear:both;position:relative}
 .article-hero{position:relative;z-index:2}
+
+/* === v15 FIX MOBILE URGENT === */
+@media (max-width:768px){
+  /* 1) Préloader : "ELLIA PARIS" sur UNE ligne, taille adaptée */
+  #preloader .pl-line{
+    font-size:clamp(14px,4vw,22px) !important;
+    letter-spacing:.18em !important;
+    white-space:nowrap !important;
+    max-width:92vw;
+    text-align:center;
+    margin:auto;
+  }
+  #preloader{padding:0 20px}
+  /* 2) Hero pochette : dézoomer pour montrer plus de la pochette + sunset */
+  .hero-cinema .bg img{
+    object-position:center 55% !important;
+    transform:scale(0.85);
+    transform-origin:center center;
+  }
+}
