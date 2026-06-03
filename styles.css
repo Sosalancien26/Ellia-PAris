@@ -55,12 +55,12 @@ body.has-mouse .cursor,body.has-mouse .cursor-dot{opacity:1}
 @media (hover:none){.cursor,.cursor-dot{display:none}}
 
 /* Nav */
-header{position:fixed;top:0;left:0;width:100%;z-index:1000;transition:background .5s var(--ease),padding .5s var(--ease),border-color .5s;border-bottom:1px solid rgba(0,0,0,0)}
-header .bar{display:flex;align-items:center;justify-content:space-between;padding:24px 40px}
-header.scrolled,header.solid{background:rgba(243,241,236,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--ligne-soft)}
-header.scrolled .bar,header.solid .bar{padding:15px 40px}
+header#header{position:fixed;top:0;left:0;width:100%;z-index:1000;transition:background .5s var(--ease),padding .5s var(--ease),border-color .5s;border-bottom:1px solid rgba(0,0,0,0)}
+header#header .bar{display:flex;align-items:center;justify-content:space-between;padding:24px 40px}
+header#header.scrolled,header#header.solid{background:rgba(243,241,236,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--ligne-soft)}
+header#header.scrolled .bar,header#header.solid .bar{padding:15px 40px}
 .nav-logo{height:95px;transition:height .5s var(--ease)}
-header.scrolled .nav-logo,header.solid .nav-logo{height:78px}
+header#header.scrolled .nav-logo,header#header.solid .nav-logo{height:78px}
 nav.links{display:flex;gap:36px}
 nav.links a{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--noir);position:relative;padding:4px 0;opacity:.8;transition:opacity .3s}
 nav.links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--noir);transition:width .4s var(--ease)}
@@ -397,7 +397,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .wrap{padding:0 22px}
   nav.links,.nav-ico.account{display:none}
   .burger{display:flex}
-  header .bar{padding:18px 22px}
+  header#header .bar{padding:18px 22px}
   .pad{padding:84px 0}
   .lb-grid{grid-template-columns:1fr}
   .gallery{grid-template-columns:1fr 1fr}
@@ -520,7 +520,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 
   /* Logo header un peu plus petit */
   .nav-logo{height:58px}
-  header .bar{padding:14px 18px}
+  header#header .bar{padding:14px 18px}
 
   /* Mobile menu : items plus aérés */
   .mobile-menu a{font-size:26px;padding:14px 0}
@@ -679,14 +679,14 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 }
 
 /* ============ HEADER ON-DARK (hero cinéma) ============ */
-header.on-dark:not(.scrolled){background:transparent;backdrop-filter:none;border-bottom:1px solid rgba(255,255,255,0)}
-header.on-dark:not(.scrolled) .nav-logo{filter:brightness(0) invert(1);height:116px}
-header.on-dark:not(.scrolled) nav.links a{color:#fff}
-header.on-dark:not(.scrolled) nav.links a::after{background:#fff}
-header.on-dark:not(.scrolled) .nav-ico{color:#fff}
-header.on-dark:not(.scrolled) .burger span{background:#fff}
+header#header.on-dark:not(.scrolled){background:transparent;backdrop-filter:none;border-bottom:1px solid rgba(255,255,255,0)}
+header#header.on-dark:not(.scrolled) .nav-logo{filter:brightness(0) invert(1);height:116px}
+header#header.on-dark:not(.scrolled) nav.links a{color:#fff}
+header#header.on-dark:not(.scrolled) nav.links a::after{background:#fff}
+header#header.on-dark:not(.scrolled) .nav-ico{color:#fff}
+header#header.on-dark:not(.scrolled) .burger span{background:#fff}
 @media (max-width:768px){
-  header.on-dark:not(.scrolled) .nav-logo{height:86px}
+  header#header.on-dark:not(.scrolled) .nav-logo{height:86px}
 }
 
 /* ============ HERO CINEMA — TEXTE EN BAS À GAUCHE (nouvelle composition) ============ */
@@ -717,7 +717,7 @@ html{scrollbar-color:#c8c2b6 #f3f1ec;scrollbar-width:thin}
 /* Focus states accessibilité (clavier) */
 *:focus{outline:none}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible,.btn:focus-visible{outline:2px solid #0d0d0d;outline-offset:3px;border-radius:2px}
-.hero-cinema a:focus-visible,header.on-dark:not(.scrolled) a:focus-visible{outline-color:#fff}
+.hero-cinema a:focus-visible,header#header.on-dark:not(.scrolled) a:focus-visible{outline-color:#fff}
 
 /* Transitions plus douces sur les boutons */
 .btn{transition:background .4s var(--ease),color .4s var(--ease),border-color .4s var(--ease),transform .25s var(--ease),box-shadow .35s var(--ease)}
