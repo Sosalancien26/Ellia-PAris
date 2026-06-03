@@ -16,16 +16,19 @@
       {ref:'ELLIA-PERSO',nom:'Gravure initiales (option)',prix:59,stock:999,seuil:0}
     ]
   };
-  const STATUTS=['Nouvelle','En préparation','Expédiée','Livrée','Annulée'];
+  const STATUTS=['En attente paiement','Nouvelle','En préparation','Expédiée','Livrée','Annulée','Remboursée'];
 
   const eur=n=>n.toLocaleString('fr-FR')+' €';
   const norm=s=>(s||'').toLowerCase().split('é').join('e').split('è').join('e').split('ê').join('e').split('à').join('a');
   function badgeClass(st){const n=norm(st);
+    if(n.includes('attente paiement'))return'b-wait';
     if(n.startsWith('nouvelle'))return'b-nouvelle';
     if(n.startsWith('en prep'))return'b-prep';
     if(n.startsWith('exped'))return'b-exp';
     if(n.startsWith('livr'))return'b-livree';
-    return'b-exp';}
+    if(n.startsWith('annul'))return'b-cancel';
+    if(n.startsWith('rembours'))return'b-cancel';
+    return'b-prep';}
 
   async function get(path,fallback){
     try{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw 0;return await r.json();}
@@ -73,7 +76,9 @@
   }
   let ORDERS=[], FILTER='', SEARCH='';
   function ocard(o){
-    return '<div class="ord-row" data-id="'+o.id+'">'+
+    const waiting = norm(o.statut).includes('attente paiement');
+    const rowClass = waiting ? 'ord-row ord-waiting' : 'ord-row';
+    return '<div class="'+rowClass+'" data-id="'+o.id+'">'+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
         '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div></div>'+
       '<div class="orow-r"><span class="orow-total">'+eur(o.total)+'</span><span class="orow-go">Voir le détail ›</span></div>'+
@@ -138,12 +143,17 @@
           '<a href="'+o.preview+'" target="_blank" title="Ouvrir en grand"><img src="'+o.preview+'" alt="Aperçu personnalisation" style="display:block;max-width:340px;width:100%;height:auto;border:1px solid #e0ddd6;border-radius:3px;cursor:zoom-in" /></a>'+
         '</div>';
     }
+    // Banniere d'avertissement specifique pour commandes pas encore payees
+    const waitingBanner = norm(o.statut).includes('attente paiement')
+      ? '<div style="margin:14px 0 18px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;border-radius:3px;font-size:13px;color:#a8631e;display:flex;align-items:flex-start;gap:10px"><span style="font-size:16px;line-height:1">⏳</span><span><b>Paiement Stripe en cours</b> — cette commande n\'a pas encore été confirmée. Aucun email client n\'a été envoyé, aucun stock n\'a été débité de manière définitive.</span></div>'
+      : '';
     document.getElementById('ordModalBox').innerHTML=
       '<button class="om-close" id="omClose">×</button>'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
         '<div><h3 style="margin:0">Commande '+o.id+manualTag+'</h3><div style="color:var(--gris);font-size:13px;margin-top:4px">'+o.date+'</div></div>'+
         '<button id="omEdit" style="font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Modifier</button>'+
       '</div>'+
+      waitingBanner+
       '<div style="height:14px"></div>'+
       omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
       omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+

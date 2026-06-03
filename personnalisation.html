@@ -4,13 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Personnalisation — ELLIA PARIS</title>
-<meta name="description" content="Gravez votre pochette ELLIA PARIS : jusqu'à 3 initiales, finitions Or, Or rose, Argent, Noir, Blanc, emplacement au choix." />
+<meta name="description" content="Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés, 4 symboles superposables (flamme, hamsa, paix, signature), 4 finitions précieuses (Or, Or rose, Argent, Aveugle), emplacements au choix. Configurateur 3D temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ELLIA PARIS">
 <meta property="og:title" content="Personnalisation — Gravez votre pochette ELLIA PARIS">
-<meta property="og:description" content="Trois initiales maximum, cinq finitions précieuses, plusieurs emplacements. Composez la vôtre.">
+<meta property="og:description" content="18 caractères, 4 symboles, 4 finitions précieuses. Visualisez votre pochette en 3D temps réel.">
 <meta property="og:image" content="https://ellia-paris.fr/assets/social-share-wide.jpg?v=8">
 <meta property="og:url" content="https://ellia-paris.fr/personnalisation.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -41,7 +41,7 @@
       "@type": "Product",
       "@id": "https://ellia-paris.fr/personnalisation.html#product",
       "name": "La Pochette Ellia personnalisée",
-      "description": "Personnalisez votre pochette ELLIA PARIS : jusqu'à 3 initiales gravées au foil précieux (Or, Or rose, Argent, Aveugle), choix d'un symbole (Aesh Sheli, Main de Fatma, Peace, picto ELLIA) et de son emplacement. Configurateur 3D temps réel.",
+      "description": "Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés au foil précieux (Or, Or rose, Argent, Aveugle), jusqu'à 4 symboles superposables (Aesh Sheli, Main de Fatma, Peace, picto ELLIA) avec finition et emplacement indépendants. Configurateur 3D temps réel.",
       "image": "https://ellia-paris.fr/assets/pochette-back.webp",
       "brand": { "@type": "Brand", "name": "ELLIA PARIS" },
       "offers": {
@@ -58,7 +58,8 @@
         "url": "https://ellia-paris.fr/personnalisation.html"
       },
       "additionalProperty": [
-        { "@type": "PropertyValue", "name": "Caractères max", "value": "3 initiales" },
+        { "@type": "PropertyValue", "name": "Caractères max", "value": "18 caractères" },
+        { "@type": "PropertyValue", "name": "Symboles superposables", "value": "Jusqu'à 4 symboles" },
         { "@type": "PropertyValue", "name": "Finitions disponibles", "value": "Or, Or rose, Argent, Aveugle" },
         { "@type": "PropertyValue", "name": "Symboles disponibles", "value": "Aesh Sheli, Main de Fatma, Peace, Logo ELLIA" }
       ]
@@ -96,7 +97,7 @@
 <section class="page-hero page-top">
   <div class="wrap">
     <div class="breadcrumb reveal"><a href="index.html">Accueil</a> · Personnalisation</div>
-    <div class="reveal"><div class="eyebrow" style="margin-top:24px">Sur-mesure</div><h1>Gravée à votre nom</h1><p>Jusqu'à trois initiales, cinq finitions, plusieurs emplacements. Composez une pièce qui n'appartient qu'à vous.</p></div>
+    <div class="reveal"><div class="eyebrow" style="margin-top:24px">Sur-mesure</div><h1>Gravée à votre nom</h1><p>Jusqu'à 18 caractères et 4 symboles superposables, quatre finitions précieuses, emplacements au choix. Composez une pièce qui n'appartient qu'à vous.</p></div>
   </div>
 </section>
 
@@ -147,15 +148,11 @@
         </div>
         <div class="block">
           <span class="field-label">Emplacement des initiales</span>
-          <div class="placements" id="placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="placements grid3" id="placements" data-owner="initiales">
             <button class="place-btn" data-pos="hg">Haut gauche</button>
-            <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="hd">Haut droit</button>
-            <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
             <button class="place-btn active" data-pos="centre">Centre</button>
-            <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bg">Bas gauche</button>
-            <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
@@ -168,15 +165,11 @@
             <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
           </div>
           <span class="field-label" style="margin-top:14px;display:block">Emplacement du symbole</span>
-          <div class="placements" id="flamePlacements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="placements grid3" id="flamePlacements" data-owner="flame">
             <button class="place-btn active" data-pos="hg">Haut gauche</button>
-            <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="hd">Haut droit</button>
-            <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="centre">Centre</button>
-            <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bg">Bas gauche</button>
-            <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
             <button class="place-btn" data-pos="bd">Bas droit</button>
           </div>
         </div>
@@ -205,15 +198,11 @@
             </div>
 
             <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements" id="extraPlacements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div class="placements grid3" id="extraPlacements" data-owner="extra">
               <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="bg">Bas gauche</button>
-              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
               <button class="place-btn active" data-pos="bd">Bas droit</button>
             </div>
             <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
@@ -242,15 +231,11 @@
               <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
             </div>
             <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements" id="extra2Placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div class="placements grid3" id="extra2Placements" data-owner="extra2">
               <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
               <button class="place-btn active" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="bg">Bas gauche</button>
-              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="bd">Bas droit</button>
             </div>
             <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
@@ -279,15 +264,11 @@
               <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
             </div>
             <span class="field-label" style="margin-top:14px;display:block">Emplacement</span>
-            <div class="placements" id="extra3Placements" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div class="placements grid3" id="extra3Placements" data-owner="extra3">
               <button class="place-btn" data-pos="hg">Haut gauche</button>
-              <button class="place-btn" data-pos="ht" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="hd">Haut droit</button>
-              <button class="place-btn" data-pos="g" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="centre">Centre</button>
-              <button class="place-btn" data-pos="d" style="visibility:hidden"></button>
               <button class="place-btn active" data-pos="bg">Bas gauche</button>
-              <button class="place-btn" data-pos="bt" style="visibility:hidden"></button>
               <button class="place-btn" data-pos="bd">Bas droit</button>
             </div>
             <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
@@ -313,11 +294,11 @@
 
 <section class="pad savoir" style="padding-top:0">
   <div class="wrap">
-    <div class="section-head reveal"><div class="eyebrow">Les finitions</div><h2>Cinq éclats, un seul nom</h2><p>Chaque gravure est réalisée à la main avec une précision d'orfèvre.</p></div>
+    <div class="section-head reveal"><div class="eyebrow">Les finitions</div><h2>Quatre éclats, un seul nom</h2><p>Chaque gravure est réalisée à la main avec une précision d'orfèvre, pressée au foil chaud dans le cuir grainé.</p></div>
     <div class="cols">
       <div class="col reveal"><div class="ic"></div><h3>Or & Or rose</h3><p>La chaleur d'un éclat précieux, pour une signature lumineuse et raffinée.</p></div>
       <div class="col reveal"><div class="ic"></div><h3>Argent</h3><p>L'élégance froide et contemporaine, en parfait accord avec le zip gunmetal.</p></div>
-      <div class="col reveal"><div class="ic"></div><h3>Noir & Blanc</h3><p>Le ton sur ton ou le contraste pur, pour les amateurs de discrétion absolue.</p></div>
+      <div class="col reveal"><div class="ic"></div><h3>Aveugle</h3><p>Sans foil, juste l'empreinte creusée dans le cuir — la discrétion absolue, ton sur ton.</p></div>
     </div>
   </div>
 </section>
@@ -1298,7 +1279,13 @@ function initConfigurator(){
   if(initialsInput){
     initialsInput.addEventListener('input',()=>{
       // Aucun filtre : on grave exactement ce que le client tape (lettres, chiffres, point, etc.)
+      const wasEmpty = !state.initials || !state.initials.trim();
+      const nowEmpty = !initialsInput.value || !initialsInput.value.trim();
       state.initials = initialsInput.value;
+      // Si le state d'occupation a change (vide -> rempli ou inverse), refresh disabled
+      if (wasEmpty !== nowEmpty && typeof updateDisabledPlacements === 'function') {
+        updateDisabledPlacements();
+      }
       schedulePaint();
     });
     state.initials = initialsInput.value || 'AB';
@@ -1326,9 +1313,11 @@ function initConfigurator(){
   });
   document.querySelectorAll('#placements .place-btn').forEach(b=>{
     b.addEventListener('click',()=>{
+      if (b.classList.contains('disabled')) return;
       document.querySelectorAll('#placements .place-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       state.placement = b.dataset.pos;
+      if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
       paint();
     });
   });
@@ -1349,6 +1338,7 @@ function initConfigurator(){
         if (flameOptions) flameOptions.style.display = 'block';
         setSymbolImage(sym);
       }
+      if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1439,9 +1429,11 @@ function initConfigurator(){
   // Placements flamme (emplacement independant)
   document.querySelectorAll('#flamePlacements .place-btn').forEach(b=>{
     b.addEventListener('click',()=>{
+      if (b.classList.contains('disabled')) return;
       document.querySelectorAll('#flamePlacements .place-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       state.flamePlacement = b.dataset.pos;
+      if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
       paint();
     });
   });
@@ -1509,11 +1501,39 @@ function initConfigurator(){
   const extraOptions = document.getElementById('extraOptions');
   const extraCollisionWarning = document.getElementById('extraCollisionWarning');
 
+  // === UX PREVENTIVE : grise les emplacements deja utilises par d'autres gravures ===
+  function getOccupiedPlacements(excludeOwner){
+    const occ = new Set();
+    if ((state.initials||'').trim().length > 0 && excludeOwner !== 'initiales') occ.add(state.placement);
+    if (state.useHebrew && excludeOwner !== 'flame') occ.add(state.flamePlacement);
+    if (state.useExtra && excludeOwner !== 'extra') occ.add(state.extraPlacement);
+    if (state.useExtra2 && excludeOwner !== 'extra2') occ.add(state.extra2Placement);
+    if (state.useExtra3 && excludeOwner !== 'extra3') occ.add(state.extra3Placement);
+    return occ;
+  }
+  function updateDisabledPlacements(){
+    document.querySelectorAll('.placements.grid3[data-owner]').forEach(grid => {
+      const owner = grid.dataset.owner;
+      const occ = getOccupiedPlacements(owner);
+      grid.querySelectorAll('.place-btn').forEach(btn => {
+        const pos = btn.dataset.pos;
+        if (occ.has(pos) && !btn.classList.contains('active')) {
+          btn.classList.add('disabled');
+        } else {
+          btn.classList.remove('disabled');
+        }
+      });
+    });
+  }
+  // Expose pour appel depuis d'autres handlers
+  window.__updateDisabledPlacements = updateDisabledPlacements;
+
   function checkExtraCollision(){
     if (!extraCollisionWarning) return false;
     const ep = state.extraPlacement;
     const init = (state.initials||'').trim().length > 0 && state.placement === ep;
     const flam = state.useHebrew && state.flamePlacement === ep;
+    updateDisabledPlacements();
     if (init || flam) {
       extraCollisionWarning.style.display = 'block';
       return true;
@@ -1526,6 +1546,7 @@ function initConfigurator(){
     extraToggle.addEventListener('change', ()=>{
       state.useExtra = extraToggle.checked;
       if (extraOptions) extraOptions.style.display = extraToggle.checked ? 'block' : 'none';
+      updateDisabledPlacements();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1575,6 +1596,7 @@ function initConfigurator(){
   // Placements extra (avec anti-collision)
   document.querySelectorAll('#extraPlacements .place-btn').forEach(b=>{
     b.addEventListener('click', ()=>{
+      if (b.classList.contains('disabled')) return;
       document.querySelectorAll('#extraPlacements .place-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       state.extraPlacement = b.dataset.pos;
@@ -1590,6 +1612,7 @@ function initConfigurator(){
     const conflict = ((state.initials||'').trim().length>0 && state.placement === ep)
                   || (state.useHebrew && state.flamePlacement === ep)
                   || (state.useExtra && state.extraPlacement === ep);
+    updateDisabledPlacements();
     el.style.display = conflict ? 'block' : 'none';
     return conflict;
   }
@@ -1599,6 +1622,7 @@ function initConfigurator(){
     extra2Toggle.addEventListener('change', ()=>{
       state.useExtra2 = extra2Toggle.checked;
       if (extra2Options) extra2Options.style.display = extra2Toggle.checked ? 'block' : 'none';
+      updateDisabledPlacements();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1622,6 +1646,7 @@ function initConfigurator(){
   });
   document.querySelectorAll('#extra2Placements .place-btn').forEach(b=>{
     b.addEventListener('click', ()=>{
+      if (b.classList.contains('disabled')) return;
       document.querySelectorAll('#extra2Placements .place-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       state.extra2Placement = b.dataset.pos;
@@ -1638,6 +1663,7 @@ function initConfigurator(){
                   || (state.useHebrew && state.flamePlacement === ep)
                   || (state.useExtra && state.extraPlacement === ep)
                   || (state.useExtra2 && state.extra2Placement === ep);
+    updateDisabledPlacements();
     el.style.display = conflict ? 'block' : 'none';
     return conflict;
   }
@@ -1647,6 +1673,7 @@ function initConfigurator(){
     extra3Toggle.addEventListener('change', ()=>{
       state.useExtra3 = extra3Toggle.checked;
       if (extra3Options) extra3Options.style.display = extra3Toggle.checked ? 'block' : 'none';
+      updateDisabledPlacements();
       paint();
       if (window.__updatePersoPrice) window.__updatePersoPrice();
     });
@@ -1670,6 +1697,7 @@ function initConfigurator(){
   });
   document.querySelectorAll('#extra3Placements .place-btn').forEach(b=>{
     b.addEventListener('click', ()=>{
+      if (b.classList.contains('disabled')) return;
       document.querySelectorAll('#extra3Placements .place-btn').forEach(o=>o.classList.remove('active'));
       b.classList.add('active');
       state.extra3Placement = b.dataset.pos;
@@ -1677,6 +1705,8 @@ function initConfigurator(){
       paint();
     });
   });
+  // Initialiser l'etat visuel "place-btn.disabled" au demarrage de la page
+  if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
 
   // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
   const PRICE_BASE = 159;        // Pochette

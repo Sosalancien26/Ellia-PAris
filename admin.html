@@ -45,11 +45,13 @@
   td{padding:16px 14px;border-bottom:1px solid var(--ligne);font-size:14px}
   tr:last-child td{border-bottom:none}
   .oid{font-family:var(--serif);font-size:16px}
-  .badge{display:inline-block;font-size:11px;letter-spacing:.08em;padding:5px 11px;border-radius:2px}
+  .badge{display:inline-block;font-size:11px;letter-spacing:.08em;padding:5px 11px;border-radius:2px;white-space:nowrap}
+  .b-wait{background:#fdf3e7;color:#a8631e;border:1px solid #f3dcb6}
   .b-nouvelle{background:var(--bleu-bg);color:var(--bleu)}
   .b-prep{background:var(--ambre-bg);color:var(--ambre)}
   .b-exp{background:var(--gris-bg);color:#555}
   .b-livree{background:var(--vert-bg);color:var(--vert)}
+  .b-cancel{background:#f5f3ee;color:#888;text-decoration:line-through;text-decoration-color:#bbb}
   select.statut{font-family:var(--sans);font-size:12px;padding:7px 10px;border:1px solid var(--ligne);background:#fff;color:var(--noir);cursor:pointer}
   .stock-bad{color:#b1432f;font-weight:500}
   .stock-ok{color:var(--vert)}
@@ -62,6 +64,10 @@
   .ord-list{display:flex;flex-direction:column;gap:14px}
   .ord-row{border:1px solid var(--ligne);padding:18px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;background:#fff;transition:border-color .2s,box-shadow .2s}
   .ord-row:hover{border-color:var(--noir);box-shadow:0 3px 14px rgba(0,0,0,.06)}
+  /* Commande en attente paiement : visuel distinct (bordure dashee + opacite legere) */
+  .ord-row.ord-waiting{border-style:dashed;border-color:#f3dcb6;background:#fffbf5}
+  .ord-row.ord-waiting .oid{color:#a8631e}
+  .ord-row.ord-waiting:hover{border-color:#d18e3d;background:#fff6e9}
   .orow-l{display:flex;flex-direction:column;gap:7px;min-width:0}
   .orow-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .orow-sub{font-size:13.5px;color:var(--gris)}
@@ -538,7 +544,7 @@
 
 <div class="ord-modal" id="ordModal"><div class="ord-modal-box" id="ordModalBox"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="admin.js?v=28-extras"></script>
+<script src="admin.js?v=29-polish"></script>
 
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }

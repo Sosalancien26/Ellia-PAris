@@ -234,6 +234,25 @@ function _notifyNewOrderInternal(d, numero){
   const previewLabel = (d.preview && /^data:image\//.test(d.preview))
     ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
     : '';
+  // Bloc "Étapes de votre commande" — cohérent avec la page confirmation.html
+  const stepsBlock = '<table style="width:100%;border-collapse:collapse;margin:26px 0 8px;font-family:Arial,Helvetica,sans-serif">' +
+    '<tr>' +
+    '<td style="width:33%;padding:14px 10px 14px 0;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
+      '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">01</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">Aujourd\'hui</div>' +
+      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Votre dossier de gravure est transmis aux artisans.</div>' +
+    '</td>' +
+    '<td style="width:33%;padding:14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
+      '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">02</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">5 à 7 jours</div>' +
+      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Pressage manuel au foil chaud dans le cuir grainé.</div>' +
+    '</td>' +
+    '<td style="width:33%;padding:14px 0 14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
+      '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">03</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">Expédition</div>' +
+      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Suivi Colissimo envoyé dès le départ de l\'atelier.</div>' +
+    '</td>' +
+    '</tr></table>';
   const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:22px 18px">' + headerImg + previewLabel + '</div>' +
     '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Paiement reçu — merci !</h1>' +
     '<p style="margin:0 0 8px">Bonjour ' + (d.client_nom||'') + ',</p>' +
@@ -243,7 +262,8 @@ function _notifyNewOrderInternal(d, numero){
       '<td><b style="font-family:Georgia,serif;font-size:17px">Total payé</b></td>' +
       '<td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">' + euro(d.montant_total) + '</b></td></tr></table>' +
     addressBlock(d) +
-    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Votre pochette est en cours de préparation dans nos ateliers. Nous vous notifierons dès qu\'elle sera expédiée.<br/><br/>Avec soin,<br/>ELLIA PARIS</p>';
+    stepsBlock +
+    '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Vous pouvez suivre l\'avancement de votre commande à tout moment depuis votre <a href="https://ellia-paris.fr/compte.html" style="color:#0d0d0d">espace personnel</a>.<br/><br/>Avec soin,<br/>ELLIA PARIS</p>';
   sendMail(d.client_email, 'Commande confirmée — '+numero, emailLayout(inner));
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
     emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + numero + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + (d.client_nom||'') + ' — ' + (d.client_email||'') + (d.telephone?(' — '+d.telephone):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d)));

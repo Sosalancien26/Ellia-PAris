@@ -243,10 +243,21 @@ section{position:relative}
 .dot.noir{background:linear-gradient(135deg,#2a2a2a,#000)}
 .dot.blanc{background:linear-gradient(135deg,#fff,#dcdcdc)}
 .placements{display:flex;gap:12px}
+/* Grille 3x3 propre — utilisee dans le configurateur pour les emplacements de gravure */
+.placements.grid3{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;aspect-ratio:3/1;max-width:100%}
+.placements.grid3 .place-btn{padding:11px 6px}
+.place-btn[data-pos="hg"]{grid-column:1;grid-row:1}
+.place-btn[data-pos="hd"]{grid-column:3;grid-row:1}
+.place-btn[data-pos="centre"]{grid-column:2;grid-row:2}
+.place-btn[data-pos="bg"]{grid-column:1;grid-row:3}
+.place-btn[data-pos="bd"]{grid-column:3;grid-row:3}
 .place-btn{flex:1;padding:13px 0;text-align:center;font-size:11px;letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--ligne);color:var(--gris-clair);cursor:pointer;transition:background .35s,color .35s,border-color .35s,transform .15s ease-out;background:transparent}
-.place-btn:hover:not(.active){border-color:#9a9286;color:var(--noir);background:rgba(0,0,0,.02)}
+.place-btn:hover:not(.active):not(.disabled){border-color:#9a9286;color:var(--noir);background:rgba(0,0,0,.02)}
 .place-btn:active{transform:scale(0.97)}
 .place-btn.active{background:var(--noir);color:#fff;border-color:var(--noir)}
+/* Emplacement deja utilise par une autre gravure : grise + non cliquable */
+.place-btn.disabled{opacity:.32;cursor:not-allowed;pointer-events:none;background:#f5f3ee;color:#aaa6a0;border-style:dashed}
+.place-btn.disabled::after{content:" · pris";font-size:9px;letter-spacing:.1em;color:#b39d9d}
 .perso-total{display:flex;align-items:baseline;justify-content:space-between;margin:36px 0 30px;padding-top:24px;border-top:1px solid var(--ligne)}
 .perso-total .lab{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt)}
 .perso-total .val{font-family:var(--serif);font-size:38px;color:var(--noir)}
