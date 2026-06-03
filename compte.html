@@ -134,7 +134,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   // Commandes
   function ocb(s){ s=(s||'').toLowerCase(); if(s.includes('nouv'))return'ocb-blue'; if(s.includes('prep')||s.includes('prép'))return'ocb-amber'; if(s.includes('exp'))return'ocb-grey'; if(s.includes('livr'))return'ocb-green'; if(s.includes('annul'))return'ocb-red'; return'ocb-grey'; }
   const card=o=>'<a class="ocard" href="commande.html?n='+encodeURIComponent(o.numero)+'">'+
-      '<img loading="lazy" decoding="async" src="assets/product-1.jpg" alt="Pochette">'+
+      '<img loading="lazy" decoding="async" src="assets/product-1.webp" alt="Pochette">'+
       '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+(o.created_at||'').slice(0,10)+'</div>'+
       '<div class="ocard-name">La Pochette Ellia — Noir</div>'+
       '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+

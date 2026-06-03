@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function previewImg(it){
     if(!it.preview) return '';
-    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0" />';
+    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0"  loading="lazy" decoding="async" />';
   }
   function render(){
     const items=Cart.items();
@@ -114,17 +114,4 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     list.innerHTML=items.map((it,i)=>
       '<div class="cart-line" style="align-items:center">'+previewImg(it)+
-      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette Ellia')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
-      '<div class="pr">'+eur(it.prix)+'</div>'+
-      '<button class="rm" data-i="'+i+'">Retirer</button></div>').join('');
-    foot.innerHTML='<div class="cart-sum"><span class="l">Total</span><span class="v">'+eur(Cart.total())+'</span></div>'+
-      '<div class="cta-row" style="justify-content:flex-end"><a href="pochette.html" class="btn">Continuer mes achats</a><a href="checkout.html" class="btn solid">Passer la commande</a></div>';
-    list.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{Cart.removeAt(Number(b.dataset.i));render();}));
-  }
-  render();
-})();
-}); // end DOMContentLoaded
-</script>
-<script src="cookies-banner.js?v=1780400812" defer></script>
-</body>
-</html>
+      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette Ellia')+'</div><d

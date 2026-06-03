@@ -18,7 +18,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=1780400812">
-<link rel="preload" as="image" href="assets/hero-sunset.webp?v=1" type="image/webp" fetchpriority="high">
+<!-- Preload hero adapté au viewport : mobile 22 KB, desktop 77 KB. Évite de précharger les 2. -->
+<link rel="preload" as="image" href="assets/hero-sunset-mobile.webp" type="image/webp" fetchpriority="high" media="(max-width: 800px)">
+<link rel="preload" as="image" href="assets/hero-sunset.webp?v=1" type="image/webp" fetchpriority="high" media="(min-width: 801px)">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -113,6 +115,8 @@
 <!-- HERO CINEMA -->
 <section class="hero-cinema">
   <div class="bg"><picture>
+    <!-- Mobile (<=800px) : WebP optimisé 800px de large, ~22 KB au lieu de 115 KB -->
+    <source media="(max-width: 800px)" srcset="assets/hero-sunset-mobile.webp" type="image/webp">
     <source srcset="assets/hero-sunset.webp?v=1" type="image/webp">
     <img fetchpriority="high" decoding="async" src="assets/hero-sunset.jpg?v=1" alt="La Pochette ELLIA PARIS au coucher de soleil — bord de mer méditerranéen" />
   </picture></div>
@@ -159,7 +163,7 @@
   <div class="wrap">
     <div class="bio-grid">
       <div class="bio-visual reveal">
-        <img loading="lazy" decoding="async" src="assets/pochette-hero.jpg?v=8" alt="Pochette ELLIA PARIS tenue à la main — Saint-Tropez" />
+        <img loading="lazy" decoding="async" src="assets/pochette-hero.webp?v=8" alt="Pochette ELLIA PARIS tenue à la main — Saint-Tropez" />
         <div class="fp">
           <div class="scan"></div>
           <img loading="lazy" decoding="async" class="fp-icon" src="assets/picto_black_trim.png?v=23" alt="" />
@@ -238,10 +242,4 @@
       <div><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></div>
     </div>
   </div>
-</footer>
-
-<script src="app.js?v=1780400812" defer></script>
-<script src="cart.js?v=1780400812" defer></script>
-<script src="cookies-banner.js?v=1780400812" defer></script>
-</body>
-</html>
+</f
