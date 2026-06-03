@@ -285,15 +285,4 @@ document.getElementById('btnBatch').addEventListener('click', async () => {
   setStatus('Création du ZIP…');
   const z = await zip.generateAsync({ type: 'blob' });
   downloadBlob(z, 'ellia-pochette-studio-export.zip');
-  setStatus('✓ ZIP téléchargé : 9 angles × 2 versions (fond + alpha)', 'ok');
-});
-
-window.addEventListener('resize', () => {
-  const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h);
-  camera.aspect = w/h;
-  camera.updateProjectionMatrix();
-});
-</script>
-</body>
-</html>
+  setStatus('✓ ZIP télécharg�

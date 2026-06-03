@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1780405000">
+<link rel="stylesheet" href="styles.css?v=1781300000">
 <style>
   /* Selecteur de symbole (Flamme / Hamsa / Peace / Ellia) */
   .sym-btn{background:#fff;border:1px solid #e0ddd6;padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s,background .2s,transform .2s;font-family:inherit}
@@ -1986,44 +1986,4 @@ function initConfigurator(){
   window.__updatePersoPrice = updatePriceDisplay;
 
   // Recalculer le prix à chaque changement du state
-  // (intercepter input texte, changement de symbole, finition, placement)
-  const _input = document.getElementById('initials');
-  if (_input) _input.addEventListener('input', updatePriceDisplay);
-  // Hooks autour des fonctions existantes
-  setTimeout(updatePriceDisplay, 100); // initial render
-
-  // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
-  // FIX : separer "dans le viewport" (inView) de "onglet visible" (tabVisible) au lieu
-  // d'ecraser une seule variable avec un AND qui pouvait rester bloque a false.
-  let inView = true;
-  let tabVisible = true;
-  const io = new IntersectionObserver((entries)=>{
-    inView = entries[0].isIntersecting;
-  }, { threshold: 0.01 });
-  io.observe(container);
-
-  function tick(){
-    requestAnimationFrame(tick);
-    if (!inView || !tabVisible) return;
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  tick();
-
-  // Pause quand l'onglet est cache, reprise propre quand il redevient visible
-  document.addEventListener('visibilitychange', ()=>{
-    tabVisible = document.visibilityState === 'visible';
-    if (tabVisible) {
-      requestAnimationFrame(()=>{ try { renderer.render(scene, camera); } catch(_){} });
-    }
-  });
-
-  // Force un re-render au retour de focus (apres alt-tab par exemple)
-  window.addEventListener('focus', ()=>{
-    requestAnimationFrame(()=>{ try { renderer.render(scene, camera); } catch(_){} });
-  });
-}
-</script>
-<script src="cookies-banner.js?v=1780400812" defer></script>
-</body>
-</html>
+  // (intercepter inp
