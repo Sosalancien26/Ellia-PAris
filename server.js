@@ -226,12 +226,21 @@ function notifyNewOrder(d, numero){
   return _notifyNewOrderInternal(d, numero);
 }
 function _notifyNewOrderInternal(d, numero){
-  // Header image : preview pochette personnalisee (base64) OU product-1.jpg en fallback
-  const headerImg = (d.preview && /^data:image\//.test(d.preview))
-    ? '<img src="' + d.preview + '" alt="Votre pochette personnalisee" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
+  // Preview pochette : Gmail/Outlook bloquent les images data: URI inline pour des raisons de securite.
+  // Solution : extraire le base64 et le passer en piece jointe avec un Content-ID (cid),
+  // ce qui permet aux clients mail de charger l'image (multipart MIME).
+  const previewMatch = (d.preview && typeof d.preview === 'string')
+    ? d.preview.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i)
+    : null;
+  const hasPreview = !!previewMatch;
+  const previewMime = hasPreview ? ('image/' + (previewMatch[1].toLowerCase() === 'jpg' ? 'jpeg' : previewMatch[1].toLowerCase())) : null;
+  const previewBase64 = hasPreview ? previewMatch[2] : null;
+  const previewCid = 'pochette-preview-' + numero;
+  // Header image : preview pochette personnalisee (via CID) OU product-1.jpg en fallback
+  const headerImg = hasPreview
+    ? '<img src="cid:' + previewCid + '" alt="Votre pochette personnalisee" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
     : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
-  // Si preview existe, ajouter une mention "Apercu de votre personnalisation"
-  const previewLabel = (d.preview && /^data:image\//.test(d.preview))
+  const previewLabel = hasPreview
     ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
     : '';
   // Bloc "Étapes de votre commande" — cohérent avec la page confirmation.html
@@ -264,7 +273,20 @@ function _notifyNewOrderInternal(d, numero){
     addressBlock(d) +
     stepsBlock +
     '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Vous pouvez suivre l\'avancement de votre commande à tout moment depuis votre <a href="https://ellia-paris.fr/compte.html" style="color:#0d0d0d">espace personnel</a>.<br/><br/>Avec soin,<br/>ELLIA PARIS</p>';
-  sendMail(d.client_email, 'Commande confirmée — '+numero, emailLayout(inner));
+  const clientHtml = emailLayout(inner);
+  if (hasPreview) {
+    // Piece jointe inline avec Content-ID -> Gmail/Outlook chargent l'image normalement
+    const attachments = [{
+      filename: 'pochette-' + numero + (previewMime === 'image/png' ? '.png' : '.jpg'),
+      content: Buffer.from(previewBase64, 'base64'),
+      contentType: previewMime,
+      cid: previewCid,
+      contentDisposition: 'inline'
+    }];
+    sendMailWithAttachment(d.client_email, 'Commande confirmée — '+numero, clientHtml, attachments);
+  } else {
+    sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
+  }
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
     emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + numero + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + (d.client_nom||'') + ' — ' + (d.client_email||'') + (d.telephone?(' — '+d.telephone):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d)));
 }
