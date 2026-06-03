@@ -1047,3 +1047,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .cta-row{flex-direction:column;gap:12px}
   .cta-row .btn{width:100%}
 }
+
+/* === v14 FIX JOURNAL : image cover article ne déborde pas sur le titre === */
+.article-cover{max-width:780px !important;clear:both;position:relative}
+.article-hero{position:relative;z-index:2}
