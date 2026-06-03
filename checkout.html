@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
+<script>(function(){if(("serviceWorker" in navigator)&&!location.pathname.startsWith("/admin")){navigator.serviceWorker.getRegistrations().then(function(rs){var h=rs.length>0;rs.forEach(function(r){try{r.unregister()}catch(_){}});if(window.caches){caches.keys().then(function(ks){var c=ks.length>0;ks.forEach(function(k){caches.delete(k)});if((h||c)&&!sessionStorage.getItem("sw_killed_v6")){sessionStorage.setItem("sw_killed_v6","1");setTimeout(function(){location.reload()},250);}});}}).catch(function(){});}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#f3f1ec" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -298,8 +299,4 @@ document.addEventListener('DOMContentLoaded', function(){
       } else {
         appliedPromo = null;
         $msg.style.color = '#b1432f';
-        const msgs = { 'not_found':'Code inconnu','expired':'Code expiré','used_up':'Code épuisé','min_order':'Minimum '+fmtEur(j.min_order)+' requis','empty':'Saisis un code' };
-        $msg.textContent = msgs[j.error] || 'Code invalide';
-      }
-    } catch(e){ $msg.style.color='#b1432f'; $msg.textContent = 'Erreur réseau'; }
-    $btn.disabled = false; $btn.textContent 
+        const msgs = { 'not_fou

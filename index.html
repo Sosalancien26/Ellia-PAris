@@ -35,6 +35,28 @@
   // Hide normal quand la page est ready
   if (document.readyState === 'complete') setTimeout(killPreloader, 1200);
   else window.addEventListener('load', function(){ setTimeout(killPreloader, 1200); });
+
+  // KILL-SWITCH SW : désinscrit tout Service Worker piégé sur les pages publiques.
+  // Indispensable pour les iPhones qui ont visité le site avant juin 2026
+  // et ont un vieux SW v1-v5 qui sert un HTML/CSS périmé sans garde-fou.
+  if ('serviceWorker' in navigator && !location.pathname.startsWith('/admin')) {
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      var hadSw = regs.length > 0;
+      regs.forEach(function(r){ try { r.unregister(); } catch(_){} });
+      // Purge complète des caches du navigateur (CacheStorage)
+      if (window.caches && caches.keys) {
+        caches.keys().then(function(keys){
+          var hadCache = keys.length > 0;
+          keys.forEach(function(k){ caches.delete(k); });
+          // Si on avait un vieux SW OU un vieux cache, on force un reload propre une seule fois
+          if ((hadSw || hadCache) && !sessionStorage.getItem('sw_killed_v6')) {
+            sessionStorage.setItem('sw_killed_v6', '1');
+            setTimeout(function(){ location.reload(); }, 250);
+          }
+        });
+      }
+    }).catch(function(){});
+  }
 })();
 </script>
 <!-- Preload hero adapté au viewport : mobile 22 KB, desktop 77 KB. Évite de précharger les 2. -->
