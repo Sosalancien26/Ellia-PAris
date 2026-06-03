@@ -34,64 +34,6 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Journal (blog) — content marketing SEO -->
-  <url>
-    <loc>https://ellia-paris.fr/journal/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/journal/pochette-biometrique-luxe.html</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.75</priority>
-    <image:image>
-      <image:loc>https://ellia-paris.fr/assets/pochette-fingerprint.jpg</image:loc>
-      <image:title>Pochette biométrique luxe</image:title>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/journal/foil-stamping-or-rose.html</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.75</priority>
-    <image:image>
-      <image:loc>https://ellia-paris.fr/assets/product-1.jpg</image:loc>
-      <image:title>Foil stamping or sur cuir</image:title>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/journal/choisir-symbole-grave-pochette.html</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-    <image:image>
-      <image:loc>https://ellia-paris.fr/assets/pochette-back.webp</image:loc>
-      <image:title>Symboles gravés sur pochette luxe</image:title>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/journal/entretien-cuir-graine-noir.html</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.75</priority>
-    <image:image>
-      <image:loc>https://ellia-paris.fr/assets/pochette-hero.jpg</image:loc>
-      <image:title>Entretien du cuir grainé noir</image:title>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/journal/idees-cadeau-personnalise-luxe.html</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.75</priority>
-    <image:image>
-      <image:loc>https://ellia-paris.fr/assets/hero-sunset.jpg</image:loc>
-      <image:title>Idée cadeau luxe personnalisé</image:title>
-    </image:image>
-  </url>
-
   <url>
     <loc>https://ellia-paris.fr/contact.html</loc>
     <changefreq>monthly</changefreq>

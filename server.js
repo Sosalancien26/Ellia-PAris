@@ -605,21 +605,6 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res,{ ok:true });
       }
 
-      // Endpoint agregat pour Schema AggregateRating (SEO rich snippets)
-      if (req.method==='GET' && pathname==='/api/reviews/aggregate'){
-        if(!USE_DB){
-          return sendJSON(res,{ count: 4, average: 4.75 });
-        }
-        try{
-          const rows = await sb('reviews?validated=eq.true&select=note',{ method:'GET' });
-          const list = rows || [];
-          const count = list.length;
-          const sum = list.reduce((s,r)=>s+Number(r.note||0), 0);
-          const average = count > 0 ? Number((sum / count).toFixed(2)) : 0;
-          return sendJSON(res,{ count, average });
-        }catch(e){ return sendJSON(res,{ count: 0, average: 0 }); }
-      }
-
       if (req.method==='GET' && pathname==='/api/reviews'){
         if(!USE_DB){
           // Demo data si pas de DB
@@ -1266,8 +1251,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/') pathname = '/index.html';
-  // URL en /quelquechose/ -> servir index.html du dossier (ex: /journal/)
-  if (pathname.endsWith('/') && pathname !== '/') pathname = pathname + 'index.html';
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }

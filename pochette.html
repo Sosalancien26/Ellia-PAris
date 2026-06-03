@@ -156,37 +156,6 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-
-<!-- AggregateRating injection : ajoute le Schema des avis si >=10 avis valides
-     (Googlebot rend le JS, donc le rich snippet etoiles apparait dans les SERP)
-     S'active automatiquement dès que la marque atteint le seuil minimum recommande. -->
-<script>
-(function(){
-  try{
-    fetch('/api/reviews/aggregate', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data || !data.count || data.count < 10) return; // seuil minimum SEO
-        var schema = {
-          "@context": "https://schema.org",
-          "@type": "AggregateRating",
-          "itemReviewed": { "@id": "https://ellia-paris.fr/pochette.html#product" },
-          "ratingValue": String(data.average),
-          "bestRating": "5",
-          "worstRating": "1",
-          "ratingCount": data.count,
-          "reviewCount": data.count
-        };
-        var s = document.createElement('script');
-        s.type = 'application/ld+json';
-        s.id = 'schema-aggregate-rating';
-        s.textContent = JSON.stringify(schema);
-        document.head.appendChild(s);
-      })
-      .catch(()=>{ /* silencieux */ });
-  }catch(_){}
-})();
-</script>
 </head>
 <body>
 
@@ -201,12 +170,11 @@
       <a href="pochette.html" class="active">La Pochette</a>
       <a href="personnalisation.html">Personnalisation</a>
       <a href="maison.html">Maison</a>
-      <a href="journal/">Journal</a>
     </nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="journal/">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
 <section class="pad page-top" style="padding-bottom:90px">
   <div class="wrap">
