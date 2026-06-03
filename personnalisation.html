@@ -834,6 +834,9 @@ function initConfigurator(){
         o.material.needsUpdate = true;
       }
     });
+    // Forcer un rendu après application pour que la pochette apparaisse de suite
+    setTimeout(() => { if (typeof window.__forceRender === 'function') window.__forceRender(); }, 50);
+    setTimeout(() => { if (typeof window.__forceRender === 'function') window.__forceRender(); }, 300);
 
     // Hide loader si present
     const loader3d = document.getElementById('viewer3d-loader');
