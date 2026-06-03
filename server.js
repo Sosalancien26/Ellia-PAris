@@ -1266,6 +1266,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/') pathname = '/index.html';
+  // URL en /quelquechose/ -> servir index.html du dossier (ex: /journal/)
+  if (pathname.endsWith('/') && pathname !== '/') pathname = pathname + 'index.html';
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
