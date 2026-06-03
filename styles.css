@@ -871,18 +871,28 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .split .media img.atelier{max-height:680px}
 }
 
-/* AUTO-HIDE CSS-ONLY (v6 — fix iPhone film blanc).
-   Le préloader disparaît IMPÉRATIVEMENT après 4s, indépendamment de tout JavaScript,
-   Service Worker, cache navigateur, ou erreur réseau. Sécurité ultime. */
-#preloader{animation:plAutoHide 4s forwards}
+/* AUTO-HIDE CSS-ONLY (v7 — fix iPhone film blanc DÉFINITIF).
+   Sur DESKTOP : transition luxe préservée (animation 4s).
+   Sur MOBILE : le préloader est COMPLÈTEMENT DÉSACTIVÉ. display:none garanti.
+   Raison : trop de bugs Safari iPhone (cache HTTP, SW, BFCache) laissaient le
+   préloader accroché en film blanc bloquant. Mieux vaut pas de préloader que
+   ce bug. */
+@media (min-width:769px){
+  #preloader{animation:plAutoHide 4s forwards}
+}
+@media (max-width:768px){
+  #preloader{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important}
+}
 @keyframes plAutoHide{
   0%,82%{opacity:1;visibility:visible;pointer-events:auto}
   99%{opacity:0;visibility:visible;pointer-events:none}
   100%{opacity:0;visibility:hidden;pointer-events:none}
 }
-/* Sur les vieux Safari qui ignorent l'animation, fallback en transition */
-@supports not (animation: plAutoHide 4s forwards){
-  #preloader{opacity:0;visibility:hidden;pointer-events:none;transition-delay:3.5s}
+/* Sur les vieux Safari desktop qui ignorent l'animation, fallback en transition */
+@media (min-width:769px){
+  @supports not (animation: plAutoHide 4s forwards){
+    #preloader{opacity:0;visibility:hidden;pointer-events:none;transition-delay:3.5s}
+  }
 }
 
 /* Préloader : empreinte plus visible + scan plus dramatique */
