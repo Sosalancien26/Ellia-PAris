@@ -262,6 +262,10 @@ section{position:relative}
 .perso-total .lab{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt)}
 .perso-total .val{font-family:var(--serif);font-size:38px;color:var(--noir)}
 
+/* ========== Carte statique encadrée (toujours visible) — bloc Initiales ========== */
+.eng-card-static{border:1px solid #e0ddd6;background:#fff;padding:22px 22px 18px;margin:0 0 28px;border-radius:2px}
+.eng-card-static .block:last-child{margin-bottom:0}
+
 /* ========== Carte gravure compacte (accordion une-ligne) ========== */
 .eng-card{border:1px solid #e0ddd6;background:#fff;margin:10px 0;transition:border-color .25s,box-shadow .25s,background .25s}
 .eng-card:hover{border-color:#9a9286}

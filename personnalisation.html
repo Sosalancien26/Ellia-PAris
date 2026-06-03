@@ -116,34 +116,38 @@
         <div id="monoFinish" style="display:none">Finition Or</div>
       </div>
       <div class="perso-panel reveal">
-        <div class="block">
-          <span class="field-label">Votre texte de gravure</span>
-          <input class="initials-input" id="initials" maxlength="18" value="AB" placeholder="VOTRE TEXTE" autocomplete="off" />
-          <div style="margin-top:18px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-              <span style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a7363">Taille de la gravure</span>
-              <span id="fontSizeVal" style="font-size:11px;color:#0d0d0d;font-variant-numeric:tabular-nums">100 %</span>
+        <!-- ========== CARTE INITIALES (toujours visible, encadrée) ========== -->
+        <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9a9286;margin-bottom:12px">Vos initiales</div>
+        <div class="eng-card-static">
+          <div class="block" style="margin-bottom:24px">
+            <span class="field-label">Votre texte de gravure</span>
+            <input class="initials-input" id="initials" maxlength="18" value="AB" placeholder="VOTRE TEXTE" autocomplete="off" />
+            <div style="margin-top:18px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <span style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a7363">Taille de la gravure</span>
+                <span id="fontSizeVal" style="font-size:11px;color:#0d0d0d;font-variant-numeric:tabular-nums">100 %</span>
+              </div>
+              <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
             </div>
-            <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
           </div>
-        </div>
-        <div class="block">
-          <span class="field-label">Finition des initiales</span>
-          <div class="swatches" id="swatches">
-            <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
-            <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
-            <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
-            <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+          <div class="block" style="margin-bottom:24px">
+            <span class="field-label">Finition des initiales</span>
+            <div class="swatches" id="swatches">
+              <div class="sw active" data-color="or"><div class="dot or"></div><small>Or</small></div>
+              <div class="sw" data-color="orrose"><div class="dot orrose"></div><small>Or rose</small></div>
+              <div class="sw" data-color="argent"><div class="dot argent"></div><small>Argent</small></div>
+              <div class="sw" data-color="aveugle"><div class="dot aveugle" style="background:linear-gradient(135deg,#1a1a1a,#3a3a3a);box-shadow:inset 0 1px 2px rgba(255,255,255,.1)"></div><small>Aveugle</small></div>
+            </div>
           </div>
-        </div>
-        <div class="block">
-          <span class="field-label">Emplacement des initiales</span>
-          <div class="placements grid3" id="placements" data-owner="initiales">
-            <button class="place-btn" data-pos="hg">Haut gauche</button>
-            <button class="place-btn" data-pos="hd">Haut droit</button>
-            <button class="place-btn active" data-pos="centre">Centre</button>
-            <button class="place-btn" data-pos="bg">Bas gauche</button>
-            <button class="place-btn" data-pos="bd">Bas droit</button>
+          <div class="block" style="margin-bottom:0">
+            <span class="field-label">Emplacement des initiales</span>
+            <div class="placements grid3" id="placements" data-owner="initiales">
+              <button class="place-btn" data-pos="hg">Haut gauche</button>
+              <button class="place-btn" data-pos="hd">Haut droit</button>
+              <button class="place-btn active" data-pos="centre">Centre</button>
+              <button class="place-btn" data-pos="bg">Bas gauche</button>
+              <button class="place-btn" data-pos="bd">Bas droit</button>
+            </div>
           </div>
         </div>
 
