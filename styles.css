@@ -82,10 +82,14 @@ nav.links a:hover::after,nav.links a.active::after{width:100%}
 .cta-row{display:flex;gap:18px;flex-wrap:wrap}
 
 /* Reveal — fallback opacity:.15 pour eviter ecrans blancs si JS lent / desactive */
-.reveal{opacity:.15;transform:translateY(30px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease)}
-.reveal.in{opacity:1;transform:none}
+/* v8.1 FIX VOILE BLANC : fallback CSS qui force opacity:1 après 2s même si JS plante.
+   Avant : .reveal était bloqué à opacity:.15 si IntersectionObserver ne tournait pas
+   → tout le site apparaissait délavé / voile blanc. */
+.reveal{opacity:.15;transform:translateY(30px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);animation:revealFallback 1s 2s forwards}
+.reveal.in{opacity:1;transform:none;animation:none}
+@keyframes revealFallback{to{opacity:1;transform:none}}
 /* Fallback no-JS : tout visible */
-.no-js .reveal{opacity:1 !important;transform:none !important}
+.no-js .reveal{opacity:1 !important;transform:none !important;animation:none !important}
 
 /* Sections */
 section{position:relative}
