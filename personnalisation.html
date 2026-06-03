@@ -825,8 +825,7 @@ function initConfigurator(){
     scene.add(obj);
     window.__pochetteRoot = obj;
 
-    // === v11 : pas de fadeIn — la pochette s'affiche directement en pleine opacité ===
-    // (le fadeIn d'avant laissait certains meshes — "angle" et "pochette" — bloqués à opacity 0)
+    // === v12 : pas de fadeIn — la pochette s'affiche directement en pleine opacité ===
     obj.traverse(o => {
       if (o.isMesh && o.material) {
         o.material.transparent = false;
@@ -834,9 +833,14 @@ function initConfigurator(){
         o.material.needsUpdate = true;
       }
     });
-    // Forcer un rendu après application pour que la pochette apparaisse de suite
-    setTimeout(() => { if (typeof window.__forceRender === 'function') window.__forceRender(); }, 50);
-    setTimeout(() => { if (typeof window.__forceRender === 'function') window.__forceRender(); }, 300);
+    // === BOUCLE D'ANIMATION CONTINUE (manquait depuis la troncature OneDrive) ===
+    // Sans ça, OrbitControls ne peut pas rafraîchir l'écran quand on bouge la souris/doigt.
+    // Avec ça : la pochette tourne / zoome / panne avec damping fluide.
+    (function animate(){
+      requestAnimationFrame(animate);
+      try { controls.update(); } catch(_){}
+      try { renderer.render(scene, camera); } catch(_){}
+    })();
 
     // Hide loader si present
     const loader3d = document.getElementById('viewer3d-loader');
@@ -1953,14 +1957,14 @@ function initConfigurator(){
   // (delegue : ecoute tous les clics sur sym-btn et place-btn et sw dans les pickers extras)
   document.addEventListener('click', e => {
     const card = e.target.closest('.eng-card');
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.eng-card');
     if (!card) return;
     const cardKey = card.dataset.card;
     if (!cardKey) return;
-    // Petite latence pour laisser le state se mettre a jour avant de rafraichir le summary
     setTimeout(() => updateCardHeader(cardKey), 30);
   });
 
-  // Premier rendu : etat initial des cartes (closure module ESM)
 }
 </script>
 </body>
