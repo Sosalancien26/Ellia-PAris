@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Connexion admin — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:"Jost",Arial,sans-serif;background:#f3f1ec;color:#0d0d0d;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));-webkit-text-size-adjust:100%}
+  body{font-family:"Jost",Arial,sans-serif;background:#f3f1ec;color:#0d0d0d;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
   .box{width:100%;max-width:380px;text-align:center}
   .box img{height:46px;margin-bottom:30px}
   h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:30px;margin-bottom:8px}
@@ -56,11 +56,9 @@
           err.textContent = ''; err.style.color = '#8a857d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
         } else { err.style.color = '#b1432f'; err.textContent = j.error || 'Code incorrect.'; }
       }
-      else { err.s
-// === FIX OneDrive truncation : closure safe + scripts ===
-/* */
-//]]></script>
-<script src="app.js?v=1781100000"></script>
-<script src="cart.js?v=1781100000"></script>
+      else { err.style.color='#b1432f'; err.textContent = j.error || 'Mot de passe incorrect.'; }
+    }catch(e){ err.textContent='Connexion impossible (lancez le serveur : npm start).'; }
+  });
+</script>
 </body>
 </html>

@@ -2,12 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<script>(function(){if(("serviceWorker" in navigator)&&!location.pathname.startsWith("/admin")){navigator.serviceWorker.getRegistrations().then(function(rs){var h=rs.length>0;rs.forEach(function(r){try{r.unregister()}catch(_){}});if(window.caches){caches.keys().then(function(ks){var c=ks.length>0;ks.forEach(function(k){caches.delete(k)});if((h||c)&&!sessionStorage.getItem("sw_killed_v6")){sessionStorage.setItem("sw_killed_v6","1");setTimeout(function(){location.reload()},250);}});}}).catch(function(){});}})();</script>
-<style>@media(max-width:768px){#preloader{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}}</style>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#f3f1ec" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Personnalisation — ELLIA PARIS</title>
 <meta name="description" content="Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés, 4 symboles superposables (flamme, hamsa, paix, signature), 4 finitions précieuses (Or, Or rose, Argent, Aveugle), emplacements au choix. Configurateur 3D temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -22,21 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781200000">
-<!-- Garde-fou préloader : se cache après 3.5 secondes max, indépendamment d'app.js ou du SW -->
-<script>
-(function(){
-  function killPreloader(){
-    var p = document.getElementById('preloader');
-    if (p) { p.style.opacity = '0'; p.style.visibility = 'hidden'; p.style.pointerEvents = 'none';
-      setTimeout(function(){ if (p && p.parentNode) p.parentNode.removeChild(p); }, 800);
-    }
-  }
-  setTimeout(killPreloader, 3500);
-  if (document.readyState === 'complete') setTimeout(killPreloader, 1200);
-  else window.addEventListener('load', function(){ setTimeout(killPreloader, 1200); });
-})();
-</script>
+<link rel="stylesheet" href="styles.css?v=1780405000">
 <style>
   /* Selecteur de symbole (Flamme / Hamsa / Peace / Ellia) */
   .sym-btn{background:#fff;border:1px solid #e0ddd6;padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s,background .2s,transform .2s;font-family:inherit}
@@ -131,7 +112,7 @@
             <div style="width:180px;height:1px;background:rgba(0,0,0,.12);overflow:hidden;border-radius:1px"><div id="viewer3d-bar" style="height:100%;width:0%;background:#0d0d0d;transition:width 200ms linear"></div></div>
           </div>
         </div>
-        <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px" class="viewer-hint"><span class="hint-desktop">Glissez pour tourner · molette pour zoomer</span><span class="hint-mobile" style="display:none">Glissez pour tourner · pincez pour zoomer</span></div>
+        <div style="text-align:center;font-size:11px;color:#9a9286;letter-spacing:.22em;text-transform:uppercase;margin-top:18px">Glissez pour tourner · molette pour zoomer</div>
         <div id="engrave" style="display:none">A·B</div>
         <div id="monoFinish" style="display:none">Finition Or</div>
       </div>
@@ -193,10 +174,10 @@
             <div class="eng-card-body" id="flameOptions">
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
               <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-                <button type="button" class="sym-btn active" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Aesh Sheli</small></button>
-                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt=""  loading="lazy" decoding="async" /><small>Hamsa</small></button>
-                <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Peace</small></button>
-                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn active" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="flameSwatches">
@@ -237,10 +218,10 @@
               <input type="checkbox" id="extraToggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
               <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-                <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt=""  loading="lazy" decoding="async" /><small>Hamsa</small></button>
-                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Aesh Sheli</small></button>
-                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Peace</small></button>
-                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extraSwatches">
@@ -281,10 +262,10 @@
               <input type="checkbox" id="extra2Toggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
               <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt=""  loading="lazy" decoding="async" /><small>Hamsa</small></button>
-                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Aesh Sheli</small></button>
-                <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Peace</small></button>
-                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extra2Swatches">
@@ -325,10 +306,10 @@
               <input type="checkbox" id="extra3Toggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
               <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
-                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt=""  loading="lazy" decoding="async" /><small>Hamsa</small></button>
-                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Aesh Sheli</small></button>
-                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Peace</small></button>
-                <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt=""  loading="lazy" decoding="async" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img class="sym-ic" src="assets/symbol-hamsa-bold.png?v=4" alt="" /><small>Hamsa</small></button>
+                <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
+                <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
+                <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extra3Swatches">
@@ -399,8 +380,8 @@
     <div class="foot-bottom"><span>© 2026 ELLIA PARIS — Tous droits réservés</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div>
   </div>
 </footer>
-<script src="app.js?v=1781100000" defer></script>
-<script src="cart.js?v=1781100000" defer></script>
+<script src="app.js?v=1780400812" defer></script>
+<script src="cart.js?v=1780400812" defer></script>
 
 <script type="importmap">
 {
@@ -432,25 +413,11 @@ window.addEventListener('pageshow', function(ev){
   if (ev.persisted) { location.reload(); }
 });
 
-// Détection WebGL : iOS < 16.4 / Android low-end peuvent ne pas l'avoir
-function hasWebGL(){
-  try{
-    const cv = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (cv.getContext('webgl') || cv.getContext('experimental-webgl')));
-  } catch(_) { return false; }
-}
-
-// v9.1 : 3D activée partout (mobile inclus, demande Sacha 2026-06-03)
-if (container) {
-  if (!hasWebGL()) {
-    console.warn('[Configurateur 3D] WebGL non disponible — fallback statique');
-    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;color:#5c5852;text-align:center;padding:36px;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 60%,#c4bdae 100%)"><img src="assets/pochette-back.webp" alt="La Pochette ELLIA" style="max-width:80%;height:auto;margin-bottom:20px;border:1px solid rgba(0,0,0,.08)"/><div style="font-family:Cormorant Garamond,serif;font-size:20px;color:#0d0d0d;margin-bottom:8px">Aperçu de votre pochette</div><div style="font-family:Jost,sans-serif;font-size:12px;color:#5c5852;line-height:1.5;max-width:300px">Votre navigateur ne supporte pas la 3D temps réel. Personnalisez votre pochette ci-dessous — le rendu sera réalisé en atelier.</div></div>';
-  } else {
-    try { initConfigurator(); }
-    catch(err){
-      console.error('[Configurateur 3D] init failed', err);
-      container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:#5c5852;text-align:center;padding:30px;background:#f3f1ec"><div style="font-family:Cormorant Garamond,serif;font-size:22px;margin-bottom:14px;color:#0d0d0d">Le configurateur n\'a pas pu démarrer</div><div style="font-size:13px;margin-bottom:18px;max-width:300px;line-height:1.5">' + (err && err.message ? String(err.message).substring(0,120) : 'Erreur inconnue') + '</div><button onclick="location.reload()" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer">Recharger la page</button></div>';
-    }
+if (container && window.WebGLRenderingContext) {
+  try { initConfigurator(); }
+  catch(err){
+    console.error('[Configurateur 3D] init failed', err);
+    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:#5c5852;text-align:center;padding:30px"><div style="font-family:Cormorant Garamond,serif;font-size:22px;margin-bottom:14px">Erreur de chargement du configurateur</div><button onclick="location.reload()" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer">Recharger la page</button></div>';
   }
 }
 
@@ -599,23 +566,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  // === Timeout de sécurité : si pas chargé après 25s, afficher message d'erreur (utile iPhone Safari) ===
-  let glbLoadedFlag = false;
-  const loadTimeout = setTimeout(function(){
-    if (glbLoadedFlag) return;
-    console.error('[Ellia 3D] Timeout 25s — connexion lente ou WebGL bloqué');
-    const loader3d = document.getElementById('viewer3d-loader');
-    if (loader3d) {
-      loader3d.innerHTML = '<div style="font-family:Cormorant Garamond,serif;font-size:22px;color:#0d0d0d;margin-bottom:18px;text-align:center;padding:0 30px">Le configurateur 3D est trop long à charger sur votre connexion.</div>' +
-        '<div style="font-family:Jost,sans-serif;font-size:12.5px;color:#5c5852;line-height:1.5;text-align:center;padding:0 30px;margin-bottom:22px;max-width:340px">Vous pouvez quand même personnaliser votre pochette — choisissez vos initiales et finition, le rendu se fera côté atelier.</div>' +
-        '<button onclick="document.getElementById(&quot;viewer3d-loader&quot;).style.display=&quot;none&quot;" style="font-family:Jost,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:13px 26px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer;border-radius:0">Continuer sans la 3D</button>' +
-        '<button onclick="location.reload()" style="margin-top:10px;font-family:Jost,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 24px;border:1px solid #c4bdae;background:transparent;color:#5c5852;cursor:pointer">Réessayer</button>';
-      loader3d.style.opacity = '1';
-    }
-  }, 25000);
   loader.load('assets/pochette.glb?v=27', (gltf)=>{
-    glbLoadedFlag = true;
-    clearTimeout(loadTimeout);
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
@@ -825,22 +776,29 @@ function initConfigurator(){
     scene.add(obj);
     window.__pochetteRoot = obj;
 
-    // === v12 : pas de fadeIn — la pochette s'affiche directement en pleine opacité ===
+    // === Fade-in luxe : opacite 0 -> 1 sur 800ms + leger zoom ===
     obj.traverse(o => {
       if (o.isMesh && o.material) {
-        o.material.transparent = false;
-        o.material.opacity = 1;
-        o.material.needsUpdate = true;
+        o.material.transparent = true;
+        o.material.opacity = 0;
       }
     });
-    // === BOUCLE D'ANIMATION CONTINUE (manquait depuis la troncature OneDrive) ===
-    // Sans ça, OrbitControls ne peut pas rafraîchir l'écran quand on bouge la souris/doigt.
-    // Avec ça : la pochette tourne / zoome / panne avec damping fluide.
-    (function animate(){
-      requestAnimationFrame(animate);
-      try { controls.update(); } catch(_){}
-      try { renderer.render(scene, camera); } catch(_){}
-    })();
+    const startScale = obj.scale.x;
+    obj.scale.setScalar(startScale * 0.92);
+    const t0 = performance.now();
+    const fadeDuration = 850;
+    function fadeIn(){
+      const elapsed = performance.now() - t0;
+      const k = Math.min(elapsed / fadeDuration, 1);
+      const ease = 1 - Math.pow(1 - k, 3); // easeOutCubic
+      obj.traverse(o => {
+        if (o.isMesh && o.material) o.material.opacity = ease;
+      });
+      obj.scale.setScalar(startScale * (0.92 + 0.08 * ease));
+      if (k < 1) requestAnimationFrame(fadeIn);
+      else obj.traverse(o => { if (o.isMesh && o.material) { o.material.transparent = false; o.material.needsUpdate = true; } });
+    }
+    requestAnimationFrame(fadeIn);
 
     // Hide loader si present
     const loader3d = document.getElementById('viewer3d-loader');
@@ -1848,7 +1806,7 @@ function initConfigurator(){
         const pickerId = (cardKey==='flame') ? 'symbolPicker' : (cardKey+'Picker');
         const picker = document.getElementById(pickerId);
         const btn = picker && picker.querySelector('[data-symbol="'+sym+'"] img');
-        if (btn) icEl.innerHTML = '<img src="'+btn.getAttribute('src')+'" alt="" loading="lazy" decoding="async" />';
+        if (btn) icEl.innerHTML = '<img src="'+btn.getAttribute('src')+'" alt=""/>';
         else icEl.textContent = '·';
       }
       if (addBtn) addBtn.style.display = 'none';
@@ -1957,15 +1915,104 @@ function initConfigurator(){
   // (delegue : ecoute tous les clics sur sym-btn et place-btn et sw dans les pickers extras)
   document.addEventListener('click', e => {
     const card = e.target.closest('.eng-card');
-  document.addEventListener('click', e => {
-    const card = e.target.closest('.eng-card');
     if (!card) return;
     const cardKey = card.dataset.card;
     if (!cardKey) return;
+    // Petite latence pour laisser le state se mettre a jour avant de rafraichir le summary
     setTimeout(() => updateCardHeader(cardKey), 30);
   });
 
-}
-</script>
-</body>
-</html>
+  // Premier rendu : etat initial des cartes (au demarrage useHebrew/useExtra/etc sont a false donc tout en mode empty)
+  refreshAllCards();
+  window.__refreshAllCards = refreshAllCards;
+
+  // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
+  const PRICE_BASE = 159;        // Pochette
+  const PRICE_LETTER = 5;        // Par lettre
+  const PRICE_SPECIAL = 2;       // Par caractère spécial (point, espace, virgule…)
+  const PRICE_SYMBOL = 10;       // Par symbole gravé
+
+  function computePersoPrice(){
+    const txt = (state.initials || '').trim();
+    let letters = 0, specials = 0;
+    for (let i = 0; i < txt.length; i++) {
+      const c = txt[i];
+      if (/[\p{L}]/u.test(c)) letters++;
+      else if (c !== ' ' || txt.length > 1) specials++;
+    }
+    const persoInitiales = letters * PRICE_LETTER + specials * PRICE_SPECIAL;
+    const nbSymbols = (state.useHebrew ? 1 : 0) + (state.useExtra ? 1 : 0) + (state.useExtra2 ? 1 : 0) + (state.useExtra3 ? 1 : 0);
+    const persoSymbol = nbSymbols * PRICE_SYMBOL;
+    const persoTotal = persoInitiales + persoSymbol;
+    return { letters, specials, persoInitiales, persoSymbol, nbSymbols, persoTotal, total: PRICE_BASE + persoTotal };
+  }
+
+  function updatePriceDisplay(){
+    const p = computePersoPrice();
+    // Total principal
+    const totalEl = document.getElementById('total');
+    if (totalEl) totalEl.innerHTML = p.total + '&nbsp;€';
+    // Détail tarif
+    const bd = document.getElementById('persoPriceBreakdown');
+    const pbI = document.getElementById('pbInitiales');
+    const pbS = document.getElementById('pbSymbol');
+    const pbT = document.getElementById('pbTotal');
+    if (p.persoTotal > 0 && bd) {
+      bd.style.display = 'block';
+      if (pbI) {
+        if (p.persoInitiales > 0) {
+          pbI.style.display = 'flex';
+          pbI.innerHTML = '<span>Gravure (' + p.letters + ' lettre' + (p.letters>1?'s':'') + (p.specials>0 ? ' + ' + p.specials + ' caractère' + (p.specials>1?'s':'') + ' spécial' + (p.specials>1?'s':'') : '') + ')</span><span>' + p.persoInitiales + ' €</span>';
+        } else { pbI.style.display = 'none'; }
+      }
+      if (pbS) {
+        if (p.persoSymbol > 0) {
+          pbS.style.display = 'flex';
+          const names = [];
+          if (state.useHebrew) names.push(SYMBOL_NAME[state.symbol] || '—');
+          if (state.useExtra) names.push(SYMBOL_NAME[state.extraSymbol] || '—');
+          if (state.useExtra2) names.push(SYMBOL_NAME[state.extra2Symbol] || '—');
+          if (state.useExtra3) names.push(SYMBOL_NAME[state.extra3Symbol] || '—');
+          pbS.innerHTML = '<span>' + p.nbSymbols + ' symbole' + (p.nbSymbols>1?'s':'') + ' gravé' + (p.nbSymbols>1?'s':'') + ' (' + names.join(' + ') + ')</span><span>' + p.persoSymbol + ' €</span>';
+        } else { pbS.style.display = 'none'; }
+      }
+      if (pbT) pbT.innerHTML = p.total + ' €';
+    } else if (bd) {
+      bd.style.display = 'none';
+    }
+  }
+
+  // Expose pour app.js (prix au moment de l'ajout panier)
+  window.__getPersoPrice = computePersoPrice;
+  window.__updatePersoPrice = updatePriceDisplay;
+
+  // Recalculer le prix à chaque changement du state
+  // (intercepter input texte, changement de symbole, finition, placement)
+  const _input = document.getElementById('initials');
+  if (_input) _input.addEventListener('input', updatePriceDisplay);
+  // Hooks autour des fonctions existantes
+  setTimeout(updatePriceDisplay, 100); // initial render
+
+  // === Boucle de rendu : pause hors viewport pour les perfs (PAS d'auto-rotation) ===
+  // FIX : separer "dans le viewport" (inView) de "onglet visible" (tabVisible) au lieu
+  // d'ecraser une seule variable avec un AND qui pouvait rester bloque a false.
+  let inView = true;
+  let tabVisible = true;
+  const io = new IntersectionObserver((entries)=>{
+    inView = entries[0].isIntersecting;
+  }, { threshold: 0.01 });
+  io.observe(container);
+
+  function tick(){
+    requestAnimationFrame(tick);
+    if (!inView || !tabVisible) return;
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  // Pause quand l'onglet est cache, reprise propre quand il redevient visible
+  document.addEventListener('visibilitychange', ()=>{
+    tabVisible = document.visibilityState === 'visible';
+    if (tabVisible) {
+      requestAnimationFrame(()=>{ try { renderer.render(scene, cam

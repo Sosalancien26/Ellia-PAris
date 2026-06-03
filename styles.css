@@ -18,8 +18,8 @@
   --ease:cubic-bezier(.22,.61,.36,1);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:hidden;width:100%;max-width:100vw;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{background:var(--ivoire);color:var(--noir);font-family:var(--sans);font-weight:400;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden;width:100%;max-width:100vw;position:relative;overflow-wrap:break-word;word-wrap:break-word}
+html{scroll-behavior:smooth}
+body{background:var(--ivoire);color:var(--noir);font-family:var(--sans);font-weight:400;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spacing:.005em;color:var(--noir)}
@@ -27,9 +27,9 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 .eyebrow{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#6a655d;font-weight:500}
 
 /* Preloader */
-#preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s;padding:0 24px}
-#preloader.done{opacity:0;visibility:hidden;pointer-events:none}
-#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:clamp(18px,5vw,28px);letter-spacing:clamp(.14em,1.2vw,.42em);text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 1.8s cubic-bezier(.22,.61,.36,1) 0.4s forwards;white-space:nowrap;max-width:90vw;text-align:center}
+#preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s}
+#preloader.done{opacity:0;visibility:hidden}
+#preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 1.8s cubic-bezier(.22,.61,.36,1) 0.4s forwards}
 @keyframes plIn{to{opacity:1}}
 @keyframes plTextZoom{
   0%   { opacity:0;   transform:scale(0.4) }
@@ -82,34 +82,10 @@ nav.links a:hover::after,nav.links a.active::after{width:100%}
 .cta-row{display:flex;gap:18px;flex-wrap:wrap}
 
 /* Reveal — fallback opacity:.15 pour eviter ecrans blancs si JS lent / desactive */
-/* v9 SCROLL-REVEAL COMPLÈTEMENT DÉSACTIVÉ (demande Sacha 2026-06-03).
-   Plus de "voile blanc" possible. Tout est rendu en pleine opacité immédiatement. */
-.reveal{opacity:1 !important;transform:none !important;animation:none !important;transition:none !important}
-.reveal.in{opacity:1 !important;transform:none !important}
-
-/* v9 ANTI-DÉBORDEMENT MOBILE BÉTON.
-   Aucun élément ne peut dépasser la largeur du viewport, point. */
-@media (max-width:768px){
-  html,body{max-width:100vw !important;overflow-x:hidden !important}
-  /* Tous les conteneurs principaux : largeur cap à 100vw, padding interne */
-  *{max-width:100vw}
-  img,video,iframe,canvas,picture,svg{max-width:100% !important;height:auto;display:block}
-  /* Sections : padding latéral cohérent, jamais de margin négative qui fait déborder */
-  section,article,main,header,footer,.wrap,.split,.bio-grid,.product,.perso-grid{
-    max-width:100vw !important;
-    box-sizing:border-box;
-    margin-left:0 !important;
-    margin-right:0 !important;
-  }
-  /* Texte : break-word pour mots longs (prix, codes, URLs) */
-  h1,h2,h3,h4,p,li,a,span,td,th,figcaption,blockquote,label,input,textarea{
-    overflow-wrap:break-word !important;
-    word-break:break-word;
-    max-width:100%;
-  }
-  /* Grids/flex qui pourraient forcer une largeur */
-  [style*="grid-template-columns"]{max-width:100vw !important}
-}
+.reveal{opacity:.15;transform:translateY(30px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+/* Fallback no-JS : tout visible */
+.no-js .reveal{opacity:1 !important;transform:none !important}
 
 /* Sections */
 section{position:relative}
@@ -127,7 +103,7 @@ section{position:relative}
 .breadcrumb a:hover{color:var(--noir)}
 
 /* Home hero (split, no overlap) */
-.hero{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:40px;padding:120px 60px 60px;background:radial-gradient(120% 90% at 70% 40%,#fbfaf7 0%,var(--ivoire) 55%,var(--ivoire-2) 100%)}
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:40px;padding:120px 60px 60px;background:radial-gradient(120% 90% at 70% 40%,#fbfaf7 0%,var(--ivoire) 55%,var(--ivoire-2) 100%)}
 .hero-text .eyebrow{opacity:0;animation:fadeUp 1.1s var(--ease) .3s forwards}
 .hero-text h1{font-size:clamp(50px,6.4vw,104px);line-height:.95;margin:18px 0 8px}
 .hero-text h1 .l1{display:block;opacity:0;animation:fadeUp 1.2s var(--ease) .5s forwards}
@@ -332,66 +308,6 @@ section{position:relative}
   .perso-panel{padding-bottom:90px}
 }
 
-/* ============ Configurateur 3D — polish mobile ============ */
-@media (max-width:768px){
-  /* Viewer 3D : taille adaptée au viewport */
-  #viewer3d{aspect-ratio: 1/1; max-height: 60vh; min-height: 320px}
-  /* Hint : version mobile (pinch zoom) au lieu de molette */
-  .hint-desktop{display:none !important}
-  .hint-mobile{display:inline !important}
-  /* Cartes accordion : padding moins serré, touch zones plus grandes */
-  .eng-card-head{padding: 16px 16px}
-  .eng-card-ic{width: 36px; height: 36px}
-  .eng-card-ic img{max-width: 26px; max-height: 26px}
-  .eng-card-title{font-size: 15px}
-  .eng-card-meta{font-size: 10.5px}
-  .eng-card-toggle.add{padding: 10px 14px; min-height: 40px}
-  .eng-card-body{padding: 16px 16px 18px}
-  /* Picker symboles : 4 cols sur mobile (au lieu de potentiellement 5) */
-  #symbolPicker, #extraPicker, #extra2Picker, #extra3Picker{
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
-  }
-  /* Swatches finitions : 4 colonnes, plus grandes */
-  .swatches{
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 8px !important;
-  }
-  .swatches .sw{
-    min-height: 56px;
-    padding: 10px 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .swatches .sw .dot{width: 22px; height: 22px}
-  .swatches .sw small{font-size: 9.5px; letter-spacing: .08em}
-  /* Place buttons : aérés en 3x3 mobile */
-  .placements.grid3{aspect-ratio: 3/1.4}
-  .placements.grid3 .place-btn{
-    padding: 9px 4px;
-    font-size: 9.5px;
-    letter-spacing: .12em;
-  }
-  /* Eng-card-static (bloc Initiales) : moins de padding sur mobile */
-  .eng-card-static{padding: 18px 18px 14px}
-}
-
-@media (max-width:480px){
-  /* Très petits écrans : picker en 4 colonnes ultra compact */
-  #symbolPicker, #extraPicker, #extra2Picker, #extra3Picker{
-    gap: 4px !important;
-  }
-  .sym-btn{padding: 8px 2px 6px}
-  .sym-btn .sym-ic{width: 26px; height: 26px}
-  .sym-btn small{font-size: 8.5px; letter-spacing: .06em}
-  /* Place-btn texte raccourci visuellement */
-  .placements.grid3 .place-btn{font-size: 9px; padding: 8px 2px}
-}
-
 /* Newsletter */
 .news{text-align:center;background:var(--ivoire)}
 .news h2{font-size:clamp(32px,4.6vw,58px);margin:18px 0}
@@ -502,15 +418,8 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .hero-visual .frame{max-width:88vw;margin:0 auto}
 
   /* Marquee adaptatif */
-  /* Marquee mobile : on stop l'animation et on affiche 2x2 features lisibles */
-  .marquee{padding:18px 22px;overflow:hidden;text-align:center}
-  .marquee .track{animation:none;display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;width:100%;white-space:normal}
-  .marquee .track > span:nth-child(n+9){display:none} /* on cache la 2e moitié dupliquée */
-  .marquee .track > span:nth-child(2),
-  .marquee .track > span:nth-child(4),
-  .marquee .track > span:nth-child(6),
-  .marquee .track > span:nth-child(8){display:none} /* on cache les séparateurs · */
-  .marquee span{font-size:13px;margin:0;line-height:1.4;display:block}
+  .marquee span{font-size:18px;margin:0 22px}
+  .marquee{padding:18px 0}
 
   /* Sections + padding */
   .pad{padding:72px 0}
@@ -576,9 +485,10 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   form input,form textarea,form select{min-height:48px;font-size:16px} /* 16px évite le zoom auto iOS */
   label{font-size:13px}
 
-  /* Préloader proportionné mobile (clamp gère déjà la taille, on garde juste pl-scan) */
-  #preloader .pl-scan{width:120px;height:148px}
-  #preloader .pl-scan img{width:120px}
+  /* Préloader proportionné mobile */
+  #preloader .pl-scan{width:130px;height:160px}
+  #preloader .pl-scan img{width:130px}
+  #preloader .pl-line{font-size:26px;letter-spacing:.32em;margin-top:34px}
 }
 
 /* Smartphones standard (max 480px) */
@@ -642,214 +552,6 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   body{touch-action:manipulation}
 }
 
-/* ============================================================
-   SAFE AREAS iPhone (notch, Dynamic Island, home indicator)
-   ============================================================ */
-@supports (padding: env(safe-area-inset-top)) {
-  /* Header global : respecte le notch en haut */
-  header#header .bar{
-    padding-left: max(40px, env(safe-area-inset-left));
-    padding-right: max(40px, env(safe-area-inset-right));
-  }
-  @media (max-width:768px){
-    header#header .bar{
-      padding-left: max(22px, env(safe-area-inset-left));
-      padding-right: max(22px, env(safe-area-inset-right));
-    }
-  }
-  /* Sticky CTA bar (configurateur) : respecte le home indicator iPhone */
-  .cta-stickbar{
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
-    padding-left: max(0px, env(safe-area-inset-left));
-    padding-right: max(0px, env(safe-area-inset-right));
-  }
-  @media (max-width:860px){
-    .cta-stickbar{
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-    .perso-panel{
-      padding-bottom: calc(90px + env(safe-area-inset-bottom));
-    }
-  }
-  /* Mobile menu fullscreen : respecte le notch */
-  .mobile-menu{
-    padding-top: max(40px, calc(40px + env(safe-area-inset-top)));
-    padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
-  }
-  /* Bandeau cookies en bas : respecte le home indicator */
-  #cookieBar{
-    padding-bottom: max(14px, calc(14px + env(safe-area-inset-bottom))) !important;
-  }
-  /* Footer : breathing room sur les côtés */
-  footer#contact .wrap{
-    padding-left: max(40px, env(safe-area-inset-left));
-    padding-right: max(40px, env(safe-area-inset-right));
-  }
-}
-
-/* ============================================================
-   ARTICLES JOURNAL — lisibilité long-format mobile
-   ============================================================ */
-@media (max-width:768px){
-  /* Hero article : padding-top plus serré sur mobile (header moins haut) */
-  article > header.article-hero{
-    padding: 110px 20px 24px !important;
-  }
-  article > header.article-hero h1{
-    font-size: clamp(28px, 7vw, 38px) !important;
-    line-height: 1.18 !important;
-  }
-  article > header.article-hero .breadcrumb{
-    margin-bottom: 22px !important;
-    font-size: 10px !important;
-  }
-  article > header.article-hero .article-eyebrow{
-    margin-bottom: 14px !important;
-  }
-  article > header.article-hero .article-meta{
-    flex-wrap: wrap;
-    gap: 10px;
-    font-size: 10.5px;
-    justify-content: center;
-  }
-  article > header.article-hero .article-meta .dot{display: none}
-  /* Cover image mobile : moins de padding */
-  article > figure.article-cover{
-    padding: 0 16px !important;
-    margin-top: 24px !important;
-  }
-  article > figure.article-cover figcaption{
-    margin-top: 12px !important;
-    font-size: 11px !important;
-  }
-  /* Body article : taille texte plus confortable */
-  article > div.article-body{
-    margin: 36px auto !important;
-    padding: 0 22px !important;
-    font-size: 17px !important;
-    line-height: 1.78 !important;
-  }
-  article > div.article-body .lead{
-    font-size: 19.5px !important;
-    line-height: 1.5 !important;
-    margin-bottom: 28px !important;
-    padding-bottom: 24px !important;
-  }
-  article > div.article-body h2{
-    font-size: 25px !important;
-    line-height: 1.25 !important;
-    margin: 42px 0 18px !important;
-  }
-  article > div.article-body h3{
-    font-size: 19.5px !important;
-    margin: 30px 0 14px !important;
-  }
-  article > div.article-body p{margin-bottom: 22px !important}
-  article > div.article-body blockquote{
-    margin: 30px 0 !important;
-    padding-left: 22px !important;
-    font-size: 18px !important;
-    line-height: 1.5 !important;
-  }
-  article > div.article-body .key-fact{
-    padding: 20px 22px !important;
-    margin: 28px 0 !important;
-    font-size: 15px !important;
-  }
-  article > div.article-body ul{padding-left: 20px !important}
-  /* CTA box dark : padding réduit */
-  article > aside.article-cta{
-    margin: 40px 16px !important;
-    padding: 38px 24px !important;
-    max-width: none !important;
-  }
-  article > aside.article-cta h3{font-size: 24px !important;line-height: 1.2}
-  article > aside.article-cta p{font-size: 14px !important}
-  /* Related articles : 1 colonne sur mobile */
-  article > section.article-related{
-    padding: 44px 16px !important;
-  }
-  article > section.article-related h2{font-size: 24px !important}
-  article > section.article-related .related-grid{
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-}
-
-/* ============================================================
-   JOURNAL INDEX — Grille articles mobile
-   ============================================================ */
-@media (max-width:768px){
-  .jl-grid{gap: 28px !important}
-  .jl-card .jl-body{padding: 22px 22px 24px !important}
-  .jl-card .jl-title{font-size: 22px !important;line-height: 1.22 !important}
-  .jl-card .jl-excerpt{font-size: 14px !important}
-}
-
-/* ============================================================
-   STICKY CTA fiche pochette — visible sur mobile
-   (à activer en ajoutant class="cta-stickbar-product" dans pochette.html)
-   ============================================================ */
-.product-sticky-cta{
-  display: none;
-}
-@media (max-width:860px){
-  .product-sticky-cta{
-    display: flex;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 90;
-    background: rgba(255,255,255,.97);
-    backdrop-filter: saturate(180%) blur(10px);
-    border-top: 1px solid var(--ligne);
-    padding: 12px 18px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 -2px 14px rgba(0,0,0,.06);
-  }
-  .product-sticky-cta .pscta-info{flex:1;display:flex;flex-direction:column;line-height:1.1}
-  .product-sticky-cta .pscta-lab{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gris-txt)}
-  .product-sticky-cta .pscta-price{font-family:var(--serif);font-size:22px;color:var(--noir);margin-top:3px}
-  .product-sticky-cta .btn{padding:13px 22px;font-size:11px;flex-shrink:0;min-height:44px}
-  /* Pousse le footer pour laisser place à la sticky bar mobile */
-  body:has(.product-sticky-cta) footer#contact{padding-bottom: 90px}
-}
-
-/* ============================================================
-   AMÉLIORATIONS MOBILE GLOBALES
-   ============================================================ */
-@media (max-width:768px){
-  /* Scroll smooth mais qui respect prefers-reduced-motion */
-  html{scroll-behavior: smooth}
-  /* Burger menu : feedback tactile */
-  .burger{transition: transform .15s ease}
-  .burger:active{transform: scale(0.94)}
-  /* Mobile menu : animation d'entrée plus fluide */
-  .mobile-menu{transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .25s}
-  /* Images : empêcher le drag/sélection sur mobile (UX native) */
-  img{-webkit-user-drag: none; user-select: none}
-  /* Inputs : style focus plus visible */
-  input:focus, textarea:focus, select:focus{
-    outline: 2px solid #0d0d0d;
-    outline-offset: 2px;
-  }
-  /* Liens : feedback actif */
-  a:active{opacity: .75}
-}
-
-/* ============================================================
-   FIX SPÉCIFIQUES iOS Safari
-   ============================================================ */
-@supports (-webkit-touch-callout: none) {
-  /* Évite que 100vh inclue la barre URL Safari (utiliser 100dvh ou min-height) */
-  .hero{min-height: -webkit-fill-available}
-  /* Empêche le double-tap zoom sur les boutons */
-  .btn, button{touch-action: manipulation}
-  /* Améliore la performance scroll iOS */
-  body{-webkit-overflow-scrolling: touch}
-}
-
 /* ============ POLISH HERO + IMAGES DESKTOP ============ */
 
 /* Hero : Ken Burns lent + floating subtil = luxe en mouvement */
@@ -893,24 +595,6 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 
   /* Image atelier dans split */
   .split .media img.atelier{max-height:680px}
-}
-
-/* AUTO-HIDE CSS-ONLY (v8 — fix iPhone film blanc + fix desktop régression).
-   Le @keyframes DOIT être déclaré au top-level, JAMAIS imbriqué dans @media,
-   sinon Chrome/Safari le ignorent et l'animation ne se lance pas
-   (= préloader reste sur desktop, voile blanc qui ne part jamais).
-   Sur DESKTOP : animation 4s fade-out (transition luxe préservée).
-   Sur MOBILE : preloader display:none direct (zéro bug iPhone possible). */
-@keyframes plAutoHide{
-  0%,82%{opacity:1;visibility:visible;pointer-events:auto}
-  99%{opacity:0;visibility:visible;pointer-events:none}
-  100%{opacity:0;visibility:hidden;pointer-events:none}
-}
-@media (min-width:769px){
-  #preloader{animation:plAutoHide 4s forwards}
-}
-@media (max-width:768px){
-  #preloader{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important}
 }
 
 /* Préloader : empreinte plus visible + scan plus dramatique */
@@ -958,7 +642,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
 @media (max-width:768px){.fp-icon{width:48px;height:48px}}
 
 /* ============ HERO PLEIN ÉCRAN LUXE ============ */
-.hero-cinema{position:relative;min-height:100vh;min-height:100dvh;width:100%;overflow:hidden;background:#0a0908;display:flex;align-items:flex-end;justify-content:flex-start;padding:120px 80px 90px}
+.hero-cinema{position:relative;min-height:100vh;width:100%;overflow:hidden;background:#0a0908;display:flex;align-items:flex-end;justify-content:flex-start;padding:120px 80px 90px}
 .hero-cinema .content,
 .hero-cinema .content.content-left{max-width:640px;text-shadow:0 2px 18px rgba(0,0,0,.65);text-align:left}
 .hero-cinema h1{text-align:left}
@@ -988,7 +672,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .hero-cinema h1{font-size:clamp(48px,9vw,80px)}
 }
 @media (max-width:768px){
-  .hero-cinema{padding:120px 28px 70px;min-height:92vh;min-height:92dvh}
+  .hero-cinema{padding:120px 28px 70px;min-height:92vh}
   .hero-cinema h1{font-size:clamp(46px,11vw,72px)}
   .hero-cinema .sub{font-size:15.5px;max-width:100%}
   .hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(0,0,0,0) 25%,rgba(0,0,0,.6) 65%,rgba(0,0,0,.88) 100%)}
@@ -1010,22 +694,10 @@ header#header.on-dark:not(.scrolled) .burger span{background:#fff}
 .hero-cinema .content{max-width:640px !important;text-align:left !important;margin:0 !important}
 .hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.35) 65%,rgba(0,0,0,.78) 100%),linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 30%,rgba(0,0,0,0) 55%) !important}
 @media (max-width:768px){
-  .hero-cinema{padding:100px 24px 80px !important;justify-content:flex-start;align-items:flex-end;min-height:88vh !important;min-height:88dvh !important}
+  .hero-cinema{padding:120px 28px 90px;justify-content:flex-start;align-items:flex-end}
   .hero-cinema .content{max-width:100%}
-  /* v10 : descendre la photo dans le cadre pour mieux voir le sunset/horizon */
-  .hero-cinema .bg img{object-position:center 28% !important}
-  /* v10 : voile dégradé chaud sunset au lieu de noir uni (transition douce vers le texte) */
-  .hero-cinema .veil{
-    background:
-      linear-gradient(180deg,
-        rgba(0,0,0,.18) 0%,
-        rgba(0,0,0,0) 22%,
-        rgba(0,0,0,0) 42%,
-        rgba(45,18,22,.30) 55%,
-        rgba(28,10,18,.62) 72%,
-        rgba(14,6,12,.94) 100%
-      ) !important
-  }
+  .hero-cinema .bg img{object-position:60% center}
+  .hero-cinema .veil{background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.1) 30%,rgba(0,0,0,.75) 75%,rgba(0,0,0,.92) 100%)}
 }
 
 /* ============ PHASE 3 : POLISH GLOBAL ============ */
@@ -1070,116 +742,6 @@ html{scroll-behavior:smooth}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .hero-cinema .bg img,.hero-visual .frame,.hero-visual img,.hero-visual .halo{animation:none !important}
-}
-
-/* ============================================================
-   AUDIT MOBILE PRO — polish final (juin 2026)
-   Lisibilité, débordements, touch targets, iOS Safari
-   ============================================================ */
-
-/* Mots longs / prix / titres : aucun débordement horizontal */
-h1,h2,h3,h4,h5,h6,p,li,a,td,th,figcaption,blockquote{overflow-wrap:break-word;word-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
-/* Sauf les boutons/labels en uppercase qui doivent rester intacts */
-.btn,.eyebrow,.nav-ico,nav.links a,.breadcrumb,.foot-grid h4,.field-label,.mono-label,.mono-finish{hyphens:none;-webkit-hyphens:none;overflow-wrap:normal}
-
-/* Tables / overflow horizontaux : scroll interne plutôt que casser la page */
-@media (max-width:768px){
-  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
-  pre,code{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
-  /* Bloque tout enfant qui forcerait une largeur > 100vw */
-  section,article,main,header,footer,div.wrap{max-width:100vw}
-}
-
-/* iOS : empêcher le zoom auto sur les inputs (font-size ≥ 16px obligatoire) */
-@media (max-width:768px){
-  input[type="text"],input[type="email"],input[type="tel"],input[type="number"],
-  input[type="password"],input[type="search"],input[type="url"],input[type="date"],
-  select,textarea{font-size:16px !important}
-}
-
-/* Touch targets : tout lien/bouton cliquable ≥ 44px (Apple HIG) */
-@media (max-width:768px){
-  /* Toutes les actions interactives sauf liens textuels d'article */
-  button:not([disabled]),
-  [role="button"],
-  input[type="submit"],
-  input[type="button"],
-  a.btn,
-  a.nav-ico,
-  a.burger{
-    min-height:44px;
-    min-width:44px;
-    touch-action:manipulation;
-  }
-}
-
-/* Contraste : remonter les gris trop clairs sur mobile (AA 4.5:1 corps) */
-@media (max-width:768px){
-  :root{
-    --gris-txt: #6a6a6a;        /* avant: #8a857d trop clair sur ivoire */
-    --gris-clair: #4a4a4a;      /* avant: #565249 ok mais on uniformise */
-  }
-}
-
-/* Images : éviter le rendu flou sur Retina (forcer pixel-perfect) */
-img{image-rendering:auto;-ms-interpolation-mode:bicubic}
-/* Hero/LCP : décodage prioritaire */
-.hero-cinema .bg img,.hero-visual img,.hero img:first-of-type{content-visibility:auto}
-
-/* Liens dans le corps d'article : zone tactile + soulignement clair */
-@media (max-width:768px){
-  .article-body a:not(.btn){
-    padding:2px 0;
-    text-decoration:underline;
-    text-decoration-color:rgba(13,13,13,.35);
-    text-underline-offset:3px;
-  }
-}
-
-/* Marquee mobile : si jamais .marquee track contient plus de 8 spans on garde le clamp */
-@media (max-width:768px){
-  .marquee{max-width:100vw;overflow:hidden}
-  .marquee .track{max-width:100%}
-}
-
-/* Footer mobile : aération + touch-friendly liens */
-@media (max-width:768px){
-  .foot-grid a{padding:6px 0;display:inline-block;min-height:32px}
-  .foot-bottom{padding:0 18px}
-}
-
-/* Page hero générique : éviter le titre qui touche le notch */
-@media (max-width:768px){
-  .page-hero,.article-hero{
-    padding-top:max(110px, calc(110px + env(safe-area-inset-top))) !important;
-  }
-}
-
-/* Préloader pl-line : clamp robuste pour ne JAMAIS déborder */
-#preloader .pl-line{
-  font-size:clamp(16px,4.8vw,28px);
-  letter-spacing:clamp(.12em,1.1vw,.42em);
-  white-space:nowrap;
-  max-width:92vw;
-  text-align:center;
-  margin-left:auto;
-  margin-right:auto;
-}
-
-/* Sticky CTA produit : laisser respirer le contenu derrière */
-@media (max-width:860px){
-  body:has(.product-sticky-cta){padding-bottom:0}
-  main:has(.product-sticky-cta), body:has(.product-sticky-cta) > section:last-of-type{padding-bottom:90px}
-}
-
-/* Inputs/Select/Textarea : padding tactile confortable */
-@media (max-width:768px){
-  input,select,textarea{padding:12px 14px;border-radius:2px}
-}
-
-/* Fix : iOS centre mal le texte vertical si height fixed → flex */
-@media (max-width:768px){
-  .btn,button.btn{display:inline-flex;align-items:center;justify-content:center;line-height:1.2}
 }
 
 /* Mobile menu : transition luxe + overlay */
@@ -1432,31 +994,3 @@ html{overflow-x:hidden}
 
 .reviews-form-wrap{margin-top:50px;text-align:center}
 .reviews-form-wrap summary::-webkit-details-marker{display:non
-/* ============================================================
-   v10 HERO-CINEMA MOBILE — descendre la photo + voile dégradé sunset
-   (au lieu de noir uni qui crée une zone vide entre photo et texte)
-   ============================================================ */
-@media (max-width:768px){
-  /* Photo : descendre l'objet (montrer plus du sunset/horizon, moins du ciel) */
-  .hero-cinema .bg img{
-    object-position: center 28% !important;
-  }
-  /* Voile : dégradé sunset chaud → sombre, plus doux que le noir uni */
-  .hero-cinema .veil{
-    background:
-      linear-gradient(180deg,
-        rgba(0,0,0,.18) 0%,
-        rgba(0,0,0,0) 22%,
-        rgba(0,0,0,0) 42%,
-        rgba(45,18,22,.28) 55%,
-        rgba(28,10,18,.58) 72%,
-        rgba(14,6,12,.92) 100%
-      ) !important;
-  }
-  /* Hero : un peu moins grand pour que tout tienne dans le viewport */
-  .hero-cinema{
-    min-height: 88vh !important;
-    min-height: 88dvh !important;
-    padding: 100px 24px 80px !important;
-  }
-}

@@ -2,10 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#f3f1ec" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ELLIA PARIS — La Pochette, gravée à votre nom</title>
 <meta name="description" content="ELLIA PARIS — Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique par empreinte digitale, gravée de vos initiales." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -20,68 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781200000">
-<!-- v9 SCRIPTS DANS LE HEAD avec defer : protège contre la troncature OneDrive en fin de fichier -->
-<script src="app.js?v=1781100000" defer></script>
-<script src="cart.js?v=1781100000" defer></script>
-<!-- v8 FIX FILM BLANC : keyframes DEHORS du @media (compat Chrome/Safari). -->
-<style>
-  /* @keyframes DOIT être au top-level, jamais dans @media */
-  @keyframes plAutoHide{
-    0%,82%{opacity:1;visibility:visible;pointer-events:auto}
-    99%{opacity:0;visibility:visible;pointer-events:none}
-    100%{opacity:0;visibility:hidden;pointer-events:none}
-  }
-  /* Mobile : préloader complètement désactivé */
-  @media (max-width:768px){
-    #preloader{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important}
-  }
-  /* Desktop : transition luxe (animation 4s) */
-  @media (min-width:769px){
-    #preloader{animation:plAutoHide 4s forwards !important}
-  }
-</style>
-<!-- Garde-fou préloader : se cache après 3 secondes max, indépendamment de app.js ou du SW -->
-<script>
-(function(){
-  function killPreloader(){
-    var p = document.getElementById('preloader');
-    if (p) { p.style.opacity = '0'; p.style.visibility = 'hidden'; p.style.pointerEvents = 'none';
-      setTimeout(function(){ if (p && p.parentNode) p.parentNode.removeChild(p); }, 800);
-    }
-  }
-  // Garde-fou absolu : 3.5 secondes max, même si tout plante
-  setTimeout(killPreloader, 3500);
-  // Hide normal quand la page est ready
-  if (document.readyState === 'complete') setTimeout(killPreloader, 1200);
-  else window.addEventListener('load', function(){ setTimeout(killPreloader, 1200); });
-
-  // KILL-SWITCH SW : désinscrit tout Service Worker piégé sur les pages publiques.
-  // Indispensable pour les iPhones qui ont visité le site avant juin 2026
-  // et ont un vieux SW v1-v5 qui sert un HTML/CSS périmé sans garde-fou.
-  if ('serviceWorker' in navigator && !location.pathname.startsWith('/admin')) {
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      var hadSw = regs.length > 0;
-      regs.forEach(function(r){ try { r.unregister(); } catch(_){} });
-      // Purge complète des caches du navigateur (CacheStorage)
-      if (window.caches && caches.keys) {
-        caches.keys().then(function(keys){
-          var hadCache = keys.length > 0;
-          keys.forEach(function(k){ caches.delete(k); });
-          // Si on avait un vieux SW OU un vieux cache, on force un reload propre une seule fois
-          if ((hadSw || hadCache) && !sessionStorage.getItem('sw_killed_v6')) {
-            sessionStorage.setItem('sw_killed_v6', '1');
-            setTimeout(function(){ location.reload(); }, 250);
-          }
-        });
-      }
-    }).catch(function(){});
-  }
-})();
-</script>
-<!-- Preload hero adapté au viewport : mobile 22 KB, desktop 77 KB. Évite de précharger les 2. -->
-<link rel="preload" as="image" href="assets/hero-sunset-mobile.webp" type="image/webp" fetchpriority="high" media="(max-width: 800px)">
-<link rel="preload" as="image" href="assets/hero-sunset.webp?v=1" type="image/webp" fetchpriority="high" media="(min-width: 801px)">
+<link rel="stylesheet" href="styles.css?v=1780400812">
+<link rel="preload" as="image" href="assets/hero-sunset.webp?v=1" type="image/webp" fetchpriority="high">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -176,8 +113,6 @@
 <!-- HERO CINEMA -->
 <section class="hero-cinema">
   <div class="bg"><picture>
-    <!-- Mobile (<=800px) : WebP optimisé 800px de large, ~22 KB au lieu de 115 KB -->
-    <source media="(max-width: 800px)" srcset="assets/hero-sunset-mobile.webp" type="image/webp">
     <source srcset="assets/hero-sunset.webp?v=1" type="image/webp">
     <img fetchpriority="high" decoding="async" src="assets/hero-sunset.jpg?v=1" alt="La Pochette ELLIA PARIS au coucher de soleil — bord de mer méditerranéen" />
   </picture></div>
@@ -224,11 +159,7 @@
   <div class="wrap">
     <div class="bio-grid">
       <div class="bio-visual reveal">
-        <picture>
-          <source media="(max-width: 800px)" srcset="assets/pochette-hero-mobile.webp" type="image/webp">
-          <source srcset="assets/pochette-hero.webp?v=8" type="image/webp">
-          <img loading="lazy" decoding="async" src="assets/pochette-hero.webp?v=8" alt="Pochette ELLIA PARIS tenue à la main — Saint-Tropez" width="1200" height="800" />
-        </picture>
+        <img loading="lazy" decoding="async" src="assets/pochette-hero.jpg?v=8" alt="Pochette ELLIA PARIS tenue à la main — Saint-Tropez" />
         <div class="fp">
           <div class="scan"></div>
           <img loading="lazy" decoding="async" class="fp-icon" src="assets/picto_black_trim.png?v=23" alt="" />
@@ -261,33 +192,36 @@
 <!-- LOOKBOOK TEASER -->
 <section class="lookbook pad">
   <div class="wrap">
-    <div class="section-head reveal" style="text-align:center;max-width:760px;margin:0 auto 50px">
+    <div class="section-head reveal">
       <div class="eyebrow">Lookbook</div>
-      <h2>Une pochette, mille moments</h2>
-      <p>De la table du déjeuner à la soirée dans les jardins, ELLIA PARIS accompagne les instants qui comptent.</p>
+      <h2>Une allure, intemporelle</h2>
+      <p>De Saint-Tropez à Paris, du port aux palais. Une élégance qui ne se démode pas.</p>
     </div>
-    <div class="lb-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
-      <div class="look-card reveal"><img loading="lazy" decoding="async" src="assets/lookbook/lookbook-port.webp?v=1" alt="Lookbook ELLIA PARIS — Port Saint-Tropez" /><div class="cap"><div class="t">Port</div><div class="s">Collection Signature</div></div></div>
+    <div class="lb-grid">
+      <div class="look-card reveal"><img loading="lazy" decoding="async" src="assets/lookbook/lookbook-port.webp?v=1" alt="Lookbook ELLIA PARIS — Saint-Tropez" /><div class="cap"><div class="t">Port</div><div class="s">Collection Signature</div></div></div>
+      <div class="look-mid reveal">
+        <div class="eyebrow">L'esprit Ellia</div>
+        <h3>Discrète,<br>jamais ostentatoire</h3>
+        <p>La matière, le geste et le détail plutôt que le logo. Le raffinement comme évidence.</p>
+        <div class="cta-row" style="margin-top:26px"><a href="maison.html" class="btn">La Maison</a></div>
+      </div>
       <div class="look-card reveal"><img loading="lazy" decoding="async" src="assets/lookbook/lookbook-palais.webp?v=1" alt="Lookbook ELLIA PARIS — Palais" /><div class="cap"><div class="t">Palais</div><div class="s">Collection Signature</div></div></div>
     </div>
-    <div style="text-align:center;margin-top:50px"><a href="maison.html" class="btn">Découvrir le lookbook</a></div>
   </div>
 </section>
 
 <!-- NEWSLETTER -->
 <section class="pad news">
-  <div class="wrap"><div class="reveal" style="max-width:640px;margin:0 auto;text-align:center">
-    <div class="eyebrow">Le Cercle ELLIA</div>
-    <h2>Entrez dans la confidence</h2>
-    <p>Nouvelles pièces, éditions limitées et invitations privées. Rien d'autre.</p>
-    <form onsubmit="return false" style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-      <input type="email" placeholder="Votre adresse e-mail" required style="flex:1;min-width:240px;padding:14px 18px;border:1px solid rgba(0,0,0,.2);background:transparent;font-family:var(--sans);font-size:14px" />
-      <button type="submit" class="btn">S'inscrire</button>
-    </form>
-  </div></div>
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">Le Cercle ELLIA</div>
+      <h2>Entrez dans la confidence</h2>
+      <p>Nouvelles pièces, éditions limitées et invitations privées. Rien d'autre.</p>
+      <form onsubmit="return false"><input type="email" placeholder="Votre adresse e-mail" /><button type="submit">S'inscrire</button></form>
+    </div>
+  </div>
 </section>
 
-<!-- FOOTER -->
 <footer id="contact">
   <div class="wrap">
     <div class="foot-grid">
@@ -295,8 +229,8 @@
         <img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" />
         <p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p>
       </div>
-      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li><li><a href="journal/">Journal</a></li></ul></div>
-      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison &amp; retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
       <div><h4>Suivez-nous</h4><ul><li><a href="https://instagram.com/ellia.paris" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@elliaparis" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://pinterest.com/elliaparis" rel="noopener" target="_blank">Pinterest</a></li></ul></div>
     </div>
     <div class="foot-bottom">
@@ -306,5 +240,8 @@
   </div>
 </footer>
 
+<script src="app.js?v=1780400812" defer></script>
+<script src="cart.js?v=1780400812" defer></script>
+<script src="cookies-banner.js?v=1780400812" defer></script>
 </body>
 </html>
