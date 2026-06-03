@@ -21,6 +21,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=1780900000">
+<!-- v9 SCRIPTS DANS LE HEAD avec defer : protège contre la troncature OneDrive en fin de fichier -->
+<script src="app.js?v=1780900000" defer></script>
+<script src="cart.js?v=1780900000" defer></script>
 <!-- v8 FIX FILM BLANC : keyframes DEHORS du @media (compat Chrome/Safari). -->
 <style>
   /* @keyframes DOIT être au top-level, jamais dans @media */
@@ -258,4 +261,59 @@
 <!-- LOOKBOOK TEASER -->
 <section class="lookbook pad">
   <div class="wrap">
-    <div cla
+    <div class="section-head reveal" style="text-align:center;max-width:760px;margin:0 auto 50px">
+      <div class="eyebrow">Lookbook</div>
+      <h2>Une pochette, mille moments</h2>
+      <p>De la table du déjeuner à la soirée dans les jardins, ELLIA PARIS accompagne les instants qui comptent.</p>
+    </div>
+    <div class="lb-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div class="look-card reveal"><img loading="lazy" decoding="async" src="assets/lookbook/lookbook-port.webp?v=1" alt="Lookbook ELLIA PARIS — Port Saint-Tropez" /><div class="cap"><div class="t">Port</div><div class="s">Collection Signature</div></div></div>
+      <div class="look-card reveal"><img loading="lazy" decoding="async" src="assets/lookbook/lookbook-palais.webp?v=1" alt="Lookbook ELLIA PARIS — Palais" /><div class="cap"><div class="t">Palais</div><div class="s">Collection Signature</div></div></div>
+    </div>
+    <div style="text-align:center;margin-top:50px"><a href="maison.html" class="btn">Découvrir le lookbook</a></div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="pad news">
+  <div class="wrap"><div class="reveal" style="max-width:640px;margin:0 auto;text-align:center">
+    <div class="eyebrow">Le Cercle ELLIA</div>
+    <h2>Entrez dans la confidence</h2>
+    <p>Nouvelles pièces, éditions limitées et invitations privées. Rien d'autre.</p>
+    <form onsubmit="return false" style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <input type="email" placeholder="Votre adresse e-mail" required style="flex:1;min-width:240px;padding:14px 18px;border:1px solid rgba(0,0,0,.2);background:transparent;font-family:var(--sans);font-size:14px" />
+      <button type="submit" class="btn">S'inscrire</button>
+    </form>
+  </div></div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" />
+        <p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p>
+      </div>
+      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li><li><a href="journal/">Journal</a></li></ul></div>
+      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison &amp; retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h4>Suivez-nous</h4><ul><li><a href="https://instagram.com/ellia.paris" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@elliaparis" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://pinterest.com/elliaparis" rel="noopener" target="_blank">Pinterest</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 ELLIA PARIS — Tous droits réservés.</div>
+      <div><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js?v=1780900000"></script>
+<script src="cart.js?v=1780900000"></script>
+</body>
+</html>
+
+<!-- v9 fix OneDrive truncation -->
+</section>
+<script src="app.js?v=1780900000"></script>
+<script src="cart.js?v=1780900000"></script>
+</body>
+</html>
