@@ -21,6 +21,26 @@
   .cart-sum .v{font-family:var(--serif);font-size:40px}
   .empty{text-align:center;padding:40px 0}
   .empty p{color:var(--gris-txt);margin:14px 0 28px}
+
+  /* ============ Panier — polish mobile ============ */
+  @media (max-width:768px){
+    .cart-wrap{padding:0 18px}
+    .cart-line{
+      grid-template-columns: 1fr auto;
+      gap: 12px 14px;
+      padding: 22px 0;
+      align-items: start;
+    }
+    .cart-line .nm{font-size:17px;line-height:1.25}
+    .cart-line .meta{font-size:12px;margin-top:4px;word-break:break-word}
+    .cart-line .pr{font-size:17px}
+    .cart-line .rm{font-size:10.5px;min-height:36px;padding-top:8px}
+    .cart-sum{margin:24px 0;padding-top:20px}
+    .cart-sum .v{font-size:30px}
+    .cta-row{flex-direction:column;gap:10px}
+    .cta-row .btn{width:100%;text-align:center;min-height:48px;padding:14px 20px;font-size:11px}
+    .empty p{font-size:15px;padding:0 12px}
+  }
 </style>
 <meta name="description" content="Votre panier ELLIA PARIS — finalisez votre commande." />
 <meta name="robots" content="noindex,nofollow" />

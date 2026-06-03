@@ -29,6 +29,31 @@
   .acct-note{font-size:13px;color:var(--gris-txt);margin-bottom:22px}
   .acct-note a{color:var(--noir);text-decoration:underline}
   .err{color:#b1432f;font-size:13px;margin-top:10px;min-height:18px}
+
+  /* ============ Checkout — polish mobile ============ */
+  @media (max-width:860px){
+    .co-grid{grid-template-columns:1fr;gap:30px;padding:0 18px}
+    /* Récap en haut sur mobile : on voit ce qu'on paye avant de remplir */
+    .co-summary{order:-1;padding:24px 22px;border-radius:0}
+    .co-summary h3{font-size:18px;margin-bottom:16px}
+    .co-tot .v{font-size:28px}
+    .co-form h3{font-size:17px}
+    .co-form .frow{grid-template-columns:1fr;gap:14px}
+    .co-field{margin-bottom:14px}
+    .co-field input,
+    .co-field select,
+    .co-field textarea{font-size:16px !important;min-height:48px;padding:13px 14px}
+    .co-sep{margin:24px 0 14px;padding-top:18px}
+    .co-check{font-size:13.5px;padding:12px;background:#fafaf7;border:1px solid var(--ligne)}
+    .pay-note{font-size:12px;padding:11px 14px}
+    .acct-note{font-size:12.5px;padding:0 4px}
+    /* Bouton final pleine largeur, sticky en bas si possible */
+    .co-summary .btn{width:100%;text-align:center;min-height:50px;padding:15px 20px;font-size:11.5px}
+  }
+  @media (max-width:480px){
+    .co-summary{padding:20px 18px}
+    .co-tot .v{font-size:26px}
+  }
 </style>
 <meta name="description" content="Validez votre commande ELLIA PARIS en toute sécurité." />
 <meta name="robots" content="noindex,nofollow" />

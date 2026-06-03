@@ -308,6 +308,63 @@ section{position:relative}
   .perso-panel{padding-bottom:90px}
 }
 
+/* ============ Configurateur 3D — polish mobile ============ */
+@media (max-width:768px){
+  /* Viewer 3D : taille adaptée au viewport */
+  #viewer3d{aspect-ratio: 1/1; max-height: 60vh}
+  /* Cartes accordion : padding moins serré, touch zones plus grandes */
+  .eng-card-head{padding: 16px 16px}
+  .eng-card-ic{width: 36px; height: 36px}
+  .eng-card-ic img{max-width: 26px; max-height: 26px}
+  .eng-card-title{font-size: 15px}
+  .eng-card-meta{font-size: 10.5px}
+  .eng-card-toggle.add{padding: 10px 14px; min-height: 40px}
+  .eng-card-body{padding: 16px 16px 18px}
+  /* Picker symboles : 4 cols sur mobile (au lieu de potentiellement 5) */
+  #symbolPicker, #extraPicker, #extra2Picker, #extra3Picker{
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+  /* Swatches finitions : 4 colonnes, plus grandes */
+  .swatches{
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+  .swatches .sw{
+    min-height: 56px;
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .swatches .sw .dot{width: 22px; height: 22px}
+  .swatches .sw small{font-size: 9.5px; letter-spacing: .08em}
+  /* Place buttons : aérés en 3x3 mobile */
+  .placements.grid3{aspect-ratio: 3/1.4}
+  .placements.grid3 .place-btn{
+    padding: 9px 4px;
+    font-size: 9.5px;
+    letter-spacing: .12em;
+  }
+  /* Eng-card-static (bloc Initiales) : moins de padding sur mobile */
+  .eng-card-static{padding: 18px 18px 14px}
+}
+
+@media (max-width:480px){
+  /* Très petits écrans : picker en 4 colonnes ultra compact */
+  #symbolPicker, #extraPicker, #extra2Picker, #extra3Picker{
+    gap: 4px !important;
+  }
+  .sym-btn{padding: 8px 2px 6px}
+  .sym-btn .sym-ic{width: 26px; height: 26px}
+  .sym-btn small{font-size: 8.5px; letter-spacing: .06em}
+  /* Place-btn texte raccourci visuellement */
+  .placements.grid3 .place-btn{font-size: 9px; padding: 8px 2px}
+}
+
 /* Newsletter */
 .news{text-align:center;background:var(--ivoire)}
 .news h2{font-size:clamp(32px,4.6vw,58px);margin:18px 0}
@@ -550,6 +607,214 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   a,button,.btn,.nav-ico,.burger,.sw,.place-btn{-webkit-tap-highlight-color:rgba(13,13,13,.08)}
   /* Évite le délai de 300ms sur certains anciens browsers mobile */
   body{touch-action:manipulation}
+}
+
+/* ============================================================
+   SAFE AREAS iPhone (notch, Dynamic Island, home indicator)
+   ============================================================ */
+@supports (padding: env(safe-area-inset-top)) {
+  /* Header global : respecte le notch en haut */
+  header#header .bar{
+    padding-left: max(40px, env(safe-area-inset-left));
+    padding-right: max(40px, env(safe-area-inset-right));
+  }
+  @media (max-width:768px){
+    header#header .bar{
+      padding-left: max(22px, env(safe-area-inset-left));
+      padding-right: max(22px, env(safe-area-inset-right));
+    }
+  }
+  /* Sticky CTA bar (configurateur) : respecte le home indicator iPhone */
+  .cta-stickbar{
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  @media (max-width:860px){
+    .cta-stickbar{
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .perso-panel{
+      padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    }
+  }
+  /* Mobile menu fullscreen : respecte le notch */
+  .mobile-menu{
+    padding-top: max(40px, calc(40px + env(safe-area-inset-top)));
+    padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
+  }
+  /* Bandeau cookies en bas : respecte le home indicator */
+  #cookieBar{
+    padding-bottom: max(14px, calc(14px + env(safe-area-inset-bottom))) !important;
+  }
+  /* Footer : breathing room sur les côtés */
+  footer#contact .wrap{
+    padding-left: max(40px, env(safe-area-inset-left));
+    padding-right: max(40px, env(safe-area-inset-right));
+  }
+}
+
+/* ============================================================
+   ARTICLES JOURNAL — lisibilité long-format mobile
+   ============================================================ */
+@media (max-width:768px){
+  /* Hero article : padding-top plus serré sur mobile (header moins haut) */
+  article > header.article-hero{
+    padding: 110px 20px 24px !important;
+  }
+  article > header.article-hero h1{
+    font-size: clamp(28px, 7vw, 38px) !important;
+    line-height: 1.18 !important;
+  }
+  article > header.article-hero .breadcrumb{
+    margin-bottom: 22px !important;
+    font-size: 10px !important;
+  }
+  article > header.article-hero .article-eyebrow{
+    margin-bottom: 14px !important;
+  }
+  article > header.article-hero .article-meta{
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 10.5px;
+    justify-content: center;
+  }
+  article > header.article-hero .article-meta .dot{display: none}
+  /* Cover image mobile : moins de padding */
+  article > figure.article-cover{
+    padding: 0 16px !important;
+    margin-top: 24px !important;
+  }
+  article > figure.article-cover figcaption{
+    margin-top: 12px !important;
+    font-size: 11px !important;
+  }
+  /* Body article : taille texte plus confortable */
+  article > div.article-body{
+    margin: 36px auto !important;
+    padding: 0 22px !important;
+    font-size: 17px !important;
+    line-height: 1.78 !important;
+  }
+  article > div.article-body .lead{
+    font-size: 19.5px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 28px !important;
+    padding-bottom: 24px !important;
+  }
+  article > div.article-body h2{
+    font-size: 25px !important;
+    line-height: 1.25 !important;
+    margin: 42px 0 18px !important;
+  }
+  article > div.article-body h3{
+    font-size: 19.5px !important;
+    margin: 30px 0 14px !important;
+  }
+  article > div.article-body p{margin-bottom: 22px !important}
+  article > div.article-body blockquote{
+    margin: 30px 0 !important;
+    padding-left: 22px !important;
+    font-size: 18px !important;
+    line-height: 1.5 !important;
+  }
+  article > div.article-body .key-fact{
+    padding: 20px 22px !important;
+    margin: 28px 0 !important;
+    font-size: 15px !important;
+  }
+  article > div.article-body ul{padding-left: 20px !important}
+  /* CTA box dark : padding réduit */
+  article > aside.article-cta{
+    margin: 40px 16px !important;
+    padding: 38px 24px !important;
+    max-width: none !important;
+  }
+  article > aside.article-cta h3{font-size: 24px !important;line-height: 1.2}
+  article > aside.article-cta p{font-size: 14px !important}
+  /* Related articles : 1 colonne sur mobile */
+  article > section.article-related{
+    padding: 44px 16px !important;
+  }
+  article > section.article-related h2{font-size: 24px !important}
+  article > section.article-related .related-grid{
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* ============================================================
+   JOURNAL INDEX — Grille articles mobile
+   ============================================================ */
+@media (max-width:768px){
+  .jl-grid{gap: 28px !important}
+  .jl-card .jl-body{padding: 22px 22px 24px !important}
+  .jl-card .jl-title{font-size: 22px !important;line-height: 1.22 !important}
+  .jl-card .jl-excerpt{font-size: 14px !important}
+}
+
+/* ============================================================
+   STICKY CTA fiche pochette — visible sur mobile
+   (à activer en ajoutant class="cta-stickbar-product" dans pochette.html)
+   ============================================================ */
+.product-sticky-cta{
+  display: none;
+}
+@media (max-width:860px){
+  .product-sticky-cta{
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 90;
+    background: rgba(255,255,255,.97);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-top: 1px solid var(--ligne);
+    padding: 12px 18px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 -2px 14px rgba(0,0,0,.06);
+  }
+  .product-sticky-cta .pscta-info{flex:1;display:flex;flex-direction:column;line-height:1.1}
+  .product-sticky-cta .pscta-lab{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gris-txt)}
+  .product-sticky-cta .pscta-price{font-family:var(--serif);font-size:22px;color:var(--noir);margin-top:3px}
+  .product-sticky-cta .btn{padding:13px 22px;font-size:11px;flex-shrink:0;min-height:44px}
+  /* Pousse le footer pour laisser place à la sticky bar mobile */
+  body:has(.product-sticky-cta) footer#contact{padding-bottom: 90px}
+}
+
+/* ============================================================
+   AMÉLIORATIONS MOBILE GLOBALES
+   ============================================================ */
+@media (max-width:768px){
+  /* Scroll smooth mais qui respect prefers-reduced-motion */
+  html{scroll-behavior: smooth}
+  /* Burger menu : feedback tactile */
+  .burger{transition: transform .15s ease}
+  .burger:active{transform: scale(0.94)}
+  /* Mobile menu : animation d'entrée plus fluide */
+  .mobile-menu{transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .25s}
+  /* Images : empêcher le drag/sélection sur mobile (UX native) */
+  img{-webkit-user-drag: none; user-select: none}
+  /* Inputs : style focus plus visible */
+  input:focus, textarea:focus, select:focus{
+    outline: 2px solid #0d0d0d;
+    outline-offset: 2px;
+  }
+  /* Liens : feedback actif */
+  a:active{opacity: .75}
+}
+
+/* ============================================================
+   FIX SPÉCIFIQUES iOS Safari
+   ============================================================ */
+@supports (-webkit-touch-callout: none) {
+  /* Évite que 100vh inclue la barre URL Safari (utiliser 100dvh ou min-height) */
+  .hero{min-height: -webkit-fill-available}
+  /* Empêche le double-tap zoom sur les boutons */
+  .btn, button{touch-action: manipulation}
+  /* Améliore la performance scroll iOS */
+  body{-webkit-overflow-scrolling: touch}
 }
 
 /* ============ POLISH HERO + IMAGES DESKTOP ============ */
