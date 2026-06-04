@@ -55,7 +55,7 @@ body.has-mouse .cursor,body.has-mouse .cursor-dot{opacity:1}
 @media (hover:none){.cursor,.cursor-dot{display:none}}
 
 /* Nav */
-header{position:fixed;top:0;left:0;width:100%;z-index:1000;transition:background .5s var(--ease),padding .5s var(--ease),border-color .5s;border-bottom:1px solid rgba(0,0,0,0)}
+header{position:fixed;top:0;left:0;width:100%;z-index:1000;padding-top:env(safe-area-inset-top,0px);transition:background .5s var(--ease),padding .5s var(--ease),border-color .5s;border-bottom:1px solid rgba(0,0,0,0)}
 header .bar{display:flex;align-items:center;justify-content:space-between;padding:24px 40px}
 header.scrolled,header.solid{background:rgba(243,241,236,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--ligne-soft)}
 header.scrolled .bar,header.solid .bar{padding:15px 40px}
@@ -471,9 +471,10 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .foot-grid > div:first-child{grid-column:1/-1}
   .foot-bottom{flex-direction:column;gap:12px;text-align:center}
 
-  /* Page hero */
-  .page-hero{padding:calc(120px + env(safe-area-inset-top,0px)) 28px 56px}
+  /* Page hero — marge confortable sous header + notch */
+  .page-hero{padding:calc(140px + env(safe-area-inset-top,0px)) 28px 56px}
   .page-hero h1{font-size:clamp(38px,9vw,64px)}
+  .page-hero .eyebrow{margin-top:0 !important}
 
   /* News */
   .news form{flex-direction:column;gap:12px}
@@ -512,7 +513,7 @@ footer{background:var(--blanc);border-top:1px solid var(--ligne);padding:80px 0 
   .foot-grid > div:first-child{grid-column:auto}
   .foot-logo{margin:0 auto}
   .news h2{font-size:clamp(26px,7vw,38px)}
-  .page-hero{padding:calc(110px + env(safe-area-inset-top,0px)) 18px 48px}
+  .page-hero{padding:calc(130px + env(safe-area-inset-top,0px)) 18px 48px}
   .page-hero h1{font-size:clamp(34px,10vw,52px)}
   .price{font-size:32px}
   .bio-visual{padding:0}
