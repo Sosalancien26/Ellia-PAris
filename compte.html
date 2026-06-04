@@ -51,18 +51,33 @@
 <header id="header" class="solid">
   <div class="bar">
     <a href="index.html"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
-    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a></nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
 <section class="pad page-top" style="padding-top:130px"><div class="acct-layout">
   <aside class="acct-side">
     <div class="acct-hello" id="hello">Bonjour</div>
     <div class="acct-mail" id="mail"></div>
+    <button id="editEmailBtn" type="button" style="background:none;border:none;font-family:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;cursor:pointer;padding:6px 0;margin-bottom:14px;text-decoration:underline">Modifier mon email</button>
+    <!-- Modale changement d'email -->
+    <div id="emailModal" style="display:none;position:fixed;inset:0;background:rgba(13,13,13,.55);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 18px;overflow-y:auto">
+      <div style="background:#fff;max-width:460px;width:100%;padding:32px 30px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.3)">
+        <button id="emailModalClose" type="button" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:#6a655d">×</button>
+        <h3 style="font-family:var(--serif);font-size:22px;margin-bottom:6px">Modifier l'email du compte</h3>
+        <p style="font-size:13px;color:#6a655d;margin-bottom:18px;line-height:1.55">Pour confirmer, saisis ton mot de passe actuel. Un email de validation sera envoyé à ta nouvelle adresse.</p>
+        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px">Nouvel email</label>
+        <input id="newEmailInput" type="email" autocomplete="email" placeholder="nouvel@email.com" style="width:100%;padding:13px 14px;border:1px solid rgba(0,0,0,.12);font-family:inherit;font-size:15px;margin-bottom:14px;background:#fafaf7">
+        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px">Mot de passe actuel</label>
+        <input id="currentPwInput" type="password" autocomplete="current-password" placeholder="••••••••" style="width:100%;padding:13px 14px;border:1px solid rgba(0,0,0,.12);font-family:inherit;font-size:15px;margin-bottom:14px;background:#fafaf7">
+        <button id="emailModalSave" type="button" style="width:100%;padding:14px;background:#0d0d0d;color:#fff;border:none;font-family:inherit;font-size:11px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer">Envoyer l'email de validation</button>
+        <div id="emailModalMsg" style="font-size:13px;margin-top:12px;text-align:center"></div>
+      </div>
+    </div>
     <nav>
       <div class="grp">Mes commandes</div>
       <button class="navbtn active" data-tab="encours">En cours</button>
@@ -138,7 +153,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   const card=o=>'<a class="ocard" href="commande.html?n='+encodeURIComponent(o.numero)+'">'+
       '<img loading="lazy" decoding="async" src="assets/product-1.jpg" alt="Pochette">'+
       '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+(o.created_at||'').slice(0,10)+'</div>'+
-      '<div class="ocard-name">La Pochette Ellia — Noir</div>'+
+      '<div class="ocard-name">La Pochette ELLIA — Noir</div>'+
       '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
       '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+o.statut+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
   let orders=[]; try{ const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false}); orders=r.data||[]; }catch(e){}
@@ -148,6 +163,30 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   f('termineesList').innerHTML = term.length?term.map(card).join(''):'<p class="empty">Aucune commande terminée.</p>';
 
   f('logout').addEventListener('click', async e=>{ e.preventDefault(); await SB.auth.signOut(); location.href='index.html'; });
+
+  /* === Changement d'email === */
+  const em = f('emailModal');
+  f('editEmailBtn').addEventListener('click', ()=>{ em.style.display='flex'; f('newEmailInput').value=''; f('currentPwInput').value=''; f('emailModalMsg').textContent=''; });
+  f('emailModalClose').addEventListener('click', ()=>{ em.style.display='none'; });
+  em.addEventListener('click', e=>{ if(e.target===em) em.style.display='none'; });
+  f('emailModalSave').addEventListener('click', async ()=>{
+    const msg = f('emailModalMsg');
+    const newEmail = f('newEmailInput').value.trim().toLowerCase();
+    const pw = f('currentPwInput').value;
+    const btn = f('emailModalSave');
+    if(!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){ msg.style.color='#b1432f'; msg.textContent='Email invalide.'; return; }
+    if(!pw){ msg.style.color='#b1432f'; msg.textContent='Mot de passe requis.'; return; }
+    if(newEmail===user.email){ msg.style.color='#b1432f'; msg.textContent="C'est déjà ton email actuel."; return; }
+    btn.disabled=true; btn.textContent='Vérification…'; msg.style.color='#6a655d'; msg.textContent='';
+    // 1. Vérifier mot de passe
+    const { error: pwErr } = await SB.auth.signInWithPassword({ email: user.email, password: pw });
+    if(pwErr){ msg.style.color='#b1432f'; msg.textContent='Mot de passe incorrect.'; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; return; }
+    // 2. Demander changement d'email (Supabase envoie un email de validation)
+    const { error: upErr } = await SB.auth.updateUser({ email: newEmail });
+    if(upErr){ msg.style.color='#b1432f'; msg.textContent='Erreur : '+upErr.message; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; return; }
+    msg.style.color='#2f7d52'; msg.textContent='Email envoyé à '+newEmail+'. Clique sur le lien pour confirmer.';
+    btn.textContent='Envoyé ✓'; setTimeout(()=>{ em.style.display='none'; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; }, 4000);
+  });
 })();
 </script>
 <script src="cookies-banner.js?v=1780400812" defer></script>

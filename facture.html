@@ -73,7 +73,7 @@
   const date = (o.created_at||'').slice(0,10).split('-').reverse().join('/');
   const lignes = [];
   const grav = o.initiales ? ' — Gravure '+o.initiales+' ('+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')+')' : '';
-  lignes.push({nom:'La Pochette Ellia — Noir'+grav, prix:ttc});
+  lignes.push({nom:'La Pochette ELLIA — Noir'+grav, prix:ttc});
   const adresse = [o.adresse_livraison,((o.cp_livraison||'')+' '+(o.ville_livraison||'')).trim(),o.pays_livraison].filter(Boolean).join('<br>');
   sheet.innerHTML =
     '<div class="top">'+

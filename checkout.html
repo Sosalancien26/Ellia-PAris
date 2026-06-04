@@ -41,12 +41,12 @@
 <header id="header" class="solid">
   <div class="bar">
     <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
-    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a></nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
 <section class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(!items.length){ location.href='panier.html'; return; }
   const persoTxt=it=>it.initiales?('Gravure : '+it.initiales+' · '+it.finition+' · '+it.emplacement):'Sans gravure';
   document.getElementById('coItems').innerHTML=items.map(it=>
-    '<div class="co-item"><div>'+(it.nom||'La Pochette Ellia')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
+    '<div class="co-item"><div>'+(it.nom||'La Pochette ELLIA')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
   document.getElementById('coTotal').textContent=eur(Cart.total());
 
   // Facturation identique -> afficher/masquer
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function(){
     validateBtn.disabled = true;
     try{
       const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(r.status===409){ err.textContent='Désolé, La Pochette est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
+      if(r.status===409){ err.textContent='Désolé, La Pochette ELLIA est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
       if(r.ok){ const dd=await r.json(); if(dd&&dd.numero) numero=dd.numero; }
       else { err.textContent='Erreur lors de la création de la commande. Réessayez.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
     }catch(e){ err.textContent='Connexion impossible. Vérifiez votre connexion internet.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }

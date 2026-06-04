@@ -34,14 +34,14 @@
   <div class="bar">
     <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
     <nav class="links">
-      <a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a>
+      <a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a>
       <a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a>
     </nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
 <section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Votre sélection</div><h1>Panier</h1></div></section>
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     list.innerHTML=items.map((it,i)=>
       '<div class="cart-line" style="align-items:center">'+previewImg(it)+
-      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette Ellia')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
+      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette ELLIA')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
       '<div class="pr">'+eur(it.prix)+'</div>'+
       '<button class="rm" data-i="'+i+'">Retirer</button></div>').join('');
     foot.innerHTML='<div class="cart-sum"><span class="l">Total</span><span class="v">'+eur(Cart.total())+'</span></div>'+
