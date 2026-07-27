@@ -25,4 +25,3 @@ User-agent: ClaudeBot
 Disallow: /
 
 Sitemap: https://ellia-paris.fr/sitemap.xml
-</content>
