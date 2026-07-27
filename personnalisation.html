@@ -568,7 +568,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette.glb?v=27', (gltf)=>{
+  loader.load('assets/pochette.glb?v=28', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===
