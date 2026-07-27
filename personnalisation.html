@@ -240,7 +240,7 @@
                 <button class="place-btn" data-pos="bg">Bas gauche</button>
                 <button class="place-btn active" data-pos="bd">Bas droit</button>
               </div>
-              <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <p id="extraCollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par un autre symbole.</p>
               <button type="button" class="eng-card-remove" data-remove="extra" style="margin-top:14px">Retirer ce symbole</button>
             </div>
           </div>
@@ -284,7 +284,7 @@
                 <button class="place-btn" data-pos="bg">Bas gauche</button>
                 <button class="place-btn" data-pos="bd">Bas droit</button>
               </div>
-              <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <p id="extra2CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par un autre symbole.</p>
               <button type="button" class="eng-card-remove" data-remove="extra2" style="margin-top:14px">Retirer ce symbole</button>
             </div>
           </div>
@@ -328,7 +328,7 @@
                 <button class="place-btn active" data-pos="bg">Bas gauche</button>
                 <button class="place-btn" data-pos="bd">Bas droit</button>
               </div>
-              <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par une autre gravure.</p>
+              <p id="extra3CollisionWarning" style="margin-top:10px;font-size:12px;color:#b1432f;display:none">⚠ Cet emplacement est déjà utilisé par un autre symbole.</p>
               <button type="button" class="eng-card-remove" data-remove="extra3" style="margin-top:14px">Retirer ce symbole</button>
             </div>
           </div>
@@ -901,31 +901,41 @@ function initConfigurator(){
       bg:     [ b.x + mx,           b.y + my ],
       bd:     [ b.X - mx,           b.y + my ]
     };
-    // Centre INITIALES
+    // === EMPILAGE TEXTE + SYMBOLE au meme emplacement ===
+    // Regles : "bas"  -> texte en bas, symbole juste au-dessus
+    //          "haut" -> texte en haut, symbole juste en dessous
+    //          "centre" -> la paire est centree (texte 1/2 cran plus bas, symbole 1/2 cran plus haut)
+    const hasInitTxt = (state.initials||'').trim().length > 0;
+    const dyStack = hH * 0.18;  // separation verticale
+    const symbolSharesPos = (pos) =>
+      (state.useHebrew && state.flamePlacement === pos) ||
+      (state.useExtra  && state.extraPlacement === pos) ||
+      (state.useExtra2 && state.extra2Placement === pos) ||
+      (state.useExtra3 && state.extra3Placement === pos);
+    // Decale un symbole par rapport au texte partageant le meme emplacement
+    const stackSymbolY = (pos, baseY) => {
+      if (pos === 'bg' || pos === 'bd') return baseY + dyStack;        // au-dessus du texte
+      if (pos === 'centre')             return baseY + dyStack * 0.5;  // demi-cran au-dessus (paire centree)
+      return baseY - dyStack;                                          // haut : en dessous du texte
+    };
+    // Centre INITIALES — si un symbole partage le "centre", le texte descend d'un demi-cran (paire centree)
     const posInit = positions[state.placement] || positions.centre;
-    u.uEngraveCenter.value.set(posInit[0], posInit[1], b.z);
-    // Centre FLAMME (independant) + auto-offset si meme emplacement que les initiales
+    let initY = posInit[1];
+    if (hasInitTxt && state.placement === 'centre' && symbolSharesPos('centre')) initY -= dyStack * 0.5;
+    u.uEngraveCenter.value.set(posInit[0], initY, b.z);
+    // Centre FLAMME (independant) + empilage si meme emplacement que les initiales
     let posFlame = positions[state.flamePlacement] || positions.hg;
     let flameY = posFlame[1];
-    if (state.useHebrew && (state.initials||'').trim().length > 0 && state.placement === state.flamePlacement) {
-      // Auto-offset Y intelligent : flamme en dessous si haut/centre, au dessus si bas
-      const dy = hH * 0.18;  // separation verticale
-      if (state.placement === 'bg' || state.placement === 'bd') {
-        flameY = posFlame[1] + dy;   // remonte au dessus
-      } else {
-        flameY = posFlame[1] - dy;   // descend en dessous (cas haut + centre)
-      }
+    if (state.useHebrew && hasInitTxt && state.placement === state.flamePlacement) {
+      flameY = stackSymbolY(state.flamePlacement, posFlame[1]);
     }
     u.uFlameCenter.value.set(posFlame[0], flameY, b.z);
     // Centre EXTRA (2e symbole) — independant aussi
     let posExtra = positions[state.extraPlacement] || positions.bd;
     let extraY = posExtra[1];
-    // Auto-offset si conflit avec initiales OU avec flame
     if (state.useExtra) {
-      const dy = hH * 0.18;
-      if (state.extraPlacement === state.placement && (state.initials||'').trim().length > 0) {
-        if (state.extraPlacement === 'bg' || state.extraPlacement === 'bd') extraY = posExtra[1] + dy;
-        else extraY = posExtra[1] - dy;
+      if (state.extraPlacement === state.placement && hasInitTxt) {
+        extraY = stackSymbolY(state.extraPlacement, posExtra[1]);
       }
       // Si conflit avec flame, decaler horizontalement
       if (state.useHebrew && state.extraPlacement === state.flamePlacement) {
@@ -940,14 +950,18 @@ function initConfigurator(){
     let extra2X = posExtra2[0], extra2Y = posExtra2[1];
     if (state.useExtra2) {
       const dy = hH * 0.18, dx = w * 0.18;
-      const conflict = (state.extra2Placement === state.placement && (state.initials||'').trim().length>0)
-                    || (state.useHebrew && state.extra2Placement === state.flamePlacement)
+      const confSym2 = (state.useHebrew && state.extra2Placement === state.flamePlacement)
                     || (state.useExtra && state.extra2Placement === state.extraPlacement);
-      if (conflict) {
+      const confInit2 = state.extra2Placement === state.placement && hasInitTxt;
+      if (confSym2) {
+        // conflit entre symboles : decalage diagonal (comportement historique)
         if (state.extra2Placement === 'bg' || state.extra2Placement === 'bd') extra2Y = posExtra2[1] + dy*0.6;
         else extra2Y = posExtra2[1] - dy*0.6;
         if (state.extra2Placement === 'hg' || state.extra2Placement === 'bg') extra2X = posExtra2[0] + dx*0.6;
         else extra2X = posExtra2[0] - dx*0.6;
+      } else if (confInit2) {
+        // partage avec le texte : empilage vertical propre
+        extra2Y = stackSymbolY(state.extra2Placement, posExtra2[1]);
       }
     }
     u.uExtra2Center.value.set(extra2X, extra2Y, b.z);
@@ -956,15 +970,17 @@ function initConfigurator(){
     let extra3X = posExtra3[0], extra3Y = posExtra3[1];
     if (state.useExtra3) {
       const dy = hH * 0.18, dx = w * 0.18;
-      const conflict = (state.extra3Placement === state.placement && (state.initials||'').trim().length>0)
-                    || (state.useHebrew && state.extra3Placement === state.flamePlacement)
+      const confSym3 = (state.useHebrew && state.extra3Placement === state.flamePlacement)
                     || (state.useExtra && state.extra3Placement === state.extraPlacement)
                     || (state.useExtra2 && state.extra3Placement === state.extra2Placement);
-      if (conflict) {
+      const confInit3 = state.extra3Placement === state.placement && hasInitTxt;
+      if (confSym3) {
         if (state.extra3Placement === 'bg' || state.extra3Placement === 'bd') extra3Y = posExtra3[1] + dy*0.6;
         else extra3Y = posExtra3[1] - dy*0.6;
         if (state.extra3Placement === 'hg' || state.extra3Placement === 'bg') extra3X = posExtra3[0] + dx*0.6;
         else extra3X = posExtra3[0] - dx*0.6;
+      } else if (confInit3) {
+        extra3Y = stackSymbolY(state.extra3Placement, posExtra3[1]);
       }
     }
     u.uExtra3Center.value.set(extra3X, extra3Y, b.z);
@@ -1567,7 +1583,11 @@ function initConfigurator(){
   // === UX PREVENTIVE : grise les emplacements deja utilises par d'autres gravures ===
   function getOccupiedPlacements(excludeOwner){
     const occ = new Set();
-    if ((state.initials||'').trim().length > 0 && excludeOwner !== 'initiales') occ.add(state.placement);
+    // Le texte (initiales) et un symbole PEUVENT partager le meme emplacement :
+    // ils s'empilent automatiquement (texte en bas + symbole au-dessus si "bas",
+    // texte en haut + symbole en dessous si "haut", paire centree si "centre").
+    // Seuls les AUTRES SYMBOLES bloquent l'emplacement d'un symbole.
+    if (excludeOwner === 'initiales') return occ; // le texte n'est jamais bloque
     if (state.useHebrew && excludeOwner !== 'flame') occ.add(state.flamePlacement);
     if (state.useExtra && excludeOwner !== 'extra') occ.add(state.extraPlacement);
     if (state.useExtra2 && excludeOwner !== 'extra2') occ.add(state.extra2Placement);
@@ -1594,10 +1614,10 @@ function initConfigurator(){
   function checkExtraCollision(){
     if (!extraCollisionWarning) return false;
     const ep = state.extraPlacement;
-    const init = (state.initials||'').trim().length > 0 && state.placement === ep;
+    // Le texte peut partager l'emplacement (empilage auto) — seuls les symboles se bloquent
     const flam = state.useHebrew && state.flamePlacement === ep;
     updateDisabledPlacements();
-    if (init || flam) {
+    if (flam) {
       extraCollisionWarning.style.display = 'block';
       return true;
     }
@@ -1673,8 +1693,7 @@ function initConfigurator(){
   function checkExtra2Collision(){
     const el = document.getElementById('extra2CollisionWarning'); if(!el) return false;
     const ep = state.extra2Placement;
-    const conflict = ((state.initials||'').trim().length>0 && state.placement === ep)
-                  || (state.useHebrew && state.flamePlacement === ep)
+    const conflict = (state.useHebrew && state.flamePlacement === ep)
                   || (state.useExtra && state.extraPlacement === ep);
     updateDisabledPlacements();
     el.style.display = conflict ? 'block' : 'none';
@@ -1724,8 +1743,7 @@ function initConfigurator(){
   function checkExtra3Collision(){
     const el = document.getElementById('extra3CollisionWarning'); if(!el) return false;
     const ep = state.extra3Placement;
-    const conflict = ((state.initials||'').trim().length>0 && state.placement === ep)
-                  || (state.useHebrew && state.flamePlacement === ep)
+    const conflict = (state.useHebrew && state.flamePlacement === ep)
                   || (state.useExtra && state.extraPlacement === ep)
                   || (state.useExtra2 && state.extra2Placement === ep);
     updateDisabledPlacements();
