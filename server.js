@@ -174,7 +174,7 @@ function engravingLines(it){
 function lineItems(items){
   if(!items || !items.length) return '';
   const rows = items.map(it => '<tr>' +
-    '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + (it.nom||'La Pochette Ellia') +
+    '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + (it.nom||'La Pochette ELLIA') +
     engravingLines(it) +
     '</td>' +
     '<td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap;vertical-align:top">' + euro(it.prix) + '</td></tr>').join('');
@@ -239,7 +239,7 @@ function _notifyNewOrderInternal(d, numero){
   // Header image : preview pochette personnalisee (via CID) OU product-1.jpg en fallback
   const headerImg = hasPreview
     ? '<img src="cid:' + previewCid + '" alt="Votre pochette personnalisee" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
-    : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette Ellia" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
+    : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette ELLIA" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
   const previewLabel = hasPreview
     ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
     : '';
@@ -395,7 +395,7 @@ const TYPES = {
 
 /* ----- Donnees de demonstration (si Supabase non configure) ----- */
 const MOCK_PRODUCTS = [
-  { ref:'ELLIA-NOIR', nom:'La Pochette Ellia — Noir', prix:159, stock:24, seuil:8 },
+  { ref:'ELLIA-NOIR', nom:'La Pochette ELLIA — Noir', prix:159, stock:24, seuil:8 },
   { ref:'ELLIA-PERSO', nom:'Gravure initiales (option)', prix:59, stock:999, seuil:0 }
 ];
 const MOCK_ORDERS = [
@@ -815,7 +815,7 @@ const server = http.createServer(async (req, res) => {
                       preview: o.preview, // INCLUS dans l'email !
                       // Reconstruit items depuis items_data (JSONB) OU fallback sur initiales seules
                       items: Array.isArray(o.items_data) && o.items_data.length ? o.items_data : [{
-                        nom:'La Pochette Ellia', prix: o.montant_total,
+                        nom:'La Pochette ELLIA', prix: o.montant_total,
                         initiales: o.initiales, finition: o.finition, emplacement: o.emplacement
                       }]
                     };

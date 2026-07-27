@@ -17,7 +17,7 @@
     <priority>0.9</priority>
     <image:image>
       <image:loc>https://ellia-paris.fr/assets/pochette-back.webp</image:loc>
-      <image:title>La Pochette Ellia — vue arrière</image:title>
+      <image:title>La Pochette ELLIA — vue arrière</image:title>
     </image:image>
     <image:image>
       <image:loc>https://ellia-paris.fr/assets/pochette-fingerprint.jpg</image:loc>
@@ -68,5 +68,35 @@
     <loc>https://ellia-paris.fr/connexion.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/pochette-biometrique-luxe.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/entretien-cuir-graine-noir.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/foil-stamping-or-rose.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/choisir-symbole-grave-pochette.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ellia-paris.fr/journal/idees-cadeau-personnalise-luxe.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
