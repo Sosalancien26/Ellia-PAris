@@ -18,6 +18,7 @@ const http   = require('http');
 const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
+const zlib   = require('zlib');
 let invoiceMod = null;
 try { invoiceMod = require('./invoice'); }
 catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
@@ -1267,6 +1268,18 @@ const server = http.createServer(async (req, res) => {
     if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
     else res.setHeader('Cache-Control','public, max-age=86400, immutable');
     res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
+    // Compression gzip pour les types texte (HTML/CSS/JS/JSON/SVG/XML) — divise le transfert par ~4
+    const compressible = ['.html','.css','.js','.json','.svg','.xml','.txt'].includes(ext);
+    const acceptsGzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    if (compressible && acceptsGzip && buf.length > 1024) {
+      res.setHeader('Vary','Accept-Encoding');
+      zlib.gzip(buf, { level: 6 }, (zerr, zbuf) => {
+        if (zerr) { res.end(buf); return; }
+        res.setHeader('Content-Encoding','gzip');
+        res.end(zbuf);
+      });
+      return;
+    }
     res.end(buf);
   });
 });
