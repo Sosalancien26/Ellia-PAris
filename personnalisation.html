@@ -125,13 +125,6 @@
           <div class="block" style="margin-bottom:24px">
             <span class="field-label">Votre texte de gravure</span>
             <input class="initials-input" id="initials" maxlength="18" value="AB" placeholder="VOTRE TEXTE" autocomplete="off" />
-            <div style="margin-top:18px">
-              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-                <span style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a7363">Taille de la gravure</span>
-                <span id="fontSizeVal" style="font-size:11px;color:#0d0d0d;font-variant-numeric:tabular-nums">100 %</span>
-              </div>
-              <input type="range" id="fontScale" min="50" max="150" step="5" value="100" style="width:100%;accent-color:#0d0d0d;cursor:pointer" />
-            </div>
           </div>
           <div class="block" style="margin-bottom:24px">
             <span class="field-label">Finition des initiales</span>
@@ -1374,17 +1367,8 @@ function initConfigurator(){
     });
     state.initials = initialsInput.value || 'AB';
   }
-  // Slider taille de la police
-  const fontScaleInput = document.getElementById('fontScale');
-  const fontSizeVal   = document.getElementById('fontSizeVal');
-  if (fontScaleInput) {
-    fontScaleInput.addEventListener('input', ()=>{
-      const pct = parseInt(fontScaleInput.value, 10) || 100;
-      state.fontScale = pct / 100;
-      if (fontSizeVal) fontSizeVal.textContent = pct + ' %';
-      schedulePaint();
-    });
-  }
+  // Taille de gravure : fixe (100 % = taille moyenne) — le slider a ete retire de l'UI
+  state.fontScale = 1.0;
   document.querySelectorAll('#swatches .sw').forEach(s=>{
     s.addEventListener('click',()=>{
       document.querySelectorAll('#swatches .sw').forEach(o=>o.classList.remove('active'));
