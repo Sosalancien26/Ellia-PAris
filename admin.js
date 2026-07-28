@@ -86,16 +86,19 @@
     const rowClass = waiting ? 'ord-row ord-waiting' : 'ord-row';
     // Résumé gravure directement visible dans la liste (précieux pour l'atelier)
     const grav = (o.initiales && o.initiales !== '—')
-      ? '<div class="orow-sub" style="color:#8a6d1f">✒ '+esc(o.initiales)+(o.finition && o.finition!=='—' ? ' · '+esc(o.finition) : '')+(o.emplacement ? ' · '+esc(o.emplacement) : '')+'</div>'
-      : '<div class="orow-sub" style="color:#b5b0a6">Sans gravure</div>';
+      ? '<span class="grav-chip">✒ <b>'+esc(o.initiales)+'</b>'+(o.finition && o.finition!=='—' ? ' · '+esc(o.finition) : '')+(o.emplacement ? ' · '+esc(o.emplacement) : '')+'</span>'
+      : '<span class="grav-chip none">Sans gravure</span>';
+    const avatar = '<span class="orow-avatar">'+esc((o.client||'?').trim().charAt(0).toUpperCase()||'?')+'</span>';
     // Statut modifiable directement depuis la liste (sans ouvrir la fiche)
     // Si le statut en base n'est pas dans le referentiel, on l'ajoute pour ne pas afficher/ecrire un faux statut
     const inRef = STATUTS.some(s=>norm(s)===norm(o.statut));
     const sOpts = (inRef?'':'<option selected>'+esc(o.statut)+'</option>')+
       STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
     return '<div class="'+rowClass+'" data-id="'+esc(o.id)+'">'+
+      avatar+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span></div>'+
-        '<div class="orow-sub">'+esc(o.date)+' · '+esc(o.client||'')+'</div>'+grav+'</div>'+
+        '<div class="orow-sub"><b style="color:#3a352d">'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
+        '<div style="margin-top:2px">'+grav+'</div></div>'+
       '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
         '<select class="statut row-statut" data-row-statut="'+o.id+'" title="Changer le statut">'+sOpts+'</select>'+
         '<span class="orow-go">Voir le détail ›</span></div>'+

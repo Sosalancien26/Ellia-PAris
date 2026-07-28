@@ -282,6 +282,24 @@
   /* Grille compta/exports : liens dorés au survol */
   a.of:hover{color:var(--or);border-color:var(--or)}
 
+  /* ── Commandes : fiches maison (monogramme + chip gravure) ── */
+  .orow-avatar{flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:21px;font-weight:600;color:#5a4c22;
+    background:linear-gradient(135deg,#faf6ea,#f0e7cd);border:1px solid rgba(201,162,39,.35);
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.8),0 2px 6px -2px rgba(90,76,34,.25);transition:.25s}
+  .ord-row:hover .orow-avatar{transform:scale(1.06);border-color:var(--or)}
+  .grav-chip{display:inline-block;font-size:11.5px;letter-spacing:.04em;padding:4px 12px;border-radius:14px;
+    background:linear-gradient(135deg,#fdf8ea,#faf3dd);border:1px solid rgba(201,162,39,.3);color:#7a641e}
+  .grav-chip b{font-family:var(--serif);font-size:13px;letter-spacing:.14em}
+  .grav-chip.none{background:#f5f3ee;border-color:rgba(0,0,0,.06);color:#b5b0a6}
+  .ord-row{padding:16px 22px;gap:18px}
+  .oid{letter-spacing:.02em}
+  .orow-sub{font-size:12.5px}
+  /* Le select de statut inline : discret jusqu'au survol */
+  .row-statut{border-radius:16px !important;border-color:rgba(0,0,0,.08) !important;color:#8d867c;font-size:11px !important;transition:.2s}
+  .ord-row:hover .row-statut{border-color:rgba(201,162,39,.5) !important;color:var(--noir)}
+  @media (max-width:700px){.orow-avatar{display:none}}
+
   
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
@@ -777,6 +795,6 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="admin.js?v=1782100000" defer></script>
+<script src="admin.js?v=1782200000" defer></script>
 </body>
 </html>
