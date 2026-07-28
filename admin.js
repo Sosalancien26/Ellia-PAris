@@ -78,10 +78,18 @@
   function ocard(o){
     const waiting = norm(o.statut).includes('attente paiement');
     const rowClass = waiting ? 'ord-row ord-waiting' : 'ord-row';
+    // Résumé gravure directement visible dans la liste (précieux pour l'atelier)
+    const grav = (o.initiales && o.initiales !== '—')
+      ? '<div class="orow-sub" style="color:#8a6d1f">✒ '+esc(o.initiales)+(o.finition && o.finition!=='—' ? ' · '+esc(o.finition) : '')+(o.emplacement ? ' · '+esc(o.emplacement) : '')+'</div>'
+      : '<div class="orow-sub" style="color:#b5b0a6">Sans gravure</div>';
+    // Statut modifiable directement depuis la liste (sans ouvrir la fiche)
+    const sOpts = STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
     return '<div class="'+rowClass+'" data-id="'+o.id+'">'+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
-        '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div></div>'+
-      '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span><span class="orow-go">Voir le détail ›</span></div>'+
+        '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div>'+grav+'</div>'+
+      '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
+        '<select class="statut row-statut" data-row-statut="'+o.id+'" title="Changer le statut">'+sOpts+'</select>'+
+        '<span class="orow-go">Voir le détail ›</span></div>'+
     '</div>';
   }
   function applyFilter(){
@@ -93,6 +101,18 @@
     const box=document.getElementById('ordersBody');
     box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
     box.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
+    // Changement de statut inline : ne pas ouvrir la fiche quand on clique le select
+    box.querySelectorAll('.row-statut').forEach(sel=>{
+      sel.addEventListener('click', e=>e.stopPropagation());
+      sel.addEventListener('change', e=>{
+        e.stopPropagation();
+        const id = sel.dataset.rowStatut, statut = sel.value;
+        const o = ORDERS.find(x=>x.id===id); if(o) o.statut = statut;
+        const b = document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+        fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut})}).catch(()=>{});
+        updateCounts(); updateDashAlert();
+      });
+    });
   }
   function updateCounts(){
     const c=k=>ORDERS.filter(o=>norm(o.statut).includes(k)).length;
@@ -114,7 +134,26 @@
     a.download = 'ellia-commandes-' + new Date().toISOString().slice(0,10) + '.csv';
     document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0);
   }
-  function renderOrders(list){ ORDERS=list; updateCounts(); applyFilter(); }
+  function renderOrders(list){ ORDERS=list; updateCounts(); applyFilter(); updateDashAlert(); }
+
+  /* Bandeau "à traiter" sur le tableau de bord */
+  function updateDashAlert(){
+    const el = document.getElementById('dashAlert'); if(!el) return;
+    const nNew  = ORDERS.filter(o=>norm(o.statut).includes('nouvelle')).length;
+    const nPrep = ORDERS.filter(o=>norm(o.statut).includes('prep') || norm(o.statut).includes('prép')).length;
+    if (!nNew && !nPrep) { el.innerHTML = ''; return; }
+    const parts = [];
+    if (nNew)  parts.push('<b>'+nNew+'</b> nouvelle'+(nNew>1?'s':'')+' commande'+(nNew>1?'s':'')+' à préparer');
+    if (nPrep) parts.push('<b>'+nPrep+'</b> en préparation à expédier');
+    el.innerHTML = '<div id="dashAlertBox" style="display:flex;align-items:center;gap:14px;background:#fdf3e7;border:1px solid #f3dcb6;border-left:4px solid #d18e3d;padding:16px 20px;margin-bottom:24px;cursor:pointer;border-radius:3px">'+
+      '<span style="font-size:22px">📦</span>'+
+      '<span style="font-size:14.5px;color:#7a5215">'+parts.join(' · ')+'</span>'+
+      '<span style="margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a8631e">Voir ›</span></div>';
+    document.getElementById('dashAlertBox').addEventListener('click', ()=>{
+      const t = document.querySelector('.tab[data-tab="orders"]'); if(t) t.click();
+      const f = document.querySelector('#ordFilters .of[data-f="nouvelle"]'); if (nNew && f) f.click();
+    });
+  }
   (function(){
     document.querySelectorAll('#ordFilters .of').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#ordFilters .of').forEach(o=>o.classList.remove('active'));
@@ -125,6 +164,53 @@
   })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* Timeline visuelle du statut (style Shopify) */
+  function statusTimeline(statut){
+    const steps = ['Nouvelle','Préparation','Expédiée','Livrée'];
+    const s = norm(statut);
+    if (s.includes('annul')) return '<div style="margin:14px 0;padding:10px 14px;background:#f5f3ee;color:#888;font-size:12.5px;border-radius:3px">Commande annulée</div>';
+    if (s.includes('attente')) return '';
+    let idx = 0;
+    if (s.includes('prep') || s.includes('prép')) idx = 1;
+    else if (s.includes('exp')) idx = 2;
+    else if (s.includes('livr')) idx = 3;
+    return '<div style="display:flex;align-items:center;margin:16px 0 4px">'+
+      steps.map((st,i)=>{
+        const done = i <= idx;
+        const dot = '<div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;'+
+          (done ? 'background:#0d0d0d;color:#fff' : 'background:#eceae4;color:#b5b0a6')+'">'+(done?'✓':(i+1))+'</div>';
+        const label = '<span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-top:5px;color:'+(done?'#0d0d0d':'#b5b0a6')+'">'+st+'</span>';
+        const line = i < steps.length-1 ? '<div style="flex:1;height:2px;margin:0 6px;align-self:flex-start;margin-top:10px;background:'+(i<idx?'#0d0d0d':'#eceae4')+'"></div>' : '';
+        return '<div style="display:flex;flex-direction:column;align-items:center">'+dot+label+'</div>'+line;
+      }).join('')+
+    '</div>';
+  }
+
+  /* Bon de préparation imprimable — SANS aucun prix (pour l'atelier / le colis) */
+  function printPrepSlip(o){
+    const gravure = (o.initiales && o.initiales !== '—')
+      ? '<tr><td>Initiales à graver</td><td style="font-size:26px;font-family:Georgia,serif;letter-spacing:.2em"><b>'+esc(o.initiales)+'</b></td></tr>'+
+        '<tr><td>Finition</td><td><b>'+esc(o.finition||'—')+'</b></td></tr>'+
+        '<tr><td>Emplacement</td><td><b>'+esc(o.emplacement||'—')+'</b></td></tr>'
+      : '<tr><td colspan="2"><b>Sans gravure</b></td></tr>';
+    const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Bon de préparation '+esc(o.id)+'</title>'+
+      '<style>body{font-family:Arial,sans-serif;color:#111;max-width:640px;margin:30px auto;padding:0 20px}h1{font-size:20px;border-bottom:2px solid #111;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 12px;border:1px solid #ddd;font-size:14px}td:first-child{width:200px;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.08em}img{max-width:280px;border:1px solid #ddd;margin-top:8px}.foot{margin-top:30px;font-size:11px;color:#999}@media print{.noprint{display:none}}</style></head><body>'+
+      '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
+      '<table>'+
+        '<tr><td>Article</td><td><b>La Pochette ELLIA — Noir</b></td></tr>'+
+        gravure+
+        '<tr><td>Destinataire</td><td><b>'+esc(o.client||'')+'</b></td></tr>'+
+        '<tr><td>Adresse de livraison</td><td>'+esc(o.adresse||'')+'</td></tr>'+
+        (o.notes_admin ? '<tr><td>Notes internes</td><td>'+esc(o.notes_admin)+'</td></tr>' : '')+
+      '</table>'+
+      (o.preview && String(o.preview).indexOf('data:image/')===0 ? '<div><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em">Aperçu personnalisation client</div><img src="'+o.preview+'"></div>' : '')+
+      '<div class="foot">Document interne — ne contient aucune information de prix. À joindre au poste de gravure / préparation.</div>'+
+      '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:12px 24px;background:#111;color:#fff;border:none;cursor:pointer;font-size:13px">🖨 Imprimer</button>'+
+      '</body></html>';
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
 
   function renderViewMode(o){
     const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
@@ -154,7 +240,14 @@
         '<button id="omEdit" style="font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Modifier</button>'+
       '</div>'+
       waitingBanner+
-      '<div style="height:14px"></div>'+
+      statusTimeline(o.statut)+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px">'+
+        '<button type="button" class="of" id="omPrint" style="font-size:11px">🖨 Bon de préparation</button>'+
+        (o.email ? '<a class="of" href="mailto:'+esc(o.email)+'?subject=Votre%20commande%20'+encodeURIComponent(o.id)+'%20—%20ELLIA%20PARIS" style="font-size:11px;text-decoration:none">✉ Écrire au client</a>' : '')+
+        '<button type="button" class="of" id="omCopyAddr" style="font-size:11px">📋 Copier l\'adresse</button>'+
+        (o.telephone ? '<a class="of" href="tel:'+esc(String(o.telephone).replace(/\s/g,''))+'" style="font-size:11px;text-decoration:none">📞 '+esc(o.telephone)+'</a>' : '')+
+      '</div>'+
+      '<div style="height:8px"></div>'+
       omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
       omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
       omRow('Personnalisation',gravureFull(o))+
@@ -171,6 +264,14 @@
       '</div>';
     document.getElementById('omClose').addEventListener('click',closeOrder);
     document.getElementById('omEdit').addEventListener('click',()=>openEditMode(o.id));
+    const pBtn = document.getElementById('omPrint');
+    if (pBtn) pBtn.addEventListener('click', ()=>printPrepSlip(o));
+    const cBtn = document.getElementById('omCopyAddr');
+    if (cBtn) cBtn.addEventListener('click', async ()=>{
+      const txt = (o.client||'') + '\n' + (o.adresse||'');
+      try { await navigator.clipboard.writeText(txt); cBtn.textContent = '✓ Adresse copiée'; setTimeout(()=>{ cBtn.textContent='📋 Copier l\'adresse'; }, 2000); }
+      catch(_) { alert(txt); }
+    });
     document.getElementById('omSave').addEventListener('click',()=>{
       const statut=document.querySelector('.om-statut').value;
       const transporteur=document.querySelector('.om-transp').value;
@@ -178,6 +279,7 @@
       o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
       const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
       fetch('/api/orders/'+encodeURIComponent(o.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});
+      updateCounts(); updateDashAlert(); applyFilter();
       const sv=document.getElementById('omSaved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2000);
     });
   }
