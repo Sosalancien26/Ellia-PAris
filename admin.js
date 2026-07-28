@@ -18,7 +18,8 @@
   };
   const STATUTS=['En attente paiement','Nouvelle','En préparation','Expédiée','Livrée','Annulée','Remboursée'];
 
-  const eur=n=>n.toLocaleString('fr-FR')+' €';
+  // Garde anti-crash : le role "atelier" recoit les stats/commandes SANS champs financiers
+  const eur=n=>(n==null||isNaN(Number(n)))?'—':Number(n).toLocaleString('fr-FR')+' €';
   const norm=s=>(s||'').toLowerCase().split('é').join('e').split('è').join('e').split('ê').join('e').split('à').join('a');
   function badgeClass(st){const n=norm(st);
     if(n.includes('attente paiement'))return'b-wait';
@@ -31,7 +32,12 @@
     return'b-prep';}
 
   async function get(path,fallback){
-    try{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw 0;return await r.json();}
+    try{
+      const r=await fetch(path,{cache:'no-store'});
+      if(r.status===401){ location.href='/admin'; throw 0; } // session expiree → retour login
+      if(!r.ok)throw 0;
+      return await r.json();
+    }
     catch(e){return fallback;}
   }
 
@@ -83,10 +89,13 @@
       ? '<div class="orow-sub" style="color:#8a6d1f">✒ '+esc(o.initiales)+(o.finition && o.finition!=='—' ? ' · '+esc(o.finition) : '')+(o.emplacement ? ' · '+esc(o.emplacement) : '')+'</div>'
       : '<div class="orow-sub" style="color:#b5b0a6">Sans gravure</div>';
     // Statut modifiable directement depuis la liste (sans ouvrir la fiche)
-    const sOpts = STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
-    return '<div class="'+rowClass+'" data-id="'+o.id+'">'+
-      '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
-        '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div>'+grav+'</div>'+
+    // Si le statut en base n'est pas dans le referentiel, on l'ajoute pour ne pas afficher/ecrire un faux statut
+    const inRef = STATUTS.some(s=>norm(s)===norm(o.statut));
+    const sOpts = (inRef?'':'<option selected>'+esc(o.statut)+'</option>')+
+      STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
+    return '<div class="'+rowClass+'" data-id="'+esc(o.id)+'">'+
+      '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span></div>'+
+        '<div class="orow-sub">'+esc(o.date)+' · '+esc(o.client||'')+'</div>'+grav+'</div>'+
       '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
         '<select class="statut row-statut" data-row-statut="'+o.id+'" title="Changer le statut">'+sOpts+'</select>'+
         '<span class="orow-go">Voir le détail ›</span></div>'+
@@ -109,8 +118,10 @@
         const id = sel.dataset.rowStatut, statut = sel.value;
         const o = ORDERS.find(x=>x.id===id); if(o) o.statut = statut;
         const b = document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
-        fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut})}).catch(()=>{});
-        updateCounts(); updateDashAlert();
+        fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut})})
+          .then(r=>{ if(!r.ok){ alert('Changement refusé (droits insuffisants ?)'); } })
+          .catch(()=>{ alert('Erreur réseau — le statut n\'a peut-être pas été enregistré.'); });
+        updateCounts(); updateDashAlert(); applyFilter();
       });
     });
   }
@@ -236,11 +247,11 @@
     document.getElementById('ordModalBox').innerHTML=
       '<button class="om-close" id="omClose">×</button>'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
-        '<div><h3 style="margin:0">Commande '+o.id+manualTag+'</h3><div style="color:var(--gris);font-size:13px;margin-top:4px">'+o.date+'</div></div>'+
+        '<div><h3 style="margin:0">Commande '+esc(o.id)+manualTag+'</h3><div style="color:var(--gris);font-size:13px;margin-top:4px">'+esc(o.date)+'</div></div>'+
         '<button id="omEdit" style="font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Modifier</button>'+
       '</div>'+
       waitingBanner+
-      statusTimeline(o.statut)+
+      statusTimeline(esc(o.statut))+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px">'+
         '<button type="button" class="of" id="omPrint" style="font-size:11px">🖨 Bon de préparation</button>'+
         (o.email ? '<a class="of" href="mailto:'+esc(o.email)+'?subject=Votre%20commande%20'+encodeURIComponent(o.id)+'%20—%20ELLIA%20PARIS" style="font-size:11px;text-decoration:none">✉ Écrire au client</a>' : '')+
@@ -248,12 +259,12 @@
         (o.telephone ? '<a class="of" href="tel:'+esc(String(o.telephone).replace(/\s/g,''))+'" style="font-size:11px;text-decoration:none">📞 '+esc(o.telephone)+'</a>' : '')+
       '</div>'+
       '<div style="height:8px"></div>'+
-      omRow('Client',o.client)+omRow('E-mail',o.email)+omRow('Téléphone',o.telephone)+
-      omRow('Adresse de livraison',o.adresse)+omRow('Adresse de facturation',o.adresseFact||o.adresse)+
+      omRow('Client',esc(o.client))+omRow('E-mail',esc(o.email))+omRow('Téléphone',esc(o.telephone))+
+      omRow('Adresse de livraison',esc(o.adresse))+omRow('Adresse de facturation',esc(o.adresseFact||o.adresse))+
       omRow('Personnalisation',gravureFull(o))+
       previewBlock+
-      omRow('Total','<b>'+eur(o.total)+'</b>')+
-      payRow+invoiceRow+
+      // Role atelier : aucune ligne financiere (le serveur ne lui envoie de toute facon pas les montants)
+      (window.__role==='atelier' ? '' : omRow('Total','<b>'+eur(o.total)+'</b>')+payRow+invoiceRow)+
       '<div style="margin:20px 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Gestion de la commande</div>'+
       '<div class="om-actions">'+
         '<select class="om-statut">'+sOpts+'</select>'+
@@ -293,7 +304,13 @@
   async function openEditMode(id){
     let full = null;
     try{ const r = await fetch('/api/admin/orders/'+encodeURIComponent(id),{cache:'no-store'}); if(r.ok) full = await r.json(); }catch(_){}
-    const o = full || ORDERS.find(x=>x.id===id) || {};
+    if (!full) {
+      // SECURITE : sans les vraies donnees, le formulaire s'ouvrirait avec des valeurs
+      // par defaut (159 €, TVA 20...) et "Enregistrer" ECRASERAIT les montants reels.
+      alert('Impossible de charger le détail complet de la commande — édition annulée pour protéger les données. Réessaie dans un instant.');
+      return;
+    }
+    const o = full;
     const FINITIONS = ['','Or','Argent','Or rose','Noir'];
     const EMPLACEMENTS = ['','Plaque chromée','Sous-rabat','Intérieur'];
     const MODES = ['','Virement bancaire','Chèque','Espèces','Carte bancaire (en main)','PayPal','Autre'];
@@ -1088,13 +1105,15 @@
       // Badge du compte connecte dans le header
       const tag = document.querySelector('.admin-top .tag');
       if (tag && me.role !== 'admin') tag.textContent = 'Espace Pro — ' + me.login + ' (' + me.role + ')';
-      // Atelier : masquer le KPI chiffre d'affaires du dashboard
-      if (me.role === 'atelier') {
+      // Atelier : masquer les KPI financiers — refaisable apres chaque rendu (course init)
+      window.__applyRoleMasks = function(){
+        if (window.__role !== 'atelier') return;
         document.querySelectorAll('.kpi').forEach(k=>{
           const l = k.querySelector('.l');
           if (l && /chiffre|ca |panier/i.test(l.textContent)) k.style.display = 'none';
         });
-      }
+      };
+      window.__applyRoleMasks();
     }catch(_){}
   })();
 
@@ -1169,6 +1188,12 @@
     const s=await get('/api/stats',MOCK.stats);
     const o=await get('/api/orders',MOCK.orders);
     const p=await get('/api/products',MOCK.products);
-    renderKPIs(s);renderChart(s.ca_mois);renderOrders(o);renderStock(p);
+    // Chaque rendu est isole : si l'un plante (ex: champs financiers absents pour
+    // le role atelier), les autres s'affichent quand meme.
+    try{ renderKPIs(s); }catch(e){ console.warn('KPIs:',e); }
+    try{ renderChart(Array.isArray(s.ca_mois)?s.ca_mois:[]); }catch(e){ console.warn('Chart:',e); }
+    try{ renderOrders(o); }catch(e){ console.warn('Orders:',e); }
+    try{ renderStock(p); }catch(e){ console.warn('Stock:',e); }
+    if (window.__applyRoleMasks) window.__applyRoleMasks();
   })();
 })();

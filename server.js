@@ -49,14 +49,26 @@ const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
 /* Rate-limit generique en memoire (par IP, par bucket) */
-const RATE = { login: new Map(), newsletter: new Map(), orders: new Map(), contact: new Map(), reviews: new Map() };
+const RATE = { login: new Map(), newsletter: new Map(), orders: new Map(), contact: new Map(), reviews: new Map(), authreset: new Map() };
 const RATE_LIMITS = {
   login:      { max: 5,  window: 5*60*1000 },
   newsletter: { max: 5,  window: 60*60*1000 },
   orders:     { max: 10, window: 60*60*1000 },
   contact:    { max: 3,  window: 60*60*1000 },
-  reviews:    { max: 5,  window: 24*60*60*1000 }
+  reviews:    { max: 5,  window: 24*60*60*1000 },
+  authreset:  { max: 3,  window: 60*60*1000 }
 };
+// Purge periodique des buckets de rate-limit (sinon la memoire grossit indefiniment)
+setInterval(() => {
+  const now = Date.now();
+  for (const bucket of Object.keys(RATE)) {
+    const cfg = RATE_LIMITS[bucket]; if(!cfg) continue;
+    for (const [ip, arr] of RATE[bucket]) {
+      const alive = arr.filter(t => now - t < cfg.window);
+      if (alive.length) RATE[bucket].set(ip, alive); else RATE[bucket].delete(ip);
+    }
+  }
+}, 10*60*1000);
 function rateAllowed(bucket, ip){
   const cfg = RATE_LIMITS[bucket]; if(!cfg) return true;
   const now = Date.now();
@@ -164,18 +176,18 @@ function htmlToText(html){
 function engravingLines(it){
   // Affiche TOUS les details de gravure : initiales + jusqu'a 4 symboles
   const parts = [];
-  if (it.initiales) parts.push('Initiales « ' + it.initiales + ' » · ' + (it.finition||'') + ' · ' + (it.emplacement||''));
-  if (it.flame && it.flame.enabled) parts.push((it.flame.symbol_name||'Symbole') + ' : ' + (it.flame.finish||'') + ' · ' + (it.flame.placement||''));
-  if (it.extra && it.extra.enabled) parts.push((it.extra.symbol_name||'Symbole') + ' : ' + (it.extra.finish||'') + ' · ' + (it.extra.placement||''));
-  if (it.extra2 && it.extra2.enabled) parts.push((it.extra2.symbol_name||'Symbole') + ' : ' + (it.extra2.finish||'') + ' · ' + (it.extra2.placement||''));
-  if (it.extra3 && it.extra3.enabled) parts.push((it.extra3.symbol_name||'Symbole') + ' : ' + (it.extra3.finish||'') + ' · ' + (it.extra3.placement||''));
+  if (it.initiales) parts.push('Initiales « ' + escH(it.initiales) + ' » · ' + escH(it.finition||'') + ' · ' + escH(it.emplacement||''));
+  if (it.flame && it.flame.enabled) parts.push(escH(it.flame.symbol_name||'Symbole') + ' : ' + escH(it.flame.finish||'') + ' · ' + escH(it.flame.placement||''));
+  if (it.extra && it.extra.enabled) parts.push(escH(it.extra.symbol_name||'Symbole') + ' : ' + escH(it.extra.finish||'') + ' · ' + escH(it.extra.placement||''));
+  if (it.extra2 && it.extra2.enabled) parts.push(escH(it.extra2.symbol_name||'Symbole') + ' : ' + escH(it.extra2.finish||'') + ' · ' + escH(it.extra2.placement||''));
+  if (it.extra3 && it.extra3.enabled) parts.push(escH(it.extra3.symbol_name||'Symbole') + ' : ' + escH(it.extra3.finish||'') + ' · ' + escH(it.extra3.placement||''));
   if (!parts.length) return '';
   return '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d;line-height:1.7">Gravure :<br/>· ' + parts.join('<br/>· ') + '</span>';
 }
 function lineItems(items){
   if(!items || !items.length) return '';
   const rows = items.map(it => '<tr>' +
-    '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + (it.nom||'La Pochette ELLIA') +
+    '<td style="padding:12px 0;border-bottom:1px solid #efece6">' + escH(it.nom||'La Pochette ELLIA') +
     engravingLines(it) +
     '</td>' +
     '<td style="padding:12px 0;border-bottom:1px solid #efece6;text-align:right;white-space:nowrap;vertical-align:top">' + euro(it.prix) + '</td></tr>').join('');
@@ -537,15 +549,19 @@ function hashPassword(pw, salt){
   return crypto.scryptSync(String(pw), String(salt), 32).toString('hex');
 }
 /* Champs financiers masques pour le role atelier */
-const FINANCE_FIELDS = ['montant_total','prix_pochette','prix_personnalisation','frais_port','tva_rate','payment_method','payment_status','invoice_number','promo_code','promo_discount','total'];
+const FINANCE_FIELDS = ['montant_total','montant_ht','montant_tva','prix_pochette','prix_personnalisation','frais_port','tva_rate','payment_method','payment_status','payment_date','invoice_number','invoice_date','promo_code','promo_discount','total'];
 function stripFinance(o){
   if (!o || typeof o !== 'object') return o;
   const copy = { ...o };
   for (const f of FINANCE_FIELDS) delete copy[f];
-  if (Array.isArray(copy.cart_data)) copy.cart_data = copy.cart_data.map(it => { const c={...it}; delete c.prix; delete c.total; return c; });
-  if (Array.isArray(copy.items)) copy.items = copy.items.map(it => { const c={...it}; delete c.prix; delete c.total; return c; });
+  const stripItems = arr => arr.map(it => { const c={...it}; delete c.prix; delete c.total; delete c.prix_unitaire; return c; });
+  if (Array.isArray(copy.cart_data)) copy.cart_data = stripItems(copy.cart_data);
+  if (Array.isArray(copy.items)) copy.items = stripItems(copy.items);
+  if (Array.isArray(copy.items_data)) copy.items_data = stripItems(copy.items_data);
   return copy;
 }
+/* Echappement HTML pour les templates email (les donnees client sont libres) */
+function escH(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function clean(v, maxLen){
   if(maxLen==null) maxLen = 200;
@@ -731,15 +747,34 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         const err = validateOrder(d);
         if(err) return sendJSON(res,{ ok:false, error:'validation', field:err }, 400);
-        const numero = 'EP-'+Date.now().toString().slice(-6);
+        // Numero unique : timestamp + 4 hex aleatoires (l'ancien format se repetait toutes les ~16 min)
+        const numero = 'EP-'+Date.now().toString().slice(-6)+crypto.randomBytes(2).toString('hex').toUpperCase();
         const qte = (Array.isArray(d.items) && d.items.length) ? d.items.length : 1;
         // MODE DEMO uniquement : envoi mail immediat (pas de Stripe pour valider)
         if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
+        let prixCatalogue = 159; // repli
         try{
-          const sr = await sb('products?ref=eq.ELLIA-NOIR&select=stock');
-          const stock = (sr && sr[0]) ? Number(sr[0].stock) : 0;
+          const sr = await sb('products?ref=eq.ELLIA-NOIR&select=stock,prix');
+          if(!sr || !sr[0]) return sendJSON(res,{ ok:false, error:'produit_indisponible' }, 503);
+          const stock = Number(sr[0].stock);
+          prixCatalogue = Number(sr[0].prix) || 159;
           if(stock < qte) return sendJSON(res,{ ok:false, error:'rupture', stock }, 409);
-        }catch(_){}
+        }catch(_){ return sendJSON(res,{ ok:false, error:'stock_indisponible' }, 503); }
+        // GARDE-FOU FINANCIER : le total envoye par le navigateur ne peut pas etre
+        // inferieur au prix catalogue x quantite (moins une eventuelle remise promo validee serveur).
+        let promoDiscount = 0, promoCode = '';
+        if (d.promo_code && promoMod) {
+          try {
+            const pv = await promoMod.validatePromoCode(sb, String(d.promo_code).trim().toUpperCase(), prixCatalogue * qte);
+            if (pv && pv.valid) { promoDiscount = Number(pv.discount)||0; promoCode = String(d.promo_code).trim().toUpperCase().slice(0,30); }
+          } catch(_){}
+        }
+        const totalClient = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
+        const plancher = Math.max(0, prixCatalogue * qte - promoDiscount);
+        if (totalClient + 0.01 < plancher) {
+          console.warn('[SECURITE] Total client', totalClient, '< plancher', plancher, '— commande refusee');
+          return sendJSON(res,{ ok:false, error:'montant_invalide' }, 400);
+        }
         // PAS de notifyNewOrder ici — l'email partira UNIQUEMENT apres confirmation Stripe (webhook)
         // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
         let preview = null;
@@ -776,10 +811,12 @@ const server = http.createServer(async (req, res) => {
           ville_facturation: clean(d.ville_facturation, 80),
           pays_facturation: clean(d.pays_facturation, 60) || 'France',
           user_id: d.user_id || null,
-          montant_total: Math.min(100000, Math.max(0, Number(d.montant_total) || 0)),
+          // Total NET : remise promo (validee serveur) deduite → c'est ce montant que Stripe facturera
+          montant_total: Math.max(0, totalClient - promoDiscount),
           preview: preview,
           items_data: itemsData,
           statut: 'En attente paiement' };
+        if (promoCode) { row.notes_admin = ((row.notes_admin||'') + ' [PROMO '+promoCode+' -'+promoDiscount+'€]').trim(); }
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte, p_order:numero } }); }catch(_){}
         // Mark abandoned cart as converted
@@ -852,11 +889,13 @@ const server = http.createServer(async (req, res) => {
         } catch(_){ return sendJSON(res,{ received:false }, 400); }
         let event;
         try {
-          if (secret) {
-            event = stripe.webhooks.constructEvent(rawBody, sig, secret);
-          } else {
-            event = JSON.parse(rawBody);
+          if (!secret) {
+            // JAMAIS de webhook sans verification de signature : sinon n'importe qui
+            // peut marquer une commande "payee" avec un simple POST forge.
+            console.error('[Stripe webhook] STRIPE_WEBHOOK_SECRET non configure — evenement rejete');
+            return sendJSON(res,{ received:false, error:'webhook_secret_missing' }, 500);
           }
+          event = stripe.webhooks.constructEvent(rawBody, sig, secret);
         } catch (err) {
           console.error('[Stripe webhook] signature invalide:', err.message);
           return sendJSON(res,{ received:false, error:'invalid_signature' }, 400);
@@ -866,8 +905,9 @@ const server = http.createServer(async (req, res) => {
             const obj = event.data.object;
             const numero = (obj.metadata && obj.metadata.numero) || null;
             if (numero && USE_DB) {
-              // 1. Marquer la commande comme payee
-              await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{
+              // 1. Marquer la commande comme payee — UNIQUEMENT si encore en attente
+              //    (idempotence : un rejeu du webhook ne retrograde pas une commande deja expediee)
+              await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&statut=eq.'+encodeURIComponent('En attente paiement'),{ method:'PATCH', body:{
                 payment_status:'Payee',
                 payment_date: new Date().toISOString(),
                 statut: 'Nouvelle'
@@ -914,7 +954,22 @@ const server = http.createServer(async (req, res) => {
             const obj = event.data.object;
             const numero = (obj.metadata && obj.metadata.numero) || null;
             if (numero && USE_DB) {
-              await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_status:'Echouee' }});
+              // Marquer echouee + RESTITUER le stock (decremente a la creation de commande)
+              // Filtre payment_status : ne restituer qu'une fois (idempotence sur rejeu webhook)
+              try {
+                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&payment_status=neq.Echouee&select=numero,quantite,statut');
+                const ord = rows && rows[0];
+                if (ord && String(ord.statut||'').includes('attente')) {
+                  await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_status:'Echouee' }});
+                  const q = Math.max(1, Number(ord.quantite)||1);
+                  await sb('rpc/adjust_stock',{ method:'POST', body:{
+                    p_ref:'ELLIA-NOIR', p_delta:q, p_reason:'return',
+                    p_notes:'Restitution auto — paiement echoue/expire ('+numero+')',
+                    p_admin:'system', p_order:numero, p_source:'webhook'
+                  }});
+                  console.log('[Stripe webhook] Stock restitue (+'+q+') pour', numero);
+                }
+              } catch(se){ console.warn('[Stripe webhook] restitution stock KO:', se.message); }
             }
           }
         } catch(e) { console.error('[Stripe webhook] handler error:', e.message); }
@@ -1521,6 +1576,13 @@ const server = http.createServer(async (req, res) => {
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
+  // Fichiers serveur / sensibles : JAMAIS servis publiquement
+  const baseName = path.basename(file).toLowerCase();
+  const SERVER_FILES = ['server.js','invoice.js','compta.js','promo.js','totp.js','package.json','package-lock.json'];
+  if (SERVER_FILES.includes(baseName) || baseName.startsWith('.env') || baseName.endsWith('.bak') ||
+      safe.includes('.git') || baseName.endsWith('.sql') || baseName.endsWith('.md')) {
+    res.statusCode = 403; return res.end('Forbidden');
+  }
   fs.readFile(file, (err, buf) => {
     if (err) {
       fs.readFile(path.join(ROOT,'404.html'),(e2,html)=>{

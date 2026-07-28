@@ -125,11 +125,17 @@
 document.addEventListener('DOMContentLoaded', function(){
 (function(){
   const eur=n=>Number(n).toLocaleString('fr-FR')+' €';
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const items=Cart.items();
   if(!items.length){ location.href='panier.html'; return; }
-  const persoTxt=it=>it.initiales?('Gravure : '+it.initiales+' · '+it.finition+' · '+it.emplacement):'Sans gravure';
+  // Retour d'une annulation Stripe : le panier est conserve, on l'explique
+  if(new URLSearchParams(location.search).has('cancelled')){
+    const ci=document.getElementById('coItems');
+    if(ci) ci.insertAdjacentHTML('beforebegin','<div style="background:#fdf3e7;border:1px solid #f3dcb6;color:#a8631e;padding:14px 18px;margin-bottom:18px;font-size:13.5px;border-radius:3px">Paiement annulé — votre panier et votre personnalisation sont conservés. Vous pouvez réessayer quand vous voulez.</div>');
+  }
+  const persoTxt=it=>it.initiales?('Gravure : '+esc(it.initiales)+' · '+esc(it.finition)+' · '+esc(it.emplacement)):'Sans gravure';
   document.getElementById('coItems').innerHTML=items.map(it=>
-    '<div class="co-item"><div>'+(it.nom||'La Pochette ELLIA')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
+    '<div class="co-item"><div>'+esc(it.nom||'La Pochette ELLIA')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
   document.getElementById('coTotal').textContent=eur(Cart.total());
 
   // Facturation identique -> afficher/masquer
@@ -187,7 +193,9 @@ document.addEventListener('DOMContentLoaded', function(){
       pays_facturation: same.checked? (v('l_pays')||'France'):(v('f_pays')||'France'),
       initiales:perso.initiales||null, finition:perso.finition||null, emplacement:perso.emplacement||null,
       items:itemsLight, montant_total:Cart.total(), user_id:userId,
-      preview: orderPreview
+      preview: orderPreview,
+      // Code promo : revalide et applique COTE SERVEUR (le total Stripe sera le net)
+      promo_code: (window.elliaPromoApplied && window.elliaPromoApplied() ? window.elliaPromoApplied().code : null)
     };
     let numero='EP-'+Date.now().toString().slice(-6);
     const validateBtn = document.getElementById('validate');
@@ -214,20 +222,23 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       const sd = await sr.json();
       if(sd.ok && sd.url){
-        Cart.clear();
-        // Stripe Checkout : la page sécurisée hébergée par Stripe
+        // NE PAS vider le panier ici : si la cliente annule sur la page Stripe,
+        // elle revient avec son panier + sa personnalisation intacts.
+        // Le panier sera vide sur la page de confirmation apres paiement reussi.
         window.location.href = sd.url;
         return;
       } else {
-        // Fallback : si Stripe pas dispo, on va à la confirmation classique (paiement à organiser manuellement)
+        // Stripe indisponible : on N'ABANDONNE PAS la cliente sur une fausse confirmation
         console.warn('Stripe indisponible :', sd.error);
-        Cart.clear();
-        location.href='confirmation.html?n='+encodeURIComponent(numero);
+        err.textContent = 'Le paiement en ligne est momentanément indisponible. Votre commande '+numero+' est enregistrée — réessayez dans un instant ou contactez-nous.';
+        validateBtn.textContent = 'Réessayer le paiement';
+        validateBtn.disabled = false;
       }
     } catch(e){
       console.error('Erreur Stripe :', e);
-      Cart.clear();
-      location.href='confirmation.html?n='+encodeURIComponent(numero);
+      err.textContent = 'Connexion au paiement impossible. Votre panier est conservé — réessayez.';
+      validateBtn.textContent = 'Réessayer le paiement';
+      validateBtn.disabled = false;
     }
   });
 })();
