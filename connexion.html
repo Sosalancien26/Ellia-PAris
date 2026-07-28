@@ -65,9 +65,13 @@ document.getElementById('forgot').addEventListener('click', async (e)=>{
   e.preventDefault();
   const msg=document.getElementById('msg'); const email=document.getElementById('email').value.trim();
   if(!email){ msg.className='authmsg err'; msg.textContent='Entre d\'abord ton e-mail ci-dessus.'; return; }
-  const { error } = await SB.auth.resetPasswordForEmail(email, { redirectTo: location.origin+'/connexion.html' });
-  msg.className = error?'authmsg err':'authmsg ok';
-  msg.textContent = error? ('Erreur : '+error.message) : 'Si un compte existe, un e-mail de réinitialisation vient d\'être envoyé.';
+  msg.className='authmsg'; msg.textContent='Envoi en cours…';
+  // Envoi via NOTRE serveur (SMTP fiable) au lieu de l'email Supabase
+  try{
+    await fetch('/api/auth/reset',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) });
+  }catch(_){}
+  msg.className='authmsg ok';
+  msg.textContent='Si un compte existe, un e-mail de réinitialisation vient d\'être envoyé. Pense à vérifier tes spams.';
 });
 /* Réinitialisation : quand l'utilisateur arrive via le lien reçu par e-mail */
 SB.auth.onAuthStateChange((event)=>{

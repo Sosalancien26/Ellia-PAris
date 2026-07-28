@@ -570,6 +570,34 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res,{ ok:true });
       }
 
+      /* ----- MOT DE PASSE OUBLIE — envoi via NOTRE SMTP (bypass email Supabase) ----- */
+      if (req.method==='POST' && pathname==='/api/auth/reset'){
+        if(!rateAllowed('authreset', clientIp(req))) return sendJSON(res,{ ok:true }); // silencieux anti-abus
+        const d = JSON.parse((await readBody(req))||'{}');
+        const email = String(d.email||'').trim().toLowerCase();
+        // Reponse toujours identique (pas d'enumeration de comptes)
+        if(!isEmail(email) || !USE_DB) return sendJSON(res,{ ok:true });
+        try{
+          const r = await fetch(SUPABASE_URL + '/auth/v1/admin/generate_link', {
+            method:'POST',
+            headers:{ 'apikey':SERVICE_KEY, 'Authorization':'Bearer '+SERVICE_KEY, 'Content-Type':'application/json' },
+            body: JSON.stringify({ type:'recovery', email, redirect_to:'https://ellia-paris.fr/connexion.html' })
+          });
+          const j = await r.json().catch(()=>({}));
+          const link = j.action_link || (j.properties && j.properties.action_link);
+          if (link) {
+            const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Réinitialiser votre mot de passe</h1>' +
+              '<p style="margin:0 0 14px">Bonjour,</p>' +
+              '<p style="margin:0 0 14px">Vous avez demandé à réinitialiser le mot de passe de votre compte ELLIA PARIS. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>' +
+              '<p style="margin:26px 0"><a href="' + link + '" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p>' +
+              '<p style="margin:0 0 8px;font-size:13px;color:#8a857d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p>' +
+              '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+            sendMail(email, 'Réinitialisation de votre mot de passe — ELLIA PARIS', emailLayout(inner));
+          }
+        }catch(e){ console.warn('Reset password KO :', e.message); }
+        return sendJSON(res,{ ok:true });
+      }
+
       if (req.method==='POST' && pathname==='/api/contact'){
         if(!rateAllowed('contact', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate_limit' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
