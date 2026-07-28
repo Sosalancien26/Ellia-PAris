@@ -81,7 +81,7 @@
     return '<div class="'+rowClass+'" data-id="'+o.id+'">'+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+o.id+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+o.id+'">'+o.statut+'</span></div>'+
         '<div class="orow-sub">'+o.date+' · '+(o.client||'')+'</div></div>'+
-      '<div class="orow-r"><span class="orow-total">'+eur(o.total)+'</span><span class="orow-go">Voir le détail ›</span></div>'+
+      '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span><span class="orow-go">Voir le détail ›</span></div>'+
     '</div>';
   }
   function applyFilter(){
@@ -962,6 +962,100 @@
       }catch(e){ body.innerHTML = '<tr><td colspan="3" style="color:#b1432f;padding:24px 14px">Erreur de chargement.</td></tr>'; }
     }
     document.querySelector('.tab[data-tab="newsletter"]')?.addEventListener('click', load);
+  })();
+
+  /* ============================================================
+     ROLES — masque les onglets selon le compte connecte
+     ============================================================ */
+  const TABS_BY_ROLE = {
+    admin:     null, // null = tous
+    comptable: ['dash','orders','compta'],
+    atelier:   ['dash','orders']
+  };
+  (async function(){
+    try{
+      const r = await fetch('/api/me'); if(!r.ok) return;
+      const me = await r.json();
+      window.__role = me.role; window.__login = me.login;
+      const allowed = TABS_BY_ROLE[me.role];
+      if (allowed) {
+        document.querySelectorAll('.tab').forEach(t=>{
+          if (!allowed.includes(t.dataset.tab)) t.style.display = 'none';
+        });
+      }
+      // Badge du compte connecte dans le header
+      const tag = document.querySelector('.admin-top .tag');
+      if (tag && me.role !== 'admin') tag.textContent = 'Espace Pro — ' + me.login + ' (' + me.role + ')';
+      // Atelier : masquer le KPI chiffre d'affaires du dashboard
+      if (me.role === 'atelier') {
+        document.querySelectorAll('.kpi').forEach(k=>{
+          const l = k.querySelector('.l');
+          if (l && /chiffre|ca |panier/i.test(l.textContent)) k.style.display = 'none';
+        });
+      }
+    }catch(_){}
+  })();
+
+  /* ============================================================
+     EQUIPE — gestion des comptes (visible role admin uniquement)
+     ============================================================ */
+  (function(){
+    const body = document.getElementById('usersBody');
+    if(!body) return;
+    const ROLE_LABELS = { admin:'Admin', comptable:'Comptable', atelier:'Atelier' };
+    async function load(){
+      try{
+        const r = await fetch('/api/admin/users'); const j = await r.json();
+        const users = j.users || [];
+        if(!users.length){ body.innerHTML = '<tr><td colspan="5" style="color:var(--gris);padding:24px 14px">Aucun compte équipe. Le compte principal (mot de passe maître) reste toujours actif.</td></tr>'; return; }
+        body.innerHTML = users.map(u =>
+          '<tr>'+
+          '<td style="font-family:var(--serif);font-size:15px">'+esc(u.login)+'</td>'+
+          '<td><span class="badge '+(u.role==='admin'?'b-nouvelle':u.role==='comptable'?'b-prep':'b-exp')+'">'+ (ROLE_LABELS[u.role]||u.role) +'</span></td>'+
+          '<td>'+(u.actif?'<span style="color:var(--vert)">● Actif</span>':'<span style="color:#b1432f">● Désactivé</span>')+'</td>'+
+          '<td style="font-size:13px">'+String(u.created_at||'').slice(0,10)+'</td>'+
+          '<td style="white-space:nowrap">'+
+            '<button class="of u-toggle" data-id="'+u.id+'" data-actif="'+(u.actif?'1':'0')+'" style="font-size:11px">'+(u.actif?'Désactiver':'Réactiver')+'</button> '+
+            '<button class="of u-pw" data-id="'+u.id+'" data-login="'+esc(u.login)+'" style="font-size:11px">Nouveau mdp</button> '+
+            '<button class="of u-del" data-id="'+u.id+'" data-login="'+esc(u.login)+'" style="font-size:11px;color:#b1432f;border-color:#e7cfc9">Supprimer</button>'+
+          '</td></tr>'
+        ).join('');
+        body.querySelectorAll('.u-toggle').forEach(b=>b.addEventListener('click',async ()=>{
+          await fetch('/api/admin/users/'+b.dataset.id,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ actif: b.dataset.actif!=='1' }) });
+          load();
+        }));
+        body.querySelectorAll('.u-pw').forEach(b=>b.addEventListener('click',async ()=>{
+          const np = prompt('Nouveau mot de passe pour "'+b.dataset.login+'" (8 caractères min.) :');
+          if(!np) return;
+          if(np.length<8){ alert('8 caractères minimum.'); return; }
+          const r = await fetch('/api/admin/users/'+b.dataset.id,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ password: np }) });
+          alert(r.ok ? 'Mot de passe mis à jour. Transmets-le de façon sécurisée.' : 'Erreur.');
+        }));
+        body.querySelectorAll('.u-del').forEach(b=>b.addEventListener('click',async ()=>{
+          if(!confirm('Supprimer définitivement le compte "'+b.dataset.login+'" ?')) return;
+          await fetch('/api/admin/users/'+b.dataset.id,{ method:'DELETE' });
+          load();
+        }));
+      }catch(e){ body.innerHTML = '<tr><td colspan="5" style="color:#b1432f;padding:24px 14px">Erreur de chargement.</td></tr>'; }
+    }
+    const btn = document.getElementById('nuCreate');
+    if(btn) btn.addEventListener('click', async ()=>{
+      const msg = document.getElementById('nuMsg');
+      const login = (document.getElementById('nuLogin').value||'').trim().toLowerCase();
+      const password = document.getElementById('nuPass').value||'';
+      const role = document.getElementById('nuRole').value;
+      msg.style.color = 'var(--gris)'; msg.textContent = 'Création…';
+      const r = await fetch('/api/admin/users',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ login, password, role }) });
+      const j = await r.json().catch(()=>({}));
+      if (r.ok && j.ok) {
+        msg.style.color = 'var(--vert)'; msg.textContent = 'Compte "'+login+'" créé ✓ — transmets l\'identifiant et le mot de passe de façon sécurisée.';
+        document.getElementById('nuLogin').value=''; document.getElementById('nuPass').value='';
+        load();
+      } else {
+        msg.style.color = '#b1432f'; msg.textContent = j.detail || j.error || 'Erreur.';
+      }
+    });
+    document.querySelector('.tab[data-tab="equipe"]')?.addEventListener('click', load);
   })();
 
   /* Deconnexion */

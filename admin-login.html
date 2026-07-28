@@ -34,7 +34,8 @@
     <h1>Espace Pro</h1>
     <p>Accès réservé à l'administration</p>
     <form id="f" onsubmit="return false">
-      <input type="password" id="pw" placeholder="Mot de passe" autofocus />
+      <input type="text" id="loginId" placeholder="Identifiant (vide = compte principal)" autocomplete="username" autocapitalize="none" style="margin-bottom:10px" />
+      <input type="password" id="pw" placeholder="Mot de passe" autofocus autocomplete="current-password" />
       <button type="submit">Se connecter</button>
       <div class="err" id="err"></div>
     </form>
@@ -45,8 +46,9 @@
     const err=document.getElementById('err'); err.textContent='';
     try{
       const pw = document.getElementById('pw').value;
+      const loginId = (document.getElementById('loginId')?.value || '').trim();
       const code = document.getElementById('twofa') ? document.getElementById('twofa').value : '';
-      const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw, code:code})});
+      const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:loginId, password:pw, code:code})});
       const j = await r.json().catch(()=>({}));
       if(r.ok && j.ok){ location.href='/admin'; }
       else if(j.need_2fa){

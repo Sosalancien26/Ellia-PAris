@@ -508,7 +508,44 @@ function readBody(req){
   });
 }
 function cookies(req){ const o={}; (req.headers.cookie||'').split(';').forEach(c=>{ const i=c.indexOf('='); if(i>0)o[c.slice(0,i).trim()]=c.slice(i+1).trim(); }); return o; }
-function isAuthed(req){ return cookies(req)['ellia_session'] === TOKEN; }
+/* ----- Sessions multi-roles -----
+   Legacy : cookie === TOKEN  → compte principal (role admin)
+   V2     : cookie === 'v2.' + base64(login|role) + '.' + hmac  → comptes equipe */
+function makeSession(login, role){
+  const payload = Buffer.from(login + '|' + role).toString('base64url');
+  const sig = crypto.createHmac('sha256', SECRET).update('ellia-v2.' + payload).digest('hex');
+  return 'v2.' + payload + '.' + sig;
+}
+function getAuth(req){
+  const c = cookies(req)['ellia_session'] || '';
+  if (c === TOKEN) return { login:'principal', role:'admin' };
+  if (c.startsWith('v2.')){
+    const parts = c.split('.');
+    if (parts.length !== 3) return null;
+    const expected = crypto.createHmac('sha256', SECRET).update('ellia-v2.' + parts[1]).digest('hex');
+    if (parts[2] !== expected) return null;
+    try {
+      const [login, role] = Buffer.from(parts[1], 'base64url').toString().split('|');
+      if (!['admin','comptable','atelier'].includes(role)) return null;
+      return { login, role };
+    } catch(_) { return null; }
+  }
+  return null;
+}
+function isAuthed(req){ return !!getAuth(req); }
+function hashPassword(pw, salt){
+  return crypto.scryptSync(String(pw), String(salt), 32).toString('hex');
+}
+/* Champs financiers masques pour le role atelier */
+const FINANCE_FIELDS = ['montant_total','prix_pochette','prix_personnalisation','frais_port','tva_rate','payment_method','payment_status','invoice_number','promo_code','promo_discount','total'];
+function stripFinance(o){
+  if (!o || typeof o !== 'object') return o;
+  const copy = { ...o };
+  for (const f of FINANCE_FIELDS) delete copy[f];
+  if (Array.isArray(copy.cart_data)) copy.cart_data = copy.cart_data.map(it => { const c={...it}; delete c.prix; delete c.total; return c; });
+  if (Array.isArray(copy.items)) copy.items = copy.items.map(it => { const c={...it}; delete c.prix; delete c.total; return c; });
+  return copy;
+}
 
 function clean(v, maxLen){
   if(maxLen==null) maxLen = 200;
@@ -546,15 +583,30 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='POST' && pathname==='/api/login'){
         if(!rateAllowed('login', clientIp(req))) return sendJSON(res,{ ok:false, error:'Trop de tentatives, réessayez dans quelques minutes.' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
+        const loginId = clean(String(d.login||'').trim().toLowerCase(), 60);
+        // --- Compte EQUIPE (identifiant renseigne) ---
+        if (loginId) {
+          if(!USE_DB) return sendJSON(res,{ ok:false, error:'Comptes équipe indisponibles (pas de base)' }, 503);
+          let u = null;
+          try {
+            const rows = await sb('admin_users?login=eq.'+encodeURIComponent(loginId)+'&actif=eq.true&select=*');
+            u = rows && rows[0];
+          } catch(_){}
+          if (!u || hashPassword(d.password, u.salt) !== u.password_hash) {
+            return sendJSON(res,{ ok:false, error:'Identifiant ou mot de passe incorrect' },401);
+          }
+          res.setHeader('Set-Cookie','ellia_session='+makeSession(u.login, u.role)+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
+          return sendJSON(res,{ ok:true, role:u.role });
+        }
+        // --- Compte PRINCIPAL (mot de passe maitre, 2FA si configuree) ---
         if (d.password !== ADMIN_PASSWORD) return sendJSON(res,{ ok:false, error:'Mot de passe incorrect' },401);
-        // 2FA si configure
         const totpSecret = await getAdminSetting('totp_secret');
         if (totpSecret && totpMod) {
           if (!d.code) return sendJSON(res,{ ok:false, need_2fa:true });
           if (!totpMod.verify(totpSecret, d.code, 1)) return sendJSON(res,{ ok:false, error:'Code à 6 chiffres invalide', need_2fa:true }, 401);
         }
         res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
-        return sendJSON(res,{ ok:true });
+        return sendJSON(res,{ ok:true, role:'admin' });
       }
       if (req.method==='POST' && pathname==='/api/logout'){
         res.setHeader('Set-Cookie','ellia_session=; HttpOnly;'+cookieSec+' Path=/; Max-Age=0');
@@ -904,14 +956,59 @@ const server = http.createServer(async (req, res) => {
         } catch(e){ return sendJSON(res,{ ok:false, error:'failed' }, 500); }
       }
 
-      if (!isAuthed(req)) return sendJSON(res,{ error:'non autorise' },401);
+      const AUTH = getAuth(req);
+      if (!AUTH) return sendJSON(res,{ error:'non autorise' },401);
+      const ROLE = AUTH.role;
 
-      if (req.method==='GET' && pathname==='/api/stats')  return sendJSON(res, await getStats());
-      if (req.method==='GET' && pathname==='/api/orders') return sendJSON(res, await getOrders());
+      /* Qui suis-je (pour l'UI) */
+      if (req.method==='GET' && pathname==='/api/me') return sendJSON(res,{ login:AUTH.login, role:ROLE });
+
+      /* ----- CONTROLE D'ACCES PAR ROLE (whitelist) -----
+         admin     : tout
+         comptable : lecture financiere (stats, commandes, factures, compta, exports compta)
+         atelier   : commandes SANS donnees financieres + maj statut/suivi          */
+      if (ROLE === 'comptable') {
+        const okComptable =
+          (req.method==='GET' && (
+            pathname==='/api/stats' || pathname==='/api/orders' ||
+            pathname.startsWith('/api/admin/orders/') ||       // detail + facture PDF
+            pathname==='/api/admin/compta' ||
+            pathname==='/api/admin/export/recettes.csv' ||
+            pathname==='/api/admin/export/factures.csv'
+          ));
+        if (!okComptable) return sendJSON(res,{ error:'acces_refuse', detail:'Compte comptable : lecture seule (commandes, compta, factures).' },403);
+      }
+      if (ROLE === 'atelier') {
+        const okAtelier =
+          (req.method==='GET' && (pathname==='/api/stats' || pathname==='/api/orders')) ||
+          (req.method==='GET' && pathname.startsWith('/api/admin/orders/') && !pathname.endsWith('/invoice')) ||
+          (req.method==='PATCH' && pathname.startsWith('/api/orders/'));
+        if (!okAtelier) return sendJSON(res,{ error:'acces_refuse', detail:'Compte atelier : commandes et statuts uniquement.' },403);
+      }
+
+      if (req.method==='GET' && pathname==='/api/stats'){
+        const s = await getStats();
+        if (ROLE === 'atelier'){
+          const copy = { ...s };
+          for (const k of Object.keys(copy)) if (/^ca_|panier|revenu|montant/i.test(k)) delete copy[k];
+          return sendJSON(res, copy);
+        }
+        return sendJSON(res, s);
+      }
+      if (req.method==='GET' && pathname==='/api/orders'){
+        const list = await getOrders();
+        return sendJSON(res, ROLE==='atelier' ? (list||[]).map(stripFinance) : list);
+      }
 
       if (req.method==='PATCH' && pathname.startsWith('/api/orders/')){
         const numero = pathname.split('/').pop();
-        const d = JSON.parse((await readBody(req))||'{}');
+        let d = JSON.parse((await readBody(req))||'{}');
+        // Atelier : seuls le statut, le suivi colis et les notes sont modifiables
+        if (ROLE === 'atelier') {
+          const allowed = {};
+          for (const k of ['statut','suivi','transporteur','notes_admin']) if (d[k]!==undefined) allowed[k] = d[k];
+          d = allowed;
+        }
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         const upd = {};
         // Statut + livraison
@@ -1160,7 +1257,7 @@ const server = http.createServer(async (req, res) => {
         const numero = pathname.split('/').pop();
         const o = await getOrderFull(numero);
         if(!o) return sendJSON(res,{ error:'introuvable' }, 404);
-        return sendJSON(res, o);
+        return sendJSON(res, ROLE==='atelier' ? stripFinance(o) : o);
       }
 
       /* ----- Téléchargement / reimpression de la facture PDF ----- */
@@ -1181,6 +1278,65 @@ const server = http.createServer(async (req, res) => {
           console.warn('PDF KO :', e.message);
           return sendJSON(res,{ error:'pdf_failed' }, 500);
         }
+      }
+
+      /* ----- EQUIPE — gestion des comptes admin (role admin uniquement, garanti par whitelists) ----- */
+      if (req.method==='GET' && pathname==='/api/admin/users'){
+        if(!USE_DB) return sendJSON(res,{ users:[] });
+        try{
+          const rows = await sb('admin_users?select=id,login,role,actif,created_at&order=created_at.asc');
+          return sendJSON(res,{ users: rows||[] });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='POST' && pathname==='/api/admin/users'){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const login = clean(String(d.login||'').trim().toLowerCase(), 60);
+        const password = String(d.password||'');
+        const role = String(d.role||'');
+        if (!/^[a-z0-9._-]{3,60}$/.test(login)) return sendJSON(res,{ error:'login_invalide', detail:'3-60 caractères : lettres, chiffres, points, tirets.' }, 400);
+        if (password.length < 8) return sendJSON(res,{ error:'mdp_trop_court', detail:'8 caractères minimum.' }, 400);
+        if (!['admin','comptable','atelier'].includes(role)) return sendJSON(res,{ error:'role_invalide' }, 400);
+        const salt = crypto.randomBytes(16).toString('hex');
+        try{
+          await sb('admin_users',{ method:'POST', body:{ login, salt, password_hash: hashPassword(password, salt), role } });
+          return sendJSON(res,{ ok:true });
+        }catch(e){
+          const msg = String(e.message||'');
+          if (msg.includes('duplicate') || msg.includes('23505')) return sendJSON(res,{ error:'login_deja_pris' }, 409);
+          return sendJSON(res,{ error:'db' }, 500);
+        }
+      }
+      if (req.method==='PATCH' && pathname.startsWith('/api/admin/users/')){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const uid = pathname.split('/').pop();
+        if(!/^[0-9a-f-]{36}$/.test(uid)) return sendJSON(res,{ error:'bad_id' }, 400);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const upd = {};
+        if (d.actif !== undefined) upd.actif = !!d.actif;
+        if (d.role !== undefined) {
+          if (!['admin','comptable','atelier'].includes(d.role)) return sendJSON(res,{ error:'role_invalide' }, 400);
+          upd.role = d.role;
+        }
+        if (d.password !== undefined) {
+          if (String(d.password).length < 8) return sendJSON(res,{ error:'mdp_trop_court' }, 400);
+          upd.salt = crypto.randomBytes(16).toString('hex');
+          upd.password_hash = hashPassword(d.password, upd.salt);
+        }
+        if (!Object.keys(upd).length) return sendJSON(res,{ error:'rien_a_modifier' }, 400);
+        try{
+          await sb('admin_users?id=eq.'+uid, { method:'PATCH', body:upd });
+          return sendJSON(res,{ ok:true });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='DELETE' && pathname.startsWith('/api/admin/users/')){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const uid = pathname.split('/').pop();
+        if(!/^[0-9a-f-]{36}$/.test(uid)) return sendJSON(res,{ error:'bad_id' }, 400);
+        try{
+          await sb('admin_users?id=eq.'+uid, { method:'DELETE' });
+          return sendJSON(res,{ ok:true });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
       }
 
       /* ----- AVIS — moderation admin ----- */
