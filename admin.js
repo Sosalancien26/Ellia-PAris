@@ -81,6 +81,9 @@
     return '<div style="line-height:1.85">· '+parts.join('<br/>· ')+'</div>';
   }
   let ORDERS=[], FILTER='', SEARCH='';
+  // Mode d'affichage des commandes : 'list' (defaut) ou 'pipeline' — memorise en localStorage
+  let VIEW='list';
+  try{ if(localStorage.getItem('ellia_admin_view')==='pipeline') VIEW='pipeline'; }catch(_){}
   function ocard(o){
     const waiting = norm(o.statut).includes('attente paiement');
     const rowClass = waiting ? 'ord-row ord-waiting' : 'ord-row';
@@ -111,7 +114,39 @@
       list = list.filter(o => (o.id||'').toLowerCase().includes(q) || (o.client||'').toLowerCase().includes(q) || (o.email||'').toLowerCase().includes(q));
     }
     const box=document.getElementById('ordersBody');
+    const pbox=document.getElementById('ordersPipeline');
+    if(VIEW==='pipeline' && pbox){
+      box.style.display='none'; pbox.style.display='grid';
+      renderPipeline(list,pbox);
+      return;
+    }
+    if(pbox) pbox.style.display='none';
+    box.style.display='';
     box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
+    bindRows(box);
+  }
+  /* Vue Pipeline : 3 colonnes atelier → expédition (cartes ocard reutilisees) */
+  function renderPipeline(list,pbox){
+    const now=Date.now(), SEPT_JOURS=7*24*3600*1000;
+    const cols=[
+      { titre:'À graver', test:o=>norm(o.statut).startsWith('nouvelle') },
+      { titre:'À expédier', test:o=>norm(o.statut).startsWith('en prep') },
+      { titre:'Expédiées (7 derniers jours)', test:o=>{
+          if(!norm(o.statut).startsWith('exped')) return false;
+          const d=new Date(o.date||'');
+          return isNaN(d.getTime()) ? true : (now-d.getTime())<=SEPT_JOURS;
+        } }
+    ];
+    pbox.innerHTML = cols.map(c=>{
+      const rows=list.filter(c.test);
+      return '<div class="pipe-col"><div class="pipe-head"><span>'+c.titre+'</span><span class="pipe-count">'+rows.length+'</span></div>'+
+        (rows.length ? rows.map(ocard).join('') : '<div class="pipe-empty">Aucune commande</div>')+
+      '</div>';
+    }).join('');
+    bindRows(pbox);
+  }
+  /* Bind clic fiche + select statut inline sur les cartes d'un conteneur (liste OU pipeline) */
+  function bindRows(box){
     box.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
     // Changement de statut inline : ne pas ouvrir la fiche quand on clique le select
     box.querySelectorAll('.row-statut').forEach(sel=>{
@@ -175,6 +210,17 @@
     }));
     const s=document.getElementById('ordSearch'); if(s) s.addEventListener('input',()=>{ SEARCH=s.value||''; applyFilter(); });
     const x=document.getElementById('ordExport'); if(x) x.addEventListener('click', exportCsv);
+    // Toggle Liste | Pipeline — restaure le mode memorise puis ecoute les clics
+    document.querySelectorAll('#ordViewToggle .of').forEach(b=>{
+      b.classList.toggle('active', (b.dataset.view||'list')===VIEW);
+      b.addEventListener('click',()=>{
+        document.querySelectorAll('#ordViewToggle .of').forEach(o=>o.classList.remove('active'));
+        b.classList.add('active');
+        VIEW = b.dataset.view||'list';
+        try{ localStorage.setItem('ellia_admin_view', VIEW); }catch(_){}
+        applyFilter();
+      });
+    });
   })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -228,12 +274,17 @@
 
   function renderViewMode(o){
     const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
-    const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+((o.transporteur||'')===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
+    const curTransp=(o.transporteur||'')||'UPS'; // UPS pre-selectionne si aucun transporteur renseigne
+    const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+(curTransp===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
     const manualTag = o.manual ? '<span style="display:inline-block;background:#0d0d0d;color:#fff;font-size:9.5px;letter-spacing:.16em;padding:3px 8px;text-transform:uppercase;margin-left:10px;vertical-align:middle">Manuelle</span>' : '';
     const invoiceRow = o.invoice_number
       ? '<div class="om-row"><span class="k">Facture</span><span class="v"><b>'+o.invoice_number+'</b> &nbsp; <a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Ouvrir PDF</a></span></div>'
       : '<div class="om-row"><span class="k">Facture</span><span class="v"><a href="/api/admin/orders/'+encodeURIComponent(o.id)+'/invoice" target="_blank" style="color:#0d0d0d;font-weight:500;text-decoration:underline;font-size:12.5px">Générer / Télécharger PDF</a></span></div>';
     const payRow = (o.payment_method || o.payment_status) ? ('<div class="om-row"><span class="k">Paiement</span><span class="v">'+(o.payment_method||'—')+' &middot; '+(o.payment_status||'—')+'</span></div>') : '';
+    // N° de suivi UPS (1Z...) : lien cliquable dore vers le tracking officiel
+    const suiviRow = (o.suivi && /^1Z/i.test(String(o.suivi).trim()))
+      ? omRow('Suivi UPS','<a href="https://www.ups.com/track?tracknum='+encodeURIComponent(String(o.suivi).trim())+'" target="_blank" rel="noopener" style="color:#c9a227;font-weight:600;text-decoration:underline">'+esc(o.suivi)+' ↗</a>')
+      : '';
     // Bloc preview 3D : visible UNIQUEMENT si la commande contient une image
     var previewBlock = '';
     if (o.preview && typeof o.preview === 'string' && o.preview.indexOf('data:image/') === 0) {
@@ -268,6 +319,7 @@
       previewBlock+
       // Role atelier : aucune ligne financiere (le serveur ne lui envoie de toute facon pas les montants)
       (window.__role==='atelier' ? '' : omRow('Total','<b>'+eur(o.total)+'</b>')+payRow+invoiceRow)+
+      suiviRow+
       '<div style="margin:20px 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Gestion de la commande</div>'+
       '<div class="om-actions">'+
         '<select class="om-statut">'+sOpts+'</select>'+
@@ -290,6 +342,10 @@
       const statut=document.querySelector('.om-statut').value;
       const transporteur=document.querySelector('.om-transp').value;
       const suivi=document.querySelector('.om-suivi').value.trim();
+      // Garde-fou UPS : un n° UPS commence par 1Z suivi de 16 caracteres
+      if(transporteur==='UPS' && suivi && !/^1Z[A-Z0-9]{16}$/i.test(suivi)){
+        if(!confirm('Ce numéro ne ressemble pas à un n° UPS (1Z + 16 caractères). Enregistrer quand même ?')) return;
+      }
       o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
       const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
       fetch('/api/orders/'+encodeURIComponent(o.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});

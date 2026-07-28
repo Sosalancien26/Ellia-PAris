@@ -300,7 +300,21 @@
   .ord-row:hover .row-statut{border-color:rgba(201,162,39,.5) !important;color:var(--noir)}
   @media (max-width:700px){.orow-avatar{display:none}}
 
-  
+  /* ── Vue Pipeline (Commandes) : atelier → expédition ── */
+  .view-toggle{display:flex;gap:8px;margin:0 0 16px}
+  .ord-pipeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+  .pipe-col{background:#f0ede5;border:1px solid rgba(0,0,0,.05);border-radius:12px;padding:12px 12px 6px;min-height:120px}
+  .pipe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 14px;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#6b6459}
+  .pipe-count{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--or);background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.35);border-radius:14px;padding:1px 11px}
+  .pipe-col .ord-row{flex-wrap:wrap;padding:14px 16px;gap:12px;margin-bottom:10px}
+  .pipe-col .orow-l{flex:1;min-width:150px}
+  .pipe-col .orow-r{width:100%;flex-direction:row;align-items:center;justify-content:space-between;text-align:left}
+  .pipe-col .orow-go{display:none}
+  .pipe-empty{color:#a49c8e;font-size:13px;font-style:italic;font-family:var(--serif);padding:8px 8px 16px}
+  @media (max-width:900px){
+    .ord-pipeline{grid-template-columns:1fr}
+    .pipe-head{position:sticky;top:0;z-index:5;background:#f0ede5;border-radius:10px 10px 0 0}
+  }
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
@@ -355,6 +369,10 @@
     <div class="card">
       <h3>Commandes</h3>
       <div class="csub">Cliquez sur une commande pour voir tout le détail client et la gérer.</div>
+      <div class="view-toggle" id="ordViewToggle">
+        <button class="of active" data-view="list">Liste</button>
+        <button class="of" data-view="pipeline">Pipeline</button>
+      </div>
       <div class="ord-filters" id="ordFilters">
         <button class="of active" data-f="">Toutes</button>
         <button class="of" data-f="nouvelle">Nouvelles</button>
@@ -367,6 +385,7 @@
         <button id="ordExport" style="padding:10px 16px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Exporter CSV</button>
       </div>
       <div id="ordersBody" class="ord-list"></div>
+      <div id="ordersPipeline" class="ord-pipeline" style="display:none"></div>
     </div>
   </div>
 
@@ -795,6 +814,6 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="admin.js?v=1782200000" defer></script>
+<script src="admin.js?v=1782300000" defer></script>
 </body>
 </html>

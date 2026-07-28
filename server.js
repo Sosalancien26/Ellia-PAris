@@ -318,6 +318,8 @@ function trackUrl(transporteur, suivi){
   if(t.includes('ups')) return 'https://www.ups.com/track?tracknum='+n;
   if(t.includes('dhl')) return 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id='+n;
   if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n;
+  // Fallback : un n° commencant par 1Z est un n° UPS, meme si le transporteur n'est pas renseigne
+  if(/^1Z/i.test(String(suivi).trim())) return 'https://www.ups.com/track?tracknum='+n;
   return '';
 }
 /* Envoi de la facture PDF au client + archivage interne.
