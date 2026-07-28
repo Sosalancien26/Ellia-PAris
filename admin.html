@@ -149,62 +149,104 @@
   .nc-tag{display:inline-block;background:var(--noir);color:#fff;font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;margin-left:8px;vertical-align:middle}
   @media (max-width:720px){.nc-grid,.nc-grid.three{grid-template-columns:1fr}.nc-recap{flex-direction:column;align-items:flex-start}}
 
-  /* ═══════════ DESIGN V2 — dashboard pro (couche par-dessus l'existant) ═══════════ */
-  /* Fond + textures */
-  body{background:#f6f4ef}
-  /* Header raffiné */
-  .admin-top{padding:14px 30px;backdrop-filter:blur(10px);background:rgba(255,255,255,.92);box-shadow:0 1px 0 rgba(0,0,0,.05)}
-  .admin-top img{height:30px}
-  .admin-top .back{border-radius:6px;transition:.25s}
-  /* Cartes : douceur + profondeur subtile */
-  .card{border-radius:12px;border-color:rgba(0,0,0,.06);box-shadow:0 1px 2px rgba(20,16,10,.04),0 4px 16px rgba(20,16,10,.04);transition:box-shadow .25s}
-  .card:hover{box-shadow:0 1px 2px rgba(20,16,10,.05),0 8px 28px rgba(20,16,10,.07)}
-  .card h3{letter-spacing:.01em}
-  /* KPI : chiffres majestueux */
-  .kpi{border-radius:12px;border-color:rgba(0,0,0,.06);box-shadow:0 1px 2px rgba(20,16,10,.04);position:relative;overflow:hidden;transition:transform .2s,box-shadow .25s}
-  .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,16,10,.08)}
-  .kpi::after{content:"";position:absolute;left:24px;bottom:16px;width:28px;height:2px;background:var(--noir);opacity:.85}
-  .kpi .v{font-size:42px;letter-spacing:-.01em}
-  /* Badges : pastilles avec point de statut */
-  .badge{border-radius:20px;padding:5px 12px 5px 22px;position:relative;font-weight:500}
-  .badge::before{content:"";position:absolute;left:9px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:currentColor}
-  /* Lignes de commandes : cartes cliquables */
-  .ord-row{border-radius:10px;border-color:rgba(0,0,0,.06);box-shadow:0 1px 2px rgba(20,16,10,.03)}
-  .ord-row:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(20,16,10,.08);border-color:rgba(0,0,0,.14)}
-  .orow-go{border-radius:6px;transition:.2s}
-  .ord-row:hover .orow-go{background:var(--noir);color:#fff}
-  /* Filtres pills */
-  .of{transition:.2s;border-radius:20px}
-  .of:hover{border-color:var(--noir);color:var(--noir)}
-  /* Tableaux : respiration + hover */
-  td{font-size:13.5px}
-  tbody tr{transition:background .15s}
-  tbody tr:hover{background:#faf8f4}
-  /* Boutons primaires */
-  .ord-save,.stock-action.add{border-radius:8px;transition:.2s;letter-spacing:.16em}
-  .ord-save:hover{opacity:.85;transform:translateY(-1px)}
-  select.statut,.om-actions select,.om-actions input{border-radius:7px}
-  input,select,textarea{border-radius:7px !important}
-  /* Modale : plus aérée */
-  #ordModalBox{border-radius:14px !important;box-shadow:0 40px 100px rgba(0,0,0,.35) !important}
-  /* Onglets horizontaux (mobile/tablette) : scroll fluide */
-  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{white-space:nowrap;border-radius:8px 8px 0 0;transition:.2s}
-  .tab:hover{color:var(--noir);background:rgba(255,255,255,.7)}
+  /* ═══════════ DESIGN V3 — L'ATELIER : dashboard maison de luxe ═══════════ */
+  :root{--or:#c9a227;--or-soft:#e8d9a8;--noir-prof:#141210;--noir-side:#1a1713;--ivoire-p:#f7f5f0}
 
-  /* ── SIDEBAR desktop : le vrai look dashboard ── */
+  /* ── SIDEBAR NOIRE signature (desktop) ── */
   @media (min-width:1150px){
-    .tabs{position:fixed;left:0;top:0;bottom:0;width:212px;flex-direction:column;flex-wrap:nowrap !important;
-      background:#fff;border-right:1px solid rgba(0,0,0,.07);border-bottom:none;margin:0;
-      padding:96px 14px 20px;gap:2px;z-index:5;overflow-y:auto;overflow-x:hidden;box-shadow:1px 0 0 rgba(0,0,0,.02)}
-    .tab{text-align:left;padding:11px 14px;border:none;border-radius:8px;margin:0;font-size:11.5px;letter-spacing:.14em;color:var(--gris)}
-    .tab:hover{background:#f4f1ea;color:var(--noir)}
-    .tab.active{background:var(--noir);color:#fff;border:none}
-    .shell{margin-left:212px;max-width:none;padding:32px 40px 80px}
-    .admin-top{z-index:20}
+    .tabs{position:fixed;left:0;top:0;bottom:0;width:230px;flex-direction:column;flex-wrap:nowrap !important;
+      background:linear-gradient(180deg,#1a1713 0%,#141210 100%);border-right:none;border-bottom:none;margin:0;
+      padding:110px 16px 24px;gap:3px;z-index:30;overflow-y:auto;overflow-x:hidden}
+    /* Wordmark ELLIA en haut de la sidebar */
+    .tabs::before{content:"ELLIA\a0\a0PARIS";position:absolute;top:34px;left:0;right:0;text-align:center;
+      font-family:var(--serif);font-size:21px;letter-spacing:.32em;color:#f3f1ec;font-weight:500}
+    .tabs::after{content:"L'Atelier";position:absolute;top:64px;left:0;right:0;text-align:center;
+      font-family:var(--serif);font-style:italic;font-size:12.5px;letter-spacing:.12em;color:var(--or)}
+    .tab{text-align:left;padding:12px 16px;border:none;border-radius:8px;margin:0;font-size:11px;
+      letter-spacing:.16em;color:#8d867c;position:relative;transition:.25s}
+    .tab:hover{background:rgba(255,255,255,.05);color:#e8e4dc}
+    .tab.active{background:rgba(201,162,39,.12);color:var(--or-soft);border:none}
+    .tab.active::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2.5px;background:var(--or);border-radius:2px}
+    .shell{margin-left:230px;max-width:none;padding:36px 46px 90px}
+    .admin-top{margin-left:230px;z-index:20}
     .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
   }
+
+  /* ── Fond papier + header épuré ── */
+  body{background:var(--ivoire-p)}
+  .admin-top{padding:13px 30px;background:rgba(247,245,240,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.06);box-shadow:none}
+  .admin-top img{height:26px;opacity:.9}
+  .admin-top .back{border-radius:20px;border-color:rgba(0,0,0,.12);transition:.25s}
+  .admin-top .back:hover{background:var(--noir-prof);border-color:var(--noir-prof)}
+  .page-title{font-size:30px}
+  .page-sub{font-size:13px}
+
+  /* ── KPI : pièces d'orfèvrerie ── */
+  .kpi{border-radius:14px;border:1px solid rgba(0,0,0,.05);background:#fff;
+    box-shadow:0 1px 2px rgba(20,16,10,.03),0 10px 30px -12px rgba(20,16,10,.08);
+    position:relative;overflow:hidden;padding:26px 26px 30px;transition:transform .25s cubic-bezier(.22,.61,.36,1),box-shadow .3s}
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(20,16,10,.04),0 18px 40px -12px rgba(20,16,10,.14)}
+  .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,var(--or) 0%,var(--or-soft) 60%,transparent 100%);opacity:0;transition:.3s}
+  .kpi:hover::before{opacity:1}
+  .kpi::after{content:"";position:absolute;left:26px;bottom:18px;width:26px;height:2px;background:var(--or);opacity:.8}
+  .kpi .l{font-size:10px;letter-spacing:.24em;color:#a49c8e}
+  .kpi .v{font-size:44px;letter-spacing:-.015em}
+
+  /* ── Cartes éditoriales ── */
+  .card{border-radius:14px;border:1px solid rgba(0,0,0,.05);
+    box-shadow:0 1px 2px rgba(20,16,10,.03),0 12px 34px -14px rgba(20,16,10,.09);transition:box-shadow .3s}
+  .card:hover{box-shadow:0 2px 4px rgba(20,16,10,.04),0 18px 44px -14px rgba(20,16,10,.13)}
+  .card h3{font-size:23px}
+  .card h3::after{content:"";display:block;width:34px;height:2px;background:var(--or);margin-top:8px;opacity:.75}
+
+  /* ── Badges : sceaux de statut ── */
+  .badge{border-radius:20px;padding:5px 12px 5px 23px;position:relative;font-weight:500;letter-spacing:.1em}
+  .badge::before{content:"";position:absolute;left:10px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2.5px rgba(255,255,255,.6)}
+
+  /* ── Commandes : dossiers précieux ── */
+  .ord-row{border-radius:12px;border:1px solid rgba(0,0,0,.05);box-shadow:0 1px 2px rgba(20,16,10,.03);
+    transition:transform .2s,box-shadow .25s,border-color .25s}
+  .ord-row:hover{transform:translateY(-2px);box-shadow:0 10px 28px -8px rgba(20,16,10,.14);border-color:rgba(201,162,39,.45)}
+  .oid{font-size:17px}
+  .orow-total{font-size:21px}
+  .orow-go{border-radius:20px;transition:.25s;letter-spacing:.14em}
+  .ord-row:hover .orow-go{background:var(--noir-prof);color:var(--or-soft)}
+  .ord-row.ord-waiting{border-style:solid;border-color:rgba(211,142,61,.4);background:linear-gradient(135deg,#fffbf5,#fff)}
+
+  /* ── Filtres : plumes ── */
+  .of{border-radius:20px;transition:.22s;border-color:rgba(0,0,0,.1)}
+  .of:hover{border-color:var(--noir-prof);color:var(--noir-prof);transform:translateY(-1px)}
+  .of.active{background:var(--noir-prof);border-color:var(--noir-prof);box-shadow:0 4px 12px -4px rgba(20,16,10,.4)}
+
+  /* ── Tableaux : registre de maison ── */
+  th{font-size:10px;letter-spacing:.22em;color:#a49c8e;padding-bottom:12px}
+  td{font-size:13.5px;padding:15px 14px}
+  tbody tr{transition:background .18s}
+  tbody tr:hover{background:#faf7f0}
+
+  /* ── Boutons : gravure noire, reflet or ── */
+  .ord-save,.stock-action.add{border-radius:24px;transition:.25s;letter-spacing:.18em;padding:12px 24px;position:relative;overflow:hidden}
+  .ord-save:hover{background:#2a251e;color:var(--or-soft);transform:translateY(-1px);box-shadow:0 8px 20px -6px rgba(20,16,10,.4)}
+  select.statut,.om-actions select,.om-actions input{border-radius:9px;transition:border-color .2s}
+  input,select,textarea{border-radius:9px !important}
+  input:focus,select:focus,textarea:focus{border-color:var(--or) !important;outline:none;box-shadow:0 0 0 3px rgba(201,162,39,.12)}
+
+  /* ── Modale : écrin ── */
+  #ordModalBox{border-radius:18px !important;box-shadow:0 50px 120px rgba(10,8,5,.45) !important;border-top:3px solid var(--or) !important}
+  #ordModal{backdrop-filter:blur(4px)}
+
+  /* ── Alerte dashboard dorée ── */
+  #dashAlertBox{border-radius:12px !important;border-left-color:var(--or) !important;background:linear-gradient(135deg,#fdf8ea,#fffdf8) !important;box-shadow:0 6px 18px -8px rgba(201,162,39,.35)}
+
+  /* ── Onglets horizontaux (mobile) : rail fluide ── */
+  @media (max-width:1149px){
+    .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap !important;gap:6px;padding-bottom:2px}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{white-space:nowrap;border-radius:20px;border:1px solid rgba(0,0,0,.1);margin-bottom:6px;padding:10px 18px}
+    .tab.active{background:var(--noir-prof);color:var(--or-soft);border-color:var(--noir-prof)}
+  }
+
+  
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
