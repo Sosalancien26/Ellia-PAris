@@ -172,10 +172,13 @@
 
   <div class="note">Gérez vos commandes (statut, transporteur, numéro de suivi), votre stock et votre chiffre d'affaires en temps réel.</div>
 
-  <div class="tabs">
+  <div class="tabs" style="flex-wrap:wrap">
     <button class="tab active" data-tab="dash">Tableau de bord</button>
     <button class="tab" data-tab="orders">Commandes</button>
     <button class="tab" data-tab="newOrder">Nouvelle commande</button>
+    <button class="tab" data-tab="clients">Clients</button>
+    <button class="tab" data-tab="avis">Avis</button>
+    <button class="tab" data-tab="newsletter">Newsletter</button>
     <button class="tab" data-tab="stock">Stock</button>
     <button class="tab" data-tab="compta">Comptabilité</button>
     <button class="tab" data-tab="promo">Codes promo</button>
@@ -343,6 +346,56 @@
 
         <div id="ncMsg" class="nc-msg"></div>
       </form>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="panel" id="clients">
+    <div class="card">
+      <h3>Clients</h3>
+      <div class="csub">Vue agrégée depuis les commandes — triée par montant dépensé.</div>
+      <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+        <input id="clientSearch" type="text" placeholder="Rechercher nom ou email…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;background:#fafaf7">
+        <span id="clientCount" style="font-size:12.5px;color:var(--gris)"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Client</th><th>Email</th><th>Téléphone</th><th>Commandes</th><th>Total dépensé</th><th>Dernière commande</th><th></th></tr></thead>
+          <tbody id="clientsBody"><tr><td colspan="7" style="color:var(--gris);padding:24px 14px">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVIS -->
+  <div class="panel" id="avis">
+    <div class="card">
+      <h3>Avis clients</h3>
+      <div class="csub">Seuls les avis <b>validés</b> apparaissent sur le site. Les nouveaux avis arrivent ici en attente.</div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+        <button class="of active" data-avisfilter="">Tous</button>
+        <button class="of" data-avisfilter="pending">En attente</button>
+        <button class="of" data-avisfilter="ok">Publiés</button>
+      </div>
+      <div id="avisList" style="display:flex;flex-direction:column;gap:14px"><div style="color:var(--gris);padding:12px 0">Chargement…</div></div>
+    </div>
+  </div>
+
+  <!-- NEWSLETTER -->
+  <div class="panel" id="newsletter">
+    <div class="card">
+      <h3>Abonnés newsletter</h3>
+      <div class="csub">Inscriptions depuis le pied de page du site.</div>
+      <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+        <span id="nlCount" style="font-size:13px;color:var(--gris)"></span>
+        <a href="/api/admin/export/newsletter.csv" class="of" style="text-decoration:none;margin-left:auto">⬇ Export CSV</a>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Email</th><th>Inscrit le</th><th></th></tr></thead>
+          <tbody id="nlBody"><tr><td colspan="3" style="color:var(--gris);padding:24px 14px">Chargement…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -553,6 +606,6 @@
 .ord-save{font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 22px;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer}
 </style>
 
-<script src="admin.js?v=1781700000" defer></script>
+<script src="admin.js?v=1781800000" defer></script>
 </body>
 </html>

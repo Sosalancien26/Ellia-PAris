@@ -1155,6 +1155,88 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      /* ----- AVIS — moderation admin ----- */
+      if (req.method==='GET' && pathname==='/api/admin/reviews'){
+        if(!USE_DB) return sendJSON(res,{ reviews:[] });
+        try{
+          const rows = await sb('reviews?select=id,prenom,email,note,titre,commentaire,validated,created_at&order=created_at.desc');
+          return sendJSON(res,{ reviews: rows||[] });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='PATCH' && pathname.startsWith('/api/admin/reviews/')){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const rid = pathname.split('/').pop();
+        if(!/^[0-9a-f-]{36}$/.test(rid)) return sendJSON(res,{ error:'bad_id' }, 400);
+        const d = JSON.parse((await readBody(req))||'{}');
+        try{
+          await sb('reviews?id=eq.'+rid, { method:'PATCH', body:{ validated: !!d.validated } });
+          return sendJSON(res,{ ok:true });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='DELETE' && pathname.startsWith('/api/admin/reviews/')){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const rid = pathname.split('/').pop();
+        if(!/^[0-9a-f-]{36}$/.test(rid)) return sendJSON(res,{ error:'bad_id' }, 400);
+        try{
+          await sb('reviews?id=eq.'+rid, { method:'DELETE' });
+          return sendJSON(res,{ ok:true });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+
+      /* ----- NEWSLETTER — liste + export + suppression (admin) ----- */
+      if (req.method==='GET' && pathname==='/api/admin/newsletter'){
+        if(!USE_DB) return sendJSON(res,{ subscribers:[] });
+        try{
+          const rows = await sb('newsletters?select=id,email,created_at&order=created_at.desc');
+          return sendJSON(res,{ subscribers: rows||[] });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='GET' && pathname==='/api/admin/export/newsletter.csv'){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        try{
+          const rows = await sb('newsletters?select=email,created_at&order=created_at.desc');
+          const csv = 'email;date_inscription\n' + (rows||[]).map(r => r.email + ';' + String(r.created_at||'').slice(0,10)).join('\n');
+          res.setHeader('Content-Type','text/csv; charset=utf-8');
+          res.setHeader('Content-Disposition','attachment; filename="newsletter-abonnes.csv"');
+          return res.end('﻿'+csv);
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+      if (req.method==='DELETE' && pathname.startsWith('/api/admin/newsletter/')){
+        if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
+        const nid = pathname.split('/').pop();
+        if(!/^[0-9a-f-]{36}$/.test(nid)) return sendJSON(res,{ error:'bad_id' }, 400);
+        try{
+          await sb('newsletters?id=eq.'+nid, { method:'DELETE' });
+          return sendJSON(res,{ ok:true });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+
+      /* ----- CLIENTS — vue agregee depuis les commandes (admin) ----- */
+      if (req.method==='GET' && pathname==='/api/admin/clients'){
+        if(!USE_DB) return sendJSON(res,{ clients:[] });
+        try{
+          const rows = await sb('orders?select=client_nom,client_prenom,client_email,telephone,montant_total,statut,created_at&order=created_at.desc');
+          const map = {};
+          for (const o of (rows||[])) {
+            const em = String(o.client_email||'').toLowerCase();
+            if(!em) continue;
+            if(!map[em]) map[em] = { email:em, nom:'', telephone:'', nb_commandes:0, total_depense:0, derniere_commande:null, statuts:{} };
+            const c = map[em];
+            c.nb_commandes++;
+            // Ne compte pas les commandes annulees / en attente de paiement dans le total depense
+            const st = String(o.statut||'').toLowerCase();
+            if (!st.includes('annul') && !st.includes('attente')) c.total_depense += Number(o.montant_total||0);
+            c.statuts[st] = (c.statuts[st]||0)+1;
+            const nomComplet = ((o.client_prenom||'')+' '+(o.client_nom||'')).trim();
+            if (nomComplet && !c.nom) c.nom = nomComplet;
+            if (o.telephone && !c.telephone) c.telephone = o.telephone;
+            if (!c.derniere_commande || o.created_at > c.derniere_commande) c.derniere_commande = o.created_at;
+          }
+          const clients = Object.values(map).sort((a,b) => b.total_depense - a.total_depense);
+          return sendJSON(res,{ clients });
+        }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
+      }
+
       /* ----- COMPTABILITE — stats + exports CSV (auth admin) ----- */
       if (req.method==='GET' && pathname==='/api/admin/compta'){
         if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);

@@ -835,6 +835,135 @@
     if(document.getElementById('securite')?.classList.contains('active')) refresh();
   })();
 
+  /* ============================================================
+     CLIENTS — vue agregee
+     ============================================================ */
+  (function(){
+    const body = document.getElementById('clientsBody');
+    const search = document.getElementById('clientSearch');
+    const count = document.getElementById('clientCount');
+    if(!body) return;
+    let CLIENTS = [];
+    const eur = n => Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:0}) + ' €';
+    function render(){
+      const q = (search && search.value || '').toLowerCase().trim();
+      const list = q ? CLIENTS.filter(c => (c.nom||'').toLowerCase().includes(q) || (c.email||'').includes(q)) : CLIENTS;
+      if(count) count.textContent = list.length + ' client' + (list.length>1?'s':'');
+      if(!list.length){ body.innerHTML = '<tr><td colspan="7" style="color:var(--gris);padding:24px 14px">Aucun client.</td></tr>'; return; }
+      body.innerHTML = list.map(c =>
+        '<tr>'+
+        '<td style="font-family:var(--serif);font-size:15px">'+esc(c.nom||'—')+'</td>'+
+        '<td style="font-size:13px">'+esc(c.email)+'</td>'+
+        '<td style="font-size:13px">'+esc(c.telephone||'—')+'</td>'+
+        '<td>'+c.nb_commandes+'</td>'+
+        '<td style="font-family:var(--serif);font-size:15px">'+eur(c.total_depense)+'</td>'+
+        '<td style="font-size:13px">'+String(c.derniere_commande||'').slice(0,10)+'</td>'+
+        '<td><button class="of client-orders-btn" data-email="'+esc(c.email)+'" style="font-size:11px">Voir commandes</button></td>'+
+        '</tr>'
+      ).join('');
+      body.querySelectorAll('.client-orders-btn').forEach(b => b.addEventListener('click', ()=>{
+        // Bascule vers l'onglet Commandes avec recherche pre-remplie
+        const ordTab = document.querySelector('.tab[data-tab="orders"]'); if(ordTab) ordTab.click();
+        const os = document.getElementById('ordSearch');
+        if(os){ os.value = b.dataset.email; os.dispatchEvent(new Event('input')); }
+      }));
+    }
+    async function load(){
+      try{
+        const r = await fetch('/api/admin/clients'); const j = await r.json();
+        CLIENTS = j.clients || []; render();
+      }catch(e){ body.innerHTML = '<tr><td colspan="7" style="color:#b1432f;padding:24px 14px">Erreur de chargement.</td></tr>'; }
+    }
+    if(search) search.addEventListener('input', render);
+    document.querySelector('.tab[data-tab="clients"]')?.addEventListener('click', load);
+  })();
+
+  /* ============================================================
+     AVIS — moderation
+     ============================================================ */
+  (function(){
+    const list = document.getElementById('avisList');
+    if(!list) return;
+    let AVIS = [], FILTER = '';
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+    function render(){
+      let rows = AVIS;
+      if(FILTER==='pending') rows = AVIS.filter(a=>!a.validated);
+      if(FILTER==='ok') rows = AVIS.filter(a=>a.validated);
+      if(!rows.length){ list.innerHTML = '<div style="color:var(--gris);padding:12px 0">Aucun avis'+(FILTER==='pending'?' en attente':'')+'.</div>'; return; }
+      list.innerHTML = rows.map(a =>
+        '<div style="border:1px solid var(--ligne);background:#fff;padding:18px 20px;'+(a.validated?'':'border-left:3px solid #d18e3d;')+'">'+
+          '<div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:baseline">'+
+            '<div><b style="font-family:var(--serif);font-size:16px">'+esc(a.prenom||'')+'</b> <span style="color:#c9a227;letter-spacing:2px">'+stars(a.note||0)+'</span>'+
+            (a.validated ? ' <span class="badge b-livree" style="margin-left:8px">Publié</span>' : ' <span class="badge b-wait" style="margin-left:8px">En attente</span>')+'</div>'+
+            '<span style="font-size:12px;color:var(--gris)">'+String(a.created_at||'').slice(0,10)+' · '+esc(a.email||'')+'</span>'+
+          '</div>'+
+          (a.titre ? '<div style="font-style:italic;margin:8px 0 4px;font-family:var(--serif)">« '+esc(a.titre)+' »</div>' : '')+
+          '<p style="font-size:13.5px;color:var(--gris);margin:6px 0 14px;line-height:1.6">'+esc(a.commentaire||'')+'</p>'+
+          '<div style="display:flex;gap:10px">'+
+            (a.validated
+              ? '<button class="of avis-unpub" data-id="'+a.id+'">Dépublier</button>'
+              : '<button class="of avis-pub" data-id="'+a.id+'" style="background:var(--noir);color:#fff;border-color:var(--noir)">✓ Valider et publier</button>')+
+            '<button class="of avis-del" data-id="'+a.id+'" style="color:#b1432f;border-color:#e7cfc9">Supprimer</button>'+
+          '</div>'+
+        '</div>'
+      ).join('');
+      list.querySelectorAll('.avis-pub').forEach(b=>b.addEventListener('click',()=>setValid(b.dataset.id,true)));
+      list.querySelectorAll('.avis-unpub').forEach(b=>b.addEventListener('click',()=>setValid(b.dataset.id,false)));
+      list.querySelectorAll('.avis-del').forEach(b=>b.addEventListener('click',()=>{
+        if(!confirm('Supprimer définitivement cet avis ?')) return;
+        del(b.dataset.id);
+      }));
+    }
+    async function setValid(id, v){
+      try{ await fetch('/api/admin/reviews/'+id,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({validated:v}) }); }catch(_){}
+      load();
+    }
+    async function del(id){
+      try{ await fetch('/api/admin/reviews/'+id,{ method:'DELETE' }); }catch(_){}
+      load();
+    }
+    async function load(){
+      try{
+        const r = await fetch('/api/admin/reviews'); const j = await r.json();
+        AVIS = j.reviews || []; render();
+      }catch(e){ list.innerHTML = '<div style="color:#b1432f">Erreur de chargement.</div>'; }
+    }
+    document.querySelectorAll('[data-avisfilter]').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('[data-avisfilter]').forEach(o=>o.classList.remove('active'));
+      b.classList.add('active');
+      FILTER = b.dataset.avisfilter; render();
+    }));
+    document.querySelector('.tab[data-tab="avis"]')?.addEventListener('click', load);
+  })();
+
+  /* ============================================================
+     NEWSLETTER — abonnes
+     ============================================================ */
+  (function(){
+    const body = document.getElementById('nlBody');
+    const count = document.getElementById('nlCount');
+    if(!body) return;
+    async function load(){
+      try{
+        const r = await fetch('/api/admin/newsletter'); const j = await r.json();
+        const subs = j.subscribers || [];
+        if(count) count.textContent = subs.length + ' abonné' + (subs.length>1?'s':'');
+        if(!subs.length){ body.innerHTML = '<tr><td colspan="3" style="color:var(--gris);padding:24px 14px">Aucun abonné pour le moment.</td></tr>'; return; }
+        body.innerHTML = subs.map(s =>
+          '<tr><td>'+esc(s.email)+'</td><td style="font-size:13px">'+String(s.created_at||'').slice(0,10)+'</td>'+
+          '<td><button class="of nl-del" data-id="'+s.id+'" style="font-size:11px;color:#b1432f;border-color:#e7cfc9">Désinscrire</button></td></tr>'
+        ).join('');
+        body.querySelectorAll('.nl-del').forEach(b=>b.addEventListener('click',async ()=>{
+          if(!confirm('Désinscrire '+(b.closest('tr')?.firstChild?.textContent||'cet abonné')+' ?')) return;
+          try{ await fetch('/api/admin/newsletter/'+b.dataset.id,{ method:'DELETE' }); }catch(_){}
+          load();
+        }));
+      }catch(e){ body.innerHTML = '<tr><td colspan="3" style="color:#b1432f;padding:24px 14px">Erreur de chargement.</td></tr>'; }
+    }
+    document.querySelector('.tab[data-tab="newsletter"]')?.addEventListener('click', load);
+  })();
+
   /* Deconnexion */
   const lo=document.getElementById('logout');
   if(lo) lo.addEventListener('click',async e=>{ e.preventDefault(); try{await fetch('/api/logout',{method:'POST'});}catch(_){} location.href='/admin'; });
