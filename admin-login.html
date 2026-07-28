@@ -20,6 +20,25 @@
   button:hover{opacity:.85}
   .err{color:#b1432f;font-size:13px;margin-top:14px;min-height:18px}
   .back{display:inline-block;margin-top:24px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7c7872}
+
+  /* ═══ DESIGN V3 — porte de L'Atelier (noir & or) ═══ */
+  body{background:radial-gradient(120% 100% at 50% 0%,#221e18 0%,#141210 55%,#0c0a08 100%);color:#e8e4dc}
+  .box{max-width:400px;background:rgba(255,255,255,.035);border:1px solid rgba(201,162,39,.22);border-radius:18px;
+    padding:48px 40px 38px;backdrop-filter:blur(8px);box-shadow:0 40px 90px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);
+    animation:doorIn .6s cubic-bezier(.22,.61,.36,1)}
+  @keyframes doorIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .box img{filter:invert(1) brightness(1.4);height:40px;margin-bottom:24px}
+  h1{color:#f3f1ec;font-size:32px;letter-spacing:.02em}
+  h1::after{content:"";display:block;width:36px;height:2px;background:#c9a227;margin:14px auto 0}
+  p{color:#8d867c;margin-top:14px}
+  input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#f3f1ec;border-radius:10px;transition:.25s}
+  input::placeholder{color:#7a736a}
+  input:focus{border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.14);background:rgba(255,255,255,.09)}
+  button{border-radius:24px;background:#c9a227;color:#141210;font-weight:500;letter-spacing:.26em;transition:.25s}
+  button:hover{opacity:1;background:#e8d9a8;transform:translateY(-1px);box-shadow:0 10px 26px -8px rgba(201,162,39,.55)}
+  .err{color:#e08a6d}
+  .back{color:#8d867c;transition:.25s}
+  .back:hover{color:#e8d9a8}
 </style>
 <meta name="description" content="Accès administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />

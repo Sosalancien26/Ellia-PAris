@@ -246,6 +246,42 @@
     .tab.active{background:var(--noir-prof);color:var(--or-soft);border-color:var(--noir-prof)}
   }
 
+  /* ── Graphique CA : barres précieuses ── */
+  .chart{height:230px;padding:16px 6px 4px}
+  .bar .col{width:52%;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#3a332a 0%,var(--noir-prof) 100%);position:relative;transition:height 1s cubic-bezier(.22,.61,.36,1),filter .25s}
+  .bar:hover .col{filter:brightness(1.35)}
+  .bar .col::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--or);border-radius:6px 6px 0 0;opacity:.9}
+  .bar .val{font-size:14px;color:#6b6459}
+  .bar .m{font-size:10px;letter-spacing:.14em;color:#a49c8e}
+
+  /* ── Stock : le chiffre-monument ── */
+  #stockBig{font-size:96px !important;background:linear-gradient(135deg,#141210 30%,#5a4c22 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  #stockLastBox{border-radius:0 10px 10px 0;border-left-color:var(--or) !important}
+  .stock-action{border-radius:22px !important;transition:.22s}
+  .stock-action:hover{transform:translateY(-1px)}
+  .stock-action.add:hover{background:#2a251e;color:var(--or-soft)}
+
+  /* ── Transitions d'onglets : fondu editorial ── */
+  @keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .panel.active{animation:panelIn .35s cubic-bezier(.22,.61,.36,1)}
+
+  /* ── Notes & messages arrondis ── */
+  .note,.nc-msg{border-radius:10px}
+  .note{border-left:3px solid var(--or);background:#fdf9ee;border-color:rgba(201,162,39,.25);color:#6b5a1e}
+
+  /* ── Détails de matière ── */
+  ::selection{background:rgba(201,162,39,.25)}
+  .shell::-webkit-scrollbar,body::-webkit-scrollbar{width:10px}
+  body::-webkit-scrollbar-track{background:transparent}
+  body::-webkit-scrollbar-thumb{background:#d8d2c4;border-radius:6px;border:2px solid var(--ivoire-p)}
+  body::-webkit-scrollbar-thumb:hover{background:var(--or)}
+  .csub{font-size:13px;line-height:1.6}
+  .acct-hello{letter-spacing:.01em}
+  /* Boutons "of" secondaires dans les tableaux */
+  button.of{background:#fff}
+  /* Grille compta/exports : liens dorés au survol */
+  a.of:hover{color:var(--or);border-color:var(--or)}
+
   
 </style>
 <meta name="description" content="Espace administrateur ELLIA PARIS." />
