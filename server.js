@@ -638,6 +638,19 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res,{ ok:true });
       }
 
+      /* ----- STATUT DE PAIEMENT (public, lecture minimale) — pour la page de confirmation ----- */
+      if (req.method==='GET' && pathname==='/api/order-paystatus'){
+        const n = clean(url.searchParams.get('n')||'', 30);
+        if(!n || !/^EP-[A-Z0-9]{4,14}$/i.test(n)) return sendJSON(res,{ paid:false }, 400);
+        if(!USE_DB) return sendJSON(res,{ paid:true, demo:true });
+        try{
+          const rows = await sb('orders?numero=eq.'+encodeURIComponent(n)+'&select=payment_status,statut');
+          const o = rows && rows[0];
+          if(!o) return sendJSON(res,{ paid:false, found:false });
+          return sendJSON(res,{ paid: o.payment_status==='Payee', found:true });
+        }catch(_){ return sendJSON(res,{ paid:false, error:'db' }, 503); }
+      }
+
       /* ----- MOT DE PASSE OUBLIE — envoi via NOTRE SMTP (bypass email Supabase) ----- */
       if (req.method==='POST' && pathname==='/api/auth/reset'){
         if(!rateAllowed('authreset', clientIp(req))) return sendJSON(res,{ ok:true }); // silencieux anti-abus
@@ -816,7 +829,10 @@ const server = http.createServer(async (req, res) => {
           preview: preview,
           items_data: itemsData,
           statut: 'En attente paiement' };
-        if (promoCode) { row.notes_admin = ((row.notes_admin||'') + ' [PROMO '+promoCode+' -'+promoDiscount+'€]').trim(); }
+        if (promoCode) {
+          row.promo_code = promoCode;
+          row.notes_admin = ((row.notes_admin||'') + ' [PROMO '+promoCode+' -'+promoDiscount+'€]').trim();
+        }
         const created = await sb('orders',{ method:'POST', body:row, prefer:'return=representation' });
         try{ await sb('rpc/decrement_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_qte:qte, p_order:numero } }); }catch(_){}
         // Mark abandoned cart as converted
@@ -944,6 +960,10 @@ const server = http.createServer(async (req, res) => {
                     // Marquer comme envoye
                     await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ email_sent_at: new Date().toISOString() }});
                     console.log('[Stripe webhook] Email confirmation envoye a', o.client_email);
+                    // Compter l'utilisation du code promo (uniquement sur paiement confirme)
+                    if (o.promo_code && promoMod && promoMod.incrementPromoUsage) {
+                      try { await promoMod.incrementPromoUsage(sb, o.promo_code); } catch(pe){ console.warn('Promo count KO:', pe.message); }
+                    }
                   }
                 }
               } catch(mailErr) {
@@ -1013,6 +1033,23 @@ const server = http.createServer(async (req, res) => {
 
       const AUTH = getAuth(req);
       if (!AUTH) return sendJSON(res,{ error:'non autorise' },401);
+      // Revalidation des comptes EQUIPE : un compte desactive/supprime/retrograde
+      // perd son acces immediatement (cache 60 s pour ne pas marteler la base)
+      if (AUTH.login !== 'principal' && USE_DB) {
+        const now = Date.now();
+        global.__userCache = global.__userCache || {};
+        let cached = global.__userCache[AUTH.login];
+        if (!cached || now - cached.at > 60*1000) {
+          try {
+            const rows = await sb('admin_users?login=eq.'+encodeURIComponent(AUTH.login)+'&select=role,actif');
+            cached = { at: now, u: rows && rows[0] };
+            global.__userCache[AUTH.login] = cached;
+          } catch(_){ cached = cached || { at: now, u: null }; }
+        }
+        if (!cached.u || !cached.u.actif || cached.u.role !== AUTH.role) {
+          return sendJSON(res,{ error:'session_revoquee' },401);
+        }
+      }
       const ROLE = AUTH.role;
 
       /* Qui suis-je (pour l'UI) */
@@ -1381,6 +1418,7 @@ const server = http.createServer(async (req, res) => {
         if (!Object.keys(upd).length) return sendJSON(res,{ error:'rien_a_modifier' }, 400);
         try{
           await sb('admin_users?id=eq.'+uid, { method:'PATCH', body:upd });
+          global.__userCache = {}; // revocation immediate (pas d'attente des 60 s de cache)
           return sendJSON(res,{ ok:true });
         }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
       }
@@ -1390,6 +1428,7 @@ const server = http.createServer(async (req, res) => {
         if(!/^[0-9a-f-]{36}$/.test(uid)) return sendJSON(res,{ error:'bad_id' }, 400);
         try{
           await sb('admin_users?id=eq.'+uid, { method:'DELETE' });
+          global.__userCache = {}; // revocation immediate
           return sendJSON(res,{ ok:true });
         }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
       }

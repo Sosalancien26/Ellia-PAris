@@ -118,14 +118,32 @@
     function show(id){ const el = document.getElementById(id); if (el) el.style.display = 'block'; }
 
     if (sessionId && num) {
-      // Paiement Stripe confirmé : vider le panier + afficher confirmation
-      try {
-        if (window.Cart && typeof Cart.clear === 'function') Cart.clear();
-        // Fallback : si Cart.clear n'existe pas, vider le storage manuellement
-        else localStorage.removeItem('ellia_cart');
-      } catch(_){}
-      document.getElementById('numSuccess').textContent = num;
-      show('stateSuccess');
+      // VERIFICATION SERVEUR : on n'affiche "payé" et on ne vide le panier
+      // que si la commande est REELLEMENT payée en base (anti-lien forgé).
+      fetch('/api/order-paystatus?n='+encodeURIComponent(num))
+        .then(r=>r.json())
+        .then(j=>{
+          if (j && j.paid) {
+            try {
+              if (window.Cart && typeof Cart.clear === 'function') Cart.clear();
+              else localStorage.removeItem('ellia_cart');
+            } catch(_){}
+            document.getElementById('numSuccess').textContent = num;
+            show('stateSuccess');
+          } else {
+            // Paiement pas (encore) confirmé : le webhook peut prendre quelques secondes
+            document.getElementById('numSuccess').textContent = num;
+            setTimeout(()=>{
+              fetch('/api/order-paystatus?n='+encodeURIComponent(num)).then(r=>r.json()).then(j2=>{
+                if (j2 && j2.paid) {
+                  try { if (window.Cart && Cart.clear) Cart.clear(); else localStorage.removeItem('ellia_cart'); } catch(_){}
+                  show('stateSuccess');
+                } else { show('stateDefault'); }
+              }).catch(()=>show('stateDefault'));
+            }, 3000);
+          }
+        })
+        .catch(()=>{ document.getElementById('numSuccess').textContent = num; show('stateSuccess'); });
     } else if (cancelled) {
       document.getElementById('numCancelled').textContent = num || '—';
       show('stateCancelled');
