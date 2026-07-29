@@ -279,16 +279,22 @@
 
   /* Bon de préparation imprimable — SANS aucun prix (pour l'atelier / le colis) */
   function printPrepSlip(o){
+    // gravureFull() detaille AUSSI les symboles (flamme, hamsa, peace, ellia) :
+    // sans cela l'atelier grave uniquement les initiales et oublie les symboles.
+    const detail = (typeof gravureFull === 'function') ? gravureFull(o) : '';
     const gravure = (o.initiales && o.initiales !== '—')
       ? '<tr><td>Initiales à graver</td><td style="font-size:26px;font-family:Georgia,serif;letter-spacing:.2em"><b>'+esc(o.initiales)+'</b></td></tr>'+
         '<tr><td>Finition</td><td><b>'+esc(o.finition||'—')+'</b></td></tr>'+
-        '<tr><td>Emplacement</td><td><b>'+esc(o.emplacement||'—')+'</b></td></tr>'
-      : '<tr><td colspan="2"><b>Sans gravure</b></td></tr>';
+        '<tr><td>Emplacement</td><td><b>'+esc(o.emplacement||'—')+'</b></td></tr>'+
+        (detail ? '<tr><td>Détail complet</td><td>'+detail+'</td></tr>' : '')
+      : (detail ? '<tr><td>Gravure</td><td>'+detail+'</td></tr>'
+                : '<tr><td colspan="2"><b>Sans gravure</b></td></tr>');
     const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Bon de préparation '+esc(o.id)+'</title>'+
       '<style>body{font-family:Arial,sans-serif;color:#111;max-width:640px;margin:30px auto;padding:0 20px}h1{font-size:20px;border-bottom:2px solid #111;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 12px;border:1px solid #ddd;font-size:14px}td:first-child{width:200px;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.08em}img{max-width:280px;border:1px solid #ddd;margin-top:8px}.foot{margin-top:30px;font-size:11px;color:#999}@media print{.noprint{display:none}}</style></head><body>'+
       '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
       '<table>'+
         '<tr><td>Article</td><td><b>La Pochette ELLIA — Noir</b></td></tr>'+
+        '<tr><td>Quantité</td><td style="font-size:20px"><b>'+(o.quantite||1)+'</b></td></tr>'+
         gravure+
         '<tr><td>Destinataire</td><td><b>'+esc(o.client||'')+'</b></td></tr>'+
         '<tr><td>Adresse de livraison</td><td>'+esc(o.adresse||'')+'</td></tr>'+
@@ -421,8 +427,11 @@
       return;
     }
     const o = full;
-    const FINITIONS = ['','Or','Argent','Or rose','Noir'];
-    const EMPLACEMENTS = ['','Plaque chromée','Sous-rabat','Intérieur'];
+    // DOIT correspondre exactement au configurateur (app.js `names` et boutons
+    // .place-btn) : une valeur absente ferait retomber le select sur "— Choisir —"
+    // et un simple enregistrement effacerait la finition/l'emplacement en base.
+    const FINITIONS = ['','Or','Or rose','Argent','Aveugle','Noir','Blanc'];
+    const EMPLACEMENTS = ['','Centre','Haut gauche','Haut droit','Bas gauche','Bas droit'];
     const MODES = ['','Virement bancaire','Chèque','Espèces','Carte bancaire (en main)','PayPal','Autre'];
     const STATUTS_PAY = ['En attente','Payé','Partiel','Annulé'];
     const opt = (arr, cur) => arr.map(v=>'<option value="'+esc(v)+'"'+((v===(cur||''))?' selected':'')+'>'+(v||'— Choisir —')+'</option>').join('');

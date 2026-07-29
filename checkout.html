@@ -134,7 +134,16 @@ document.addEventListener('DOMContentLoaded', function(){
     const ci=document.getElementById('coItems');
     if(ci) ci.insertAdjacentHTML('beforebegin','<div style="background:#fdf3e7;border:1px solid #f3dcb6;color:#a8631e;padding:14px 18px;margin-bottom:18px;font-size:13.5px;border-radius:3px">Paiement annulé — votre panier et votre personnalisation sont conservés. Vous pouvez réessayer quand vous voulez.</div>');
   }
-  const persoTxt=it=>it.initiales?('Gravure : '+esc(it.initiales)+' · '+esc(it.finition)+' · '+esc(it.emplacement)):'Sans gravure';
+  // Récapitulatif COMPLET : les symboles doivent rester visibles jusqu'au paiement
+  const persoTxt=function(it){
+    const parts=[];
+    if(it.initiales) parts.push('Gravure : '+esc(it.initiales)+' · '+esc(it.finition||'')+' · '+esc(it.emplacement||''));
+    ['flame','extra','extra2','extra3'].forEach(function(k){
+      const s=it[k];
+      if(s && s.enabled) parts.push(esc(s.symbol_name||'Symbole')+' : '+esc(s.finish||'')+' · '+esc(s.placement||''));
+    });
+    return parts.length ? parts.join('<br>') : 'Sans gravure';
+  };
   document.getElementById('coItems').innerHTML=items.map(it=>
     '<div class="co-item"><div>'+esc(it.nom||'La Pochette ELLIA')+'<div class="m">'+persoTxt(it)+'</div></div><div>'+eur(it.prix)+'</div></div>').join('');
   document.getElementById('coTotal').textContent=eur(Cart.total());
@@ -198,15 +207,27 @@ document.addEventListener('DOMContentLoaded', function(){
       // Code promo : revalide et applique COTE SERVEUR (le total Stripe sera le net)
       promo_code: (window.elliaPromoApplied && window.elliaPromoApplied() ? window.elliaPromoApplied().code : null)
     };
-    let numero='EP-'+Date.now().toString().slice(-6);
+    // RETRY : si une commande a deja ete creee pour ce panier, on la reutilise
+    // au lieu d'en recreer une (qui reserverait le stock une seconde fois).
+    let numero = null;
+    try {
+      const dejaCree = sessionStorage.getItem('ellia_pending_order');
+      if (dejaCree) {
+        const prev = JSON.parse(dejaCree);
+        if (prev && prev.numero && prev.total === Cart.total() && (Date.now()-prev.ts) < 60*60*1000) numero = prev.numero;
+      }
+    } catch(_){}
     const validateBtn = document.getElementById('validate');
     const oldBtnText = validateBtn.textContent;
-    validateBtn.textContent = 'Création de la commande…';
+    validateBtn.textContent = numero ? 'Reprise du paiement…' : 'Création de la commande…';
     validateBtn.disabled = true;
+    if (numero) { /* commande deja creee : on saute directement au paiement */ }
+    else
     try{
       const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(r.status===409){ err.textContent='Désolé, La Pochette ELLIA est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
-      if(r.ok){ const dd=await r.json(); if(dd&&dd.numero) numero=dd.numero; }
+      if(r.ok){ const dd=await r.json(); if(dd&&dd.numero){ numero=dd.numero;
+        try{ sessionStorage.setItem('ellia_pending_order', JSON.stringify({numero:numero, total:Cart.total(), ts:Date.now()})); }catch(_){} } }
       else { err.textContent='Erreur lors de la création de la commande. Réessayez.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
     }catch(e){ err.textContent='Connexion impossible. Vérifiez votre connexion internet.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
     // Si connecté, on enregistre l'adresse dans le profil pour le pré-remplissage la prochaine fois
@@ -223,6 +244,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       const sd = await sr.json();
       if(sd.ok && sd.url){
+        try{ sessionStorage.removeItem('ellia_pending_order'); }catch(_){}
         // NE PAS vider le panier ici : si la cliente annule sur la page Stripe,
         // elle revient avec son panier + sa personnalisation intacts.
         // Le panier sera vide sur la page de confirmation apres paiement reussi.

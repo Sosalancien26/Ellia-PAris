@@ -1517,13 +1517,17 @@ function initConfigurator(){
   window.__forceRender = function(){
     try { renderer.render(scene, camera); } catch(e){}
   };
+  /* Libelles lisibles : l'atelier doit lire "Or · Bas gauche", pas "or · bg" */
+  const _LBL_POS = { hg:'Haut gauche', hd:'Haut droit', centre:'Centre', bg:'Bas gauche', bd:'Bas droit' };
+  const _lblFin = f => (FINISHES[f] && FINISHES[f].name) || f || '';
+  const _lblPos = p => _LBL_POS[p] || p || '';
   window.__getFlameState = function(){
     return state.useHebrew ? {
       enabled: true,
       symbol: state.symbol,
       symbol_name: SYMBOL_NAME[state.symbol] || 'Flamme',
-      finish: state.flameFinish,
-      placement: state.flamePlacement
+      finish: _lblFin(state.flameFinish),
+      placement: _lblPos(state.flamePlacement)
     } : null;
   };
   // Etat de la 2e gravure (extra) pour le panier
@@ -1532,8 +1536,8 @@ function initConfigurator(){
       enabled: true,
       symbol: state.extraSymbol,
       symbol_name: SYMBOL_NAME[state.extraSymbol] || '—',
-      finish: state.extraFinish,
-      placement: state.extraPlacement
+      finish: _lblFin(state.extraFinish),
+      placement: _lblPos(state.extraPlacement)
     } : null;
   };
   // Etat de la 3e gravure
@@ -1542,8 +1546,8 @@ function initConfigurator(){
       enabled: true,
       symbol: state.extra2Symbol,
       symbol_name: SYMBOL_NAME[state.extra2Symbol] || '—',
-      finish: state.extra2Finish,
-      placement: state.extra2Placement
+      finish: _lblFin(state.extra2Finish),
+      placement: _lblPos(state.extra2Placement)
     } : null;
   };
   // Etat de la 4e gravure
@@ -1552,8 +1556,8 @@ function initConfigurator(){
       enabled: true,
       symbol: state.extra3Symbol,
       symbol_name: SYMBOL_NAME[state.extra3Symbol] || '—',
-      finish: state.extra3Finish,
-      placement: state.extra3Placement
+      finish: _lblFin(state.extra3Finish),
+      placement: _lblPos(state.extra3Placement)
     } : null;
   };
   window.__getFontScale = function(){ return state.fontScale || 1.0; };

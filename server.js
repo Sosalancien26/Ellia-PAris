@@ -491,7 +491,10 @@ async function getProducts(){
 }
 async function getOrders(){
   if(!USE_DB) return MOCK_ORDERS;
-  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,items_data,created_at&order=created_at.desc');
+  // ATTENTION : la fiche admin renvoie TOUS ces champs lors d'un enregistrement.
+  // Un champ absent ici = valeur par defaut du formulaire ecrite en base
+  // (montant ecrase a 159 €, notes internes videes...). Ne rien retirer.
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,items_data,created_at,quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,notes_admin,promo_code&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
@@ -503,6 +506,15 @@ async function getOrders(){
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
     preview:r.preview||null,
     items_data: r.items_data || null,
+    // Montants detailles : indispensables pour que la fiche admin ne reecrive pas
+    // des valeurs par defaut lors d'un simple enregistrement.
+    quantite: r.quantite==null ? 1 : Number(r.quantite),
+    prix_pochette: r.prix_pochette==null ? null : Number(r.prix_pochette),
+    prix_personnalisation: r.prix_personnalisation==null ? null : Number(r.prix_personnalisation),
+    frais_port: r.frais_port==null ? null : Number(r.frais_port),
+    tva_rate: r.tva_rate==null ? null : Number(r.tva_rate),
+    notes_admin: r.notes_admin || '',
+    promo_code: r.promo_code || '',
     adresse_livraison:r.adresse_livraison||'', cp_livraison:r.cp_livraison||'', ville_livraison:r.ville_livraison||'', pays_livraison:r.pays_livraison||'France',
     adresse_facturation:r.adresse_facturation||'', cp_facturation:r.cp_facturation||'', ville_facturation:r.ville_facturation||'', pays_facturation:r.pays_facturation||'France',
     adresse:j(r.adresse_livraison,r.cp_livraison,r.ville_livraison,r.pays_livraison),
@@ -602,7 +614,13 @@ function stripFinance(o){
   if (!o || typeof o !== 'object') return o;
   const copy = { ...o };
   for (const f of FINANCE_FIELDS) delete copy[f];
-  const stripItems = arr => arr.map(it => { const c={...it}; delete c.prix; delete c.total; delete c.prix_unitaire; return c; });
+  // perso_detail contient persoInitiales / persoSymbol = des MONTANTS en euros :
+  // sans ce nettoyage, le role atelier reconstitue le prix de la commande.
+  const stripItems = arr => (Array.isArray(arr) ? arr : []).map(it => {
+    const c = { ...it };
+    delete c.prix; delete c.total; delete c.prix_unitaire; delete c.perso_detail;
+    return c;
+  });
   if (Array.isArray(copy.cart_data)) copy.cart_data = stripItems(copy.cart_data);
   if (Array.isArray(copy.items)) copy.items = stripItems(copy.items);
   if (Array.isArray(copy.items_data)) copy.items_data = stripItems(copy.items_data);
@@ -923,6 +941,15 @@ const server = http.createServer(async (req, res) => {
           // Total NET : remise promo (validee serveur) deduite → c'est ce montant que Stripe facturera
           montant_total: Math.max(0, totalClient - promoDiscount),
           quantite: qte,   // necessaire pour restituer le BON stock si le paiement echoue
+          // DETAIL FINANCIER : sans ces champs, la facture PDF retombe sur 159 €
+          // et la comptabilite range du TTC dans la colonne HT.
+          prix_pochette: prixCatalogue,
+          prix_personnalisation: Math.max(0, Math.round(((totalBrut / qte) - prixCatalogue) * 100) / 100),
+          frais_port: 0,
+          tva_rate: 20,
+          montant_ht:  Math.round(((totalBrut - promoDiscount) / 1.2) * 100) / 100,
+          montant_tva: Math.round(((totalBrut - promoDiscount) - (totalBrut - promoDiscount) / 1.2) * 100) / 100,
+          promo_discount: promoDiscount || 0,
           preview: preview,
           items_data: itemsData,
           statut: 'En attente paiement' };
@@ -973,6 +1000,10 @@ const server = http.createServer(async (req, res) => {
               quantity: 1
             })),
             metadata: { numero: numero },
+            // Stripe ne recopie PAS les metadata de la session vers le PaymentIntent :
+            // sans ceci, l'evenement payment_failed n'a pas le numero et le stock
+            // n'est jamais restitue.
+            payment_intent_data: { metadata: { numero: numero } },
             success_url: origin + '/confirmation.html?n=' + encodeURIComponent(numero) + '&session_id={CHECKOUT_SESSION_ID}',
             cancel_url:  origin + '/checkout.html?cancelled=1&n=' + encodeURIComponent(numero),
             locale: 'fr',
