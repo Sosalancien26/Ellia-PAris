@@ -157,11 +157,28 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
       '<div class="ocard-name">La Pochette ELLIA — Noir</div>'+
       '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
       '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+o.statut+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
-  let orders=[]; try{ const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false}); orders=r.data||[]; }catch(e){}
-  const enc=[], term=[];
-  orders.forEach(o=>{ const s=(o.statut||'').toLowerCase(); (s.includes('livr')||s.includes('annul')?term:enc).push(o); });
-  f('encoursList').innerHTML = enc.length?enc.map(card).join(''):'<p class="empty">Aucune commande en cours. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>';
-  f('termineesList').innerHTML = term.length?term.map(card).join(''):'<p class="empty">Aucune commande terminée.</p>';
+  let orders=[], loadFailed=false;
+  try{
+    const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false});
+    if(r.error) loadFailed=true; else orders=r.data||[];
+  }catch(e){ loadFailed=true; }
+  if(loadFailed){
+    // Ne JAMAIS afficher "aucune commande" quand le chargement a echoue :
+    // le client croirait que ses commandes ont disparu.
+    const err='<p class="empty" style="color:#b1432f">Impossible de charger vos commandes pour le moment. <a href="#" onclick="location.reload();return false" style="color:var(--noir);text-decoration:underline">Réessayer</a></p>';
+    f('encoursList').innerHTML=err; f('termineesList').innerHTML=err;
+  } else {
+    const enc=[], term=[];
+    orders.forEach(o=>{ const s=(o.statut||'').toLowerCase(); (s.includes('livr')||s.includes('annul')?term:enc).push(o); });
+    f('encoursList').innerHTML = enc.length?enc.map(card).join(''):'<p class="empty">Aucune commande en cours. <a href="pochette.html" style="color:var(--noir);text-decoration:underline">Découvrir la pochette</a></p>';
+    f('termineesList').innerHTML = term.length?term.map(card).join(''):'<p class="empty">Aucune commande terminée.</p>';
+  }
+  // Session revoquee / expiree pendant la navigation -> retour propre au login
+  SB.auth.onAuthStateChange((evt)=>{
+    if(evt==='SIGNED_OUT' || evt==='TOKEN_REFRESHED' && !SB.auth.getSession()) {
+      if(evt==='SIGNED_OUT') location.href='connexion.html?expired=1';
+    }
+  });
 
   f('logout').addEventListener('click', async e=>{ e.preventDefault(); await SB.auth.signOut(); location.href='index.html'; });
 
@@ -185,7 +202,10 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
     // 2. Demander changement d'email (Supabase envoie un email de validation)
     const { error: upErr } = await SB.auth.updateUser({ email: newEmail });
     if(upErr){ msg.style.color='#b1432f'; msg.textContent='Erreur : '+upErr.message; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; return; }
-    msg.style.color='#2f7d52'; msg.textContent='Email envoyé à '+newEmail+'. Clique sur le lien pour confirmer.';
+    // Supabase envoie un lien à l'ANCIENNE et à la NOUVELLE adresse : les deux
+    // doivent être cliqués, sinon le changement reste bloqué sans explication.
+    msg.style.color='#2f7d52';
+    msg.innerHTML='Deux e-mails de confirmation ont été envoyés :<br>• à votre adresse actuelle<br>• à '+newEmail.replace(/[<>&]/g,'')+'<br><b>Cliquez sur les deux liens</b> pour valider le changement.';
     btn.textContent='Envoyé ✓'; setTimeout(()=>{ em.style.display='none'; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; }, 4000);
   });
 })();

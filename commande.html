@@ -81,8 +81,45 @@
     if(t.includes('dhl')) return 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id='+n;
     if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n; return ''; }
 
-  const { data:o, error } = await SB.from('orders').select('*').eq('numero',numero).maybeSingle();
-  if(error || !o){ box.innerHTML='<p style="margin-top:30px">Commande introuvable ou accès refusé. <a href="compte.html" style="text-decoration:underline">Retour</a></p>'; return; }
+  // 1) Client connecté : lecture directe (protégée par RLS = ses commandes uniquement)
+  let o = null;
+  try {
+    const { data } = await SB.from('orders')
+      .select('numero,created_at,statut,suivi,transporteur,initiales,finition,emplacement,montant_total,adresse_livraison,cp_livraison,ville_livraison,pays_livraison')
+      .eq('numero',numero).maybeSingle();
+    o = data || null;
+  } catch(_){}
+
+  // 2) Achat SANS COMPTE : on demande l'e-mail de la commande pour l'identifier
+  if(!o){
+    box.innerHTML =
+      '<div style="max-width:420px;margin:30px auto 0">'+
+        '<h1 style="font-family:var(--serif);font-size:28px;margin-bottom:8px">Suivre ma commande</h1>'+
+        '<p style="color:var(--gris-txt);font-size:13.5px;margin-bottom:20px">Commande <b>'+String(numero).replace(/[<>&]/g,'')+'</b>. Saisissez l’e-mail utilisé lors de l’achat pour afficher son suivi.</p>'+
+        '<form id="lookupForm">'+
+          '<input id="lkEmail" type="email" inputmode="email" autocomplete="email" placeholder="votre@email.com" style="width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;outline:none;border-radius:7px">'+
+          '<button class="btn solid" type="submit" id="lkGo" style="width:100%;text-align:center;margin-top:12px">Afficher ma commande</button>'+
+        '</form>'+
+        '<div id="lkMsg" style="font-size:13px;margin-top:12px;color:#b1432f"></div>'+
+        '<p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px">Vous avez un compte ? <a href="connexion.html?retour='+encodeURIComponent('commande.html?n='+numero)+'" style="color:var(--noir);text-decoration:underline">Connectez-vous</a></p>'+
+      '</div>';
+    o = await new Promise(resolve => {
+      document.getElementById('lookupForm').addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const em = document.getElementById('lkEmail').value.trim();
+        const m = document.getElementById('lkMsg'); const b = document.getElementById('lkGo');
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){ m.textContent='Merci de saisir une adresse e-mail valide.'; return; }
+        m.textContent=''; b.disabled=true; b.textContent='Recherche…';
+        try{
+          const r = await fetch('/api/order-lookup',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ numero, email:em }) });
+          const j = await r.json();
+          if(j.ok && j.order){ resolve(j.order); return; }
+          m.textContent = 'Aucune commande ne correspond à ce numéro et cet e-mail. Vérifiez l’e-mail utilisé lors de l’achat.';
+        }catch(_){ m.textContent='Connexion impossible. Réessayez dans un instant.'; }
+        b.disabled=false; b.textContent='Afficher ma commande';
+      });
+    });
+  }
 
   const idx = statusIndex(o.statut);
   const STEPS=['Reçue','En préparation','Expédiée','Livrée'];

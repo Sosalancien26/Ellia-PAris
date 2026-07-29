@@ -31,10 +31,12 @@
 <section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Le Cercle ELLIA</div><h1>Créer un compte</h1></div></section>
 
 <section class="pad" style="padding-top:30px"><div class="authwrap">
-  <div class="field"><label>Nom complet</label><input id="nom" autocomplete="name"></div>
-  <div class="field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
-  <div class="field"><label>Mot de passe</label><input id="pw" type="password" autocomplete="new-password" placeholder="8 caractères minimum"></div>
-  <button class="btn solid" id="go" style="width:100%;text-align:center">Créer mon compte</button>
+  <form id="signupForm" novalidate>
+  <div class="field"><label for="nom">Nom complet</label><input id="nom" autocomplete="name"></div>
+  <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" inputmode="email"></div>
+  <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="new-password" placeholder="8 caractères minimum"></div>
+  <button class="btn solid" id="go" type="submit" style="width:100%;text-align:center">Créer mon compte</button>
+  </form>
   <div class="authmsg" id="msg"></div>
   <div class="auth-alt">Déjà un compte ? <a href="connexion.html">Se connecter</a></div>
 </div></section>
@@ -46,15 +48,47 @@
 <script src="app.js?v=1781700000" defer></script>
 <script src="cart.js?v=1781700000" defer></script>
 <script>
-document.getElementById('go').addEventListener('click', async ()=>{
-  const msg=document.getElementById('msg'); msg.className='authmsg'; msg.textContent='';
+/* Traduction des messages Supabase (anglais) en français clair */
+function frErreur(e){
+  const m = String(e && e.message || '').toLowerCase();
+  if(m.includes('already registered') || m.includes('already been registered')) return 'Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.';
+  if(m.includes('password should be at least')) return 'Mot de passe trop court : 8 caractères minimum.';
+  if(m.includes('invalid email') || m.includes('unable to validate email')) return 'Adresse e-mail invalide.';
+  if(m.includes('you can only request this after') || m.includes('rate limit') || m.includes('too many')) return 'Trop de tentatives. Patientez une minute avant de réessayer.';
+  if(m.includes('signups not allowed') || m.includes('disabled')) return 'Les inscriptions sont momentanément indisponibles. Réessayez plus tard.';
+  if(m.includes('failed to fetch') || m.includes('network')) return 'Connexion impossible. Vérifiez votre connexion internet.';
+  return 'Une erreur est survenue. Réessayez ou écrivez-nous à contact@ellia-paris.fr.';
+}
+document.getElementById('signupForm').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const msg=document.getElementById('msg'); const btn=document.getElementById('go');
+  msg.className='authmsg'; msg.textContent='';
   const nom=document.getElementById('nom').value.trim();
   const email=document.getElementById('email').value.trim();
   const pw=document.getElementById('pw').value;
-  if(!nom||!email||pw.length<8){ msg.className='authmsg err'; msg.textContent='Remplis ton nom, ton e-mail et un mot de passe de 8 caractères minimum.'; return; }
-  const { error } = await SB.auth.signUp({ email, password:pw, options:{ data:{ nom }, emailRedirectTo: location.origin + '/connexion.html' } });
-  if(error){ msg.className='authmsg err'; msg.textContent='Erreur : '+error.message; return; }
-  msg.className='authmsg ok'; msg.textContent='Compte créé ! Vérifie ta boîte mail et clique sur le lien de confirmation pour activer ton compte.';
+  if(!nom){ msg.className='authmsg err'; msg.textContent='Merci d’indiquer votre nom complet.'; return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msg.className='authmsg err'; msg.textContent='Merci d’indiquer une adresse e-mail valide.'; return; }
+  if(pw.length<8){ msg.className='authmsg err'; msg.textContent='Votre mot de passe doit contenir au moins 8 caractères.'; return; }
+  const oldTxt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Création en cours…';
+  try{
+    const { data, error } = await SB.auth.signUp({ email, password:pw, options:{ data:{ nom }, emailRedirectTo: location.origin + '/connexion.html' } });
+    if(error){ msg.className='authmsg err'; msg.textContent=frErreur(error); return; }
+    // Supabase ne renvoie pas d'erreur si l'e-mail existe deja (anti-enumeration) :
+    // il renvoie un utilisateur SANS identite. On le detecte pour ne pas mentir au client.
+    if(data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0){
+      msg.className='authmsg err';
+      msg.innerHTML = 'Un compte existe déjà avec cette adresse. <a href="connexion.html" style="color:inherit;text-decoration:underline">Se connecter</a> ou <a href="connexion.html" style="color:inherit;text-decoration:underline">réinitialiser le mot de passe</a>.';
+      return;
+    }
+    msg.className='authmsg ok';
+    msg.innerHTML = '<b>Compte créé.</b><br>Un e-mail de confirmation vient d’être envoyé à <b>'+email.replace(/[<>&]/g,'')+'</b>. Cliquez sur le lien qu’il contient pour activer votre compte.<br><span style="font-size:12.5px;opacity:.85">Pensez à vérifier vos spams — l’e-mail arrive en général sous 2 minutes.</span>';
+    document.getElementById('pw').value='';
+  }catch(e){
+    msg.className='authmsg err'; msg.textContent=frErreur(e);
+  }finally{
+    btn.disabled = false; btn.textContent = oldTxt;
+  }
 });
 </script>
 </body>

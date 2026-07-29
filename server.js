@@ -178,6 +178,12 @@ function htmlToText(html){
   return String(html||'')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    // Conserver les URL des liens : sinon la version texte du mail de reinitialisation
+    // ne contient aucun lien cliquable et devient inutilisable.
+    .replace(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (m, href, label) => {
+      const txt = String(label).replace(/<[^>]+>/g,'').trim();
+      return txt ? (txt + ' : ' + href) : href;
+    })
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<\/div>/gi, '\n')
@@ -220,8 +226,8 @@ function addressBlock(d){
   if(!d.adresse_livraison) return '';
   return '<p style="font-family:Arial,sans-serif;font-size:13px;color:#56524c;line-height:1.6;margin:16px 0 0">' +
     '<b style="font-family:Georgia,serif;color:#0d0d0d;font-size:15px">Adresse de livraison</b><br/>' +
-    (d.client_nom||'') + '<br/>' + d.adresse_livraison + '<br/>' + (d.cp_livraison||'') + ' ' + (d.ville_livraison||'') + '<br/>' + (d.pays_livraison||'France') +
-    (d.telephone ? ('<br/>'+d.telephone) : '') + '</p>';
+    escH(d.client_nom||'') + '<br/>' + escH(d.adresse_livraison) + '<br/>' + escH(d.cp_livraison||'') + ' ' + escH(d.ville_livraison||'') + '<br/>' + escH(d.pays_livraison||'France') +
+    (d.telephone ? ('<br/>'+escH(d.telephone)) : '') + '</p>';
 }
 // Headers communs pour bonne deliverability (compat SpamAssassin + RFC 8058)
 function mailHeaders(){
@@ -674,6 +680,30 @@ const server = http.createServer(async (req, res) => {
           if(!o) return sendJSON(res,{ paid:false, found:false });
           return sendJSON(res,{ paid: o.payment_status==='Payee', found:true });
         }catch(_){ return sendJSON(res,{ paid:false, error:'db' }, 503); }
+      }
+
+      /* ----- SUIVI DE COMMANDE SANS COMPTE (numero + email) -----
+         Un acheteur invite n'a pas de compte : il ne peut pas lire sa commande
+         via Supabase (RLS = auth.uid() = user_id). Cet endpoint lui rend
+         uniquement les infos de suivi, et exige de connaitre numero ET email. */
+      if (req.method==='POST' && pathname==='/api/order-lookup'){
+        if(!rateAllowed('orders', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const n = clean(String(d.numero||'').trim().toUpperCase(), 30);
+        const em = String(d.email||'').trim().toLowerCase();
+        if(!/^EP-[A-Z0-9]{4,14}$/.test(n) || !isEmail(em)) return sendJSON(res,{ ok:false, error:'invalid' }, 400);
+        if(!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
+        try{
+          const rows = await sb('orders?numero=eq.'+encodeURIComponent(n)+
+            '&select=numero,created_at,statut,suivi,transporteur,initiales,finition,emplacement,montant_total,client_prenom,client_nom,client_email,adresse_livraison,cp_livraison,ville_livraison,pays_livraison');
+          const o = rows && rows[0];
+          // Reponse identique si introuvable OU email different (pas d'enumeration)
+          if(!o || String(o.client_email||'').toLowerCase() !== em){
+            return sendJSON(res,{ ok:false, error:'not_found' }, 404);
+          }
+          delete o.client_email;
+          return sendJSON(res,{ ok:true, order:o });
+        }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 503); }
       }
 
       /* ----- MOT DE PASSE OUBLIE — envoi via NOTRE SMTP (bypass email Supabase) ----- */
@@ -1188,7 +1218,13 @@ const server = http.createServer(async (req, res) => {
               const key = (d.statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
               // Statut "Expediee" + facture pas encore envoyee → genere et envoie la facture
               if (key.startsWith('expedi') && !ord.invoice_sent_at) {
-                await sendInvoiceForOrder({ ...ord, numero });
+                // Envoi facture + repli : si le PDF echoue (module absent, erreur),
+                // le client doit AU MOINS recevoir sa notification d'expedition + suivi.
+                const inv = await sendInvoiceForOrder({ ...ord, numero });
+                if (!inv || !inv.client) {
+                  console.warn('[Expedition] Facture non envoyee pour', numero, '— repli sur email de statut');
+                  notifyStatus(ord, numero, d.statut);
+                }
                 invoice_sent_now = true;
               } else {
                 // Email simple de changement de statut (pas de PDF)

@@ -31,9 +31,11 @@
 <section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Le Cercle ELLIA</div><h1>Connexion</h1></div></section>
 
 <section class="pad" style="padding-top:30px"><div class="authwrap">
-  <div class="field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
-  <div class="field"><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password"></div>
-  <button class="btn solid" id="go" style="width:100%;text-align:center">Se connecter</button>
+  <form id="loginForm" novalidate>
+  <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" inputmode="email"></div>
+  <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password"></div>
+  <button class="btn solid" id="go" type="submit" style="width:100%;text-align:center">Se connecter</button>
+  </form>
   <div class="authmsg" id="msg"></div>
   <div class="auth-alt"><a href="#" id="forgot">Mot de passe oublié ?</a></div>
   <div class="auth-alt">Pas encore de compte ? <a href="inscription.html">Créer un compte</a></div>
@@ -52,14 +54,65 @@
 <script src="app.js?v=1781700000" defer></script>
 <script src="cart.js?v=1781700000" defer></script>
 <script>
-document.getElementById('go').addEventListener('click', async ()=>{
-  const msg=document.getElementById('msg'); msg.className='authmsg'; msg.textContent='';
+/* Lien de confirmation / réinitialisation expiré : Supabase renvoie l'erreur dans le hash */
+(function(){
+  const h = location.hash || '';
+  if(h.includes('error')){
+    const m = document.getElementById('msg');
+    m.className = 'authmsg err';
+    m.innerHTML = h.includes('expired') || h.includes('invalid')
+      ? 'Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous ("Mot de passe oublié ?") ou réessayez de vous connecter.'
+      : 'Le lien n’a pas pu être validé. Réessayez ou écrivez-nous à contact@ellia-paris.fr.';
+    history.replaceState(null,'',location.pathname);
+  }
+  if(new URLSearchParams(location.search).get('expired')==='1'){
+    const m = document.getElementById('msg');
+    m.className='authmsg'; m.textContent='Votre session a expiré. Merci de vous reconnecter.';
+  }
+})();
+function frLogin(e){
+  const m = String(e && e.message || '').toLowerCase();
+  if(m.includes('email not confirmed')) return 'CONFIRM';
+  if(m.includes('invalid login credentials')) return 'E-mail ou mot de passe incorrect.';
+  if(m.includes('too many') || m.includes('rate limit')) return 'Trop de tentatives. Patientez une minute avant de réessayer.';
+  if(m.includes('failed to fetch') || m.includes('network')) return 'Connexion impossible. Vérifiez votre connexion internet.';
+  return 'Connexion impossible. Réessayez ou écrivez-nous à contact@ellia-paris.fr.';
+}
+document.getElementById('loginForm').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const msg=document.getElementById('msg'); const btn=document.getElementById('go');
+  msg.className='authmsg'; msg.textContent='';
   const email=document.getElementById('email').value.trim();
   const pw=document.getElementById('pw').value;
-  if(!email||!pw){ msg.className='authmsg err'; msg.textContent='Entre ton e-mail et ton mot de passe.'; return; }
-  const { error } = await SB.auth.signInWithPassword({ email, password:pw });
-  if(error){ msg.className='authmsg err'; msg.textContent="E-mail ou mot de passe incorrect (ou compte non confirmé)."; return; }
-  location.href='compte.html';
+  if(!email||!pw){ msg.className='authmsg err'; msg.textContent='Merci de saisir votre e-mail et votre mot de passe.'; return; }
+  const oldTxt=btn.textContent; btn.disabled=true; btn.textContent='Connexion…';
+  try{
+    const { error } = await SB.auth.signInWithPassword({ email, password:pw });
+    if(error){
+      const fr = frLogin(error);
+      msg.className='authmsg err';
+      if(fr==='CONFIRM'){
+        // Compte jamais confirmé : on propose de renvoyer l'e-mail (sinon impasse totale)
+        msg.innerHTML = 'Votre compte n’est pas encore confirmé. <a href="#" id="resendLink" style="color:inherit;text-decoration:underline">Renvoyer l’e-mail de confirmation</a>';
+        document.getElementById('resendLink').addEventListener('click', async (e2)=>{
+          e2.preventDefault();
+          msg.className='authmsg'; msg.textContent='Envoi en cours…';
+          try{
+            await SB.auth.resend({ type:'signup', email, options:{ emailRedirectTo: location.origin + '/connexion.html' } });
+            msg.className='authmsg ok'; msg.textContent='E-mail de confirmation renvoyé. Vérifiez votre boîte (et vos spams).';
+          }catch(_){ msg.className='authmsg err'; msg.textContent='Envoi impossible pour le moment. Écrivez-nous à contact@ellia-paris.fr.'; }
+        });
+      } else { msg.textContent = fr; }
+      return;
+    }
+    // Retour à la page d'origine si on venait d'ailleurs (ex : suivi de commande)
+    const back = new URLSearchParams(location.search).get('retour');
+    location.href = (back && /^[a-z0-9._-]+\.html(\?.*)?$/i.test(back)) ? back : 'compte.html';
+  }catch(e){
+    msg.className='authmsg err'; msg.textContent=frLogin(e);
+  }finally{
+    btn.disabled=false; btn.textContent=oldTxt;
+  }
 });
 document.getElementById('forgot').addEventListener('click', async (e)=>{
   e.preventDefault();
