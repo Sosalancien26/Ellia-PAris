@@ -24,8 +24,15 @@ const os      = require('os');
 /* Cache des fichiers deja compresses (evite de recompresser a chaque visite) */
 const GZ_CACHE = new Map();
 const GZ_CACHE_MAX = 60;
-/* Nombre de processus : 1 par coeur, plafonne a 4 (ajustable via WEB_CONCURRENCY) */
-const WORKERS = Math.max(1, Math.min(Number(process.env.WEB_CONCURRENCY) || os.cpus().length, 4));
+/* Nombre de processus.
+   IMPORTANT : par defaut 1 seul processus.
+   L'hebergement Node de Hostinger surveille le processus PRINCIPAL et exige
+   qu'il appelle lui-meme listen() dans les 3 secondes. En mode cluster, le
+   processus chef delegue aux enfants et n'ouvre pas le port -> Hostinger croit
+   a un plantage et redemarre l'app en boucle.
+   Le mode multi-processus ne s'active donc QUE si WEB_CONCURRENCY est
+   explicitement defini (utile sur un VPS ou derriere un reverse proxy). */
+const WORKERS = Math.max(1, Math.min(Number(process.env.WEB_CONCURRENCY) || 1, 8));
 let invoiceMod = null;
 try { invoiceMod = require('./invoice'); }
 catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
