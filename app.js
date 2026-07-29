@@ -6,20 +6,9 @@
   window.addEventListener('load',function(){setTimeout(hidePreloader,2500);});
   setTimeout(hidePreloader,4500); // garde-fou max 4.5s
 
-  /* Bandeau cookies (RGPD) */
-  if(localStorage.getItem('ellia_cookies')!=='ok'){
-    var showBar=function(){
-      if(document.getElementById('cookieBar')) return;
-      var b=document.createElement('div'); b.id='cookieBar';
-      b.innerHTML='<span style="flex:1;min-width:260px">Ce site utilise uniquement des cookies necessaires (panier, session). <a href="confidentialite.html" style="color:#fff;text-decoration:underline">En savoir plus</a>.</span><button>J\'ai compris</button>';
-      Object.assign(b.style,{position:'fixed',bottom:'0',left:'0',right:'0',background:'rgba(13,13,13,.94)',color:'#fff',padding:'14px 22px',display:'flex',gap:'18px',alignItems:'center',justifyContent:'space-between',zIndex:'1300',fontFamily:'Jost,Arial,sans-serif',fontSize:'13.5px',flexWrap:'wrap'});
-      var btn=b.querySelector('button');
-      Object.assign(btn.style,{background:'#fff',color:'#0d0d0d',border:'none',padding:'9px 16px',fontSize:'11px',letterSpacing:'.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'});
-      btn.addEventListener('click',function(){ localStorage.setItem('ellia_cookies','ok'); b.remove(); });
-      document.body.appendChild(b);
-    };
-    if(document.body) showBar(); else document.addEventListener('DOMContentLoaded',showBar);
-  }
+  /* Bandeau cookies : gere UNIQUEMENT par cookies-banner.js.
+     L'ancien bandeau de ce fichier faisait doublon (deux bandeaux empiles) et
+     recouvrait le bouton "Ajouter au panier" du configurateur sur mobile. */
 
   /* Newsletter */
   document.addEventListener('submit', async function(e){
@@ -115,6 +104,13 @@
     var addBtn=document.getElementById('addPerso');
     if(addBtn) addBtn.addEventListener('click', async function(e){
       e.preventDefault();
+      if (addBtn.dataset.busy === '1') return;   // anti double-clic
+      // SECURITE PRIX : si le module 3D n'a pas charge, le prix affiche (159 €)
+      // ne correspond pas au prix reel -> on refuse plutot que de facturer autre chose.
+      if (typeof window.__getPersoPrice !== 'function') {
+        alert("Le configurateur n'a pas fini de charger. Patientez quelques secondes puis réessayez.");
+        return;
+      }
       // Texte EXACT tape par le client (pas d'uppercase, pas de points ajoutes)
       var rawText = input.value || '';
       var place=(document.querySelector('#placements .place-btn.active')||{}).textContent||'Centre';

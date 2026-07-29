@@ -124,7 +124,8 @@
 // On attend que cart.js (defer) soit charge avant d'utiliser Cart
 document.addEventListener('DOMContentLoaded', function(){
 (function(){
-  const eur=n=>Number(n).toLocaleString('fr-FR')+' €';
+  // Meme format que le bloc code promo (2 decimales) pour eviter 218 € puis 218,00 €
+  const eur=n=>Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
   const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const items=Cart.items();
   if(!items.length){ location.href='panier.html'; return; }

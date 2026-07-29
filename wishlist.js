@@ -4,6 +4,8 @@
   let supa = null;
   function getSupa(){
     if (supa) return supa;
+    // Le client Supabase est expose sous window.SB par supabase-config.js
+    if (typeof window.SB !== 'undefined' && window.SB) { supa = window.SB; return supa; }
     if (typeof window.SUPA !== 'undefined') { supa = window.SUPA; return supa; }
     if (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
       supa = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);

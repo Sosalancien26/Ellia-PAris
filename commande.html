@@ -66,10 +66,17 @@
 <script src="cart.js?v=1781700000" defer></script>
 <script>
 (async function(){
-  const { data:{ session } } = await SB.auth.getSession();
-  if(!session){ location.href='connexion.html'; return; }
-  const numero = new URLSearchParams(location.search).get('n');
   const box = document.getElementById('content');
+  // Le service d'authentification n'a pas chargé : message clair plutôt qu'un écran figé
+  if(typeof SB === 'undefined' || !SB || !SB.auth){
+    box.innerHTML='<p style="margin-top:30px">Service temporairement indisponible. <a href="#" onclick="location.reload();return false" style="text-decoration:underline">Réessayer</a></p>';
+    return;
+  }
+  let session = null;
+  try { const r = await SB.auth.getSession(); session = r && r.data ? r.data.session : null; } catch(_){}
+  // PAS de redirection si non connecté : un client SANS COMPTE doit pouvoir
+  // suivre sa commande (formulaire numéro + e-mail plus bas).
+  const numero = new URLSearchParams(location.search).get('n');
   if(!numero){ box.innerHTML='<p style="margin-top:30px">Commande introuvable. <a href="compte.html" style="text-decoration:underline">Retour</a></p>'; return; }
   const eur=n=>Number(n||0).toLocaleString('fr-FR')+' €';
   const norm=s=>(s||'').toLowerCase().split('é').join('e').split('è').join('e').split('ê').join('e').split('à').join('a');
@@ -82,20 +89,24 @@
     if(t.includes('mondial')) return 'https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition='+n; return ''; }
 
   // 1) Client connecté : lecture directe (protégée par RLS = ses commandes uniquement)
-  let o = null;
-  try {
-    const { data } = await SB.from('orders')
-      .select('numero,created_at,statut,suivi,transporteur,initiales,finition,emplacement,montant_total,adresse_livraison,cp_livraison,ville_livraison,pays_livraison')
-      .eq('numero',numero).maybeSingle();
-    o = data || null;
-  } catch(_){}
+  let o = null, viaLookup = false;
+  if (session) {
+    try {
+      const { data } = await SB.from('orders')
+        .select('numero,created_at,statut,suivi,transporteur,initiales,finition,emplacement,montant_total,adresse_livraison,cp_livraison,ville_livraison,pays_livraison')
+        .eq('numero',numero).maybeSingle();
+      o = data || null;
+    } catch(_){}
+  }
 
   // 2) Achat SANS COMPTE : on demande l'e-mail de la commande pour l'identifier
   if(!o){
     box.innerHTML =
       '<div style="max-width:420px;margin:30px auto 0">'+
         '<h1 style="font-family:var(--serif);font-size:28px;margin-bottom:8px">Suivre ma commande</h1>'+
-        '<p style="color:var(--gris-txt);font-size:13.5px;margin-bottom:20px">Commande <b>'+String(numero).replace(/[<>&]/g,'')+'</b>. Saisissez l’e-mail utilisé lors de l’achat pour afficher son suivi.</p>'+
+        '<p style="color:var(--gris-txt);font-size:13.5px;margin-bottom:20px">'+
+          (session ? 'Cette commande n’est pas rattachée à votre compte. Saisissez l’e-mail utilisé lors de l’achat pour l’afficher.' :
+           'Commande <b>'+String(numero).replace(/[<>&]/g,'')+'</b>. Saisissez l’e-mail utilisé lors de l’achat pour afficher son suivi.')+'</p>'+
         '<form id="lookupForm">'+
           '<input id="lkEmail" type="email" inputmode="email" autocomplete="email" placeholder="votre@email.com" style="width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;outline:none;border-radius:7px">'+
           '<button class="btn solid" type="submit" id="lkGo" style="width:100%;text-align:center;margin-top:12px">Afficher ma commande</button>'+
@@ -113,8 +124,11 @@
         try{
           const r = await fetch('/api/order-lookup',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ numero, email:em }) });
           const j = await r.json();
-          if(j.ok && j.order){ resolve(j.order); return; }
-          m.textContent = 'Aucune commande ne correspond à ce numéro et cet e-mail. Vérifiez l’e-mail utilisé lors de l’achat.';
+          if(j.ok && j.order){ viaLookup = true; resolve(j.order); return; }
+          // Messages distincts : ne pas dire "commande introuvable" si c'est une panne
+          if(j.error==='rate') m.textContent='Trop de tentatives. Patientez une minute avant de réessayer.';
+          else if(j.error==='db' || j.error==='no_db') m.textContent='Service momentanément indisponible. Réessayez dans quelques instants.';
+          else m.textContent = 'Aucune commande ne correspond à ce numéro et cet e-mail. Vérifiez l’e-mail utilisé lors de l’achat.';
         }catch(_){ m.textContent='Connexion impossible. Réessayez dans un instant.'; }
         b.disabled=false; b.textContent='Afficher ma commande';
       });
@@ -156,7 +170,9 @@
       '<div class="cmd-row"><span class="k">Total</span><span class="v" style="font-family:var(--serif);font-size:18px">'+eur(o.montant_total)+'</span></div>'+
     '</div>'+
     suiviBlock +
-    '<a href="facture.html?n='+encodeURIComponent(o.numero)+'" class="btn" style="display:block;text-align:center;margin-top:14px">Télécharger la facture</a>';
+    // La facture exige une session : on ne propose pas un lien qui renverrait au login
+    (viaLookup ? '<p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px;text-align:center">Votre facture vous a été envoyée par e-mail. Besoin d’un nouvel envoi ? <a href="contact.html" style="color:var(--noir);text-decoration:underline">Écrivez-nous</a>.</p>'
+               : '<a href="facture.html?n='+encodeURIComponent(o.numero)+'" class="btn" style="display:block;text-align:center;margin-top:14px">Télécharger la facture</a>');
 })();
 </script>
 </body>

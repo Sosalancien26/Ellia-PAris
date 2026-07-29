@@ -74,7 +74,10 @@ const RATE_TARGET = {
   orders:     { max: 60,  window: 60*60*1000 },   // etait 10 : bloquait les clients mobiles
   contact:    { max: 12,  window: 60*60*1000 },
   reviews:    { max: 10,  window: 24*60*60*1000 },
-  authreset:  { max: 6,   window: 60*60*1000 }
+  authreset:  { max: 6,   window: 60*60*1000 },
+  lookup:     { max: 120, window: 60*60*1000 },  // suivi de commande : bucket separe de la creation
+  promo:      { max: 30,  window: 60*60*1000 },  // anti-enumeration des codes promo
+  abandoned:  { max: 10,  window: 60*60*1000 }   // anti-relais d'emails
 };
 /* Chaque processus a son propre compteur : on divise pour que le TOTAL corresponde. */
 const RATE_LIMITS = {};
@@ -312,7 +315,7 @@ function _notifyNewOrderInternal(d, numero){
     '</tr></table>';
   const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:22px 18px">' + headerImg + previewLabel + '</div>' +
     '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Paiement reçu — merci !</h1>' +
-    '<p style="margin:0 0 8px">Bonjour ' + (d.client_nom||'') + ',</p>' +
+    '<p style="margin:0 0 8px">Bonjour ' + escH(d.client_nom||'') + ',</p>' +
     '<p style="margin:0 0 4px">Votre paiement a bien été reçu et votre commande <b>' + numero + '</b> est confirmée. En voici le détail :</p>' +
     lineItems(d.items) +
     '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>' +
@@ -381,7 +384,7 @@ async function sendInvoiceForOrder(order){
     const fname = (order.invoice_number || order.numero) + '.pdf';
     const fullName = ((order.client_prenom||'')+' '+(order.client_nom||'')).trim() || (order.client_nom||'');
     const url = trackUrl(order.transporteur, order.suivi);
-    const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + order.suivi + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+    const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
 
     if (order.client_email) {
       const innerCli = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande est en route</h1>' +
@@ -409,7 +412,7 @@ async function sendInvoiceForOrder(order){
         '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#8a857d">PDF en pièce jointe — archivé automatiquement par le filtre Gmail "Factures Ellia".</p>';
       archiveSent = await sendMailWithAttachment(
         archiveTo,
-        '[Facture Ellia] ' + order.invoice_number + ' — ' + fullName + ' — ' + euro(order.montant_total),
+        '[Facture Ellia] ' + order.invoice_number + ' — ' + escH(fullName) + ' — ' + euro(order.montant_total),
         emailLayout(innerArch),
         [{ filename: fname, content: pdfBuf, contentType:'application/pdf' }]
       );
@@ -427,9 +430,9 @@ function notifyStatus(order, numero, statut){
   const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
   const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+order.initiales):'') + '</p>' : '';
   const url = trackUrl(order.transporteur, order.suivi);
-  const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + order.suivi + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+  const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
   const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
-    '<p style="margin:0 0 8px">Bonjour ' + (order.client_nom||'') + ',</p>' +
+    '<p style="margin:0 0 8px">Bonjour ' + escH(order.client_nom||'') + ',</p>' +
     '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> ' + msg + '</p>' +
     '<p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">' + statut + '</span></p>' +
     track + recap +
@@ -623,11 +626,28 @@ function validateOrder(d){
   return null;
 }
 
+/* FILET DE SECURITE : une erreur imprevue ne doit JAMAIS tuer le site.
+   On journalise et on continue — le processus reste debout. */
+process.on('uncaughtException', (e) => {
+  console.error('[FATAL evite] uncaughtException :', e && e.stack || e);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('[FATAL evite] unhandledRejection :', e && e.stack || e);
+});
+
 const server = http.createServer(async (req, res) => {
   setSecurityHeaders(req, res);
 
-  const url = new URL(req.url, 'http://localhost');
-  let pathname = decodeURIComponent(url.pathname);
+  let url, pathname;
+  try {
+    url = new URL(req.url, 'http://localhost');
+    pathname = decodeURIComponent(url.pathname);
+  } catch(_) {
+    // URL malformee (ex: /%) : reponse propre au lieu d'un crash du processus
+    res.statusCode = 400;
+    res.setHeader('Content-Type','text/plain; charset=utf-8');
+    return res.end('Requete invalide');
+  }
   const cookieSec = isHttps(req) ? ' Secure;' : '';
 
   if (pathname.startsWith('/api/')) {
@@ -682,6 +702,7 @@ const server = http.createServer(async (req, res) => {
 
       /* ----- STATUT DE PAIEMENT (public, lecture minimale) — pour la page de confirmation ----- */
       if (req.method==='GET' && pathname==='/api/order-paystatus'){
+        if(!rateAllowed('lookup', clientIp(req))) return sendJSON(res,{ paid:false }, 429);
         const n = clean(url.searchParams.get('n')||'', 30);
         if(!n || !/^EP-[A-Z0-9]{4,14}$/i.test(n)) return sendJSON(res,{ paid:false }, 400);
         if(!USE_DB) return sendJSON(res,{ paid:true, demo:true });
@@ -698,7 +719,7 @@ const server = http.createServer(async (req, res) => {
          via Supabase (RLS = auth.uid() = user_id). Cet endpoint lui rend
          uniquement les infos de suivi, et exige de connaitre numero ET email. */
       if (req.method==='POST' && pathname==='/api/order-lookup'){
-        if(!rateAllowed('orders', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
+        if(!rateAllowed('lookup', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         const n = clean(String(d.numero||'').trim().toUpperCase(), 30);
         const em = String(d.email||'').trim().toLowerCase();
@@ -772,7 +793,7 @@ const server = http.createServer(async (req, res) => {
           '<p style="margin-top:24px;font-size:12px;color:#999;font-family:Arial,sans-serif">Pour répondre : cliquer sur l\'adresse e-mail ci-dessus.</p>';
         if (adminMail) sendMail(adminMail, '[ELLIA PARIS] ' + sujLabel + ' — ' + nom, emailLayout(innerAdmin));
         const innerClient = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre message est bien reçu</h1>' +
-          '<p style="margin:0 0 14px">Bonjour ' + nom + ',</p>' +
+          '<p style="margin:0 0 14px">Bonjour ' + escH(nom) + ',</p>' +
           '<p style="margin:0 0 14px">Nous avons bien reçu votre demande et nos conseillers vous répondront sous <b>24 heures ouvrées</b>.</p>' +
           '<p style="margin:0 0 8px;font-size:14px;font-family:Arial,sans-serif;color:#56524c">Rappel de votre message :</p>' +
           '<div style="margin-top:8px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14px;line-height:1.6;color:#555;font-style:italic;font-family:Georgia,serif">' + escapeMsg + '</div>' +
@@ -814,7 +835,7 @@ const server = http.createServer(async (req, res) => {
         try{
           await sb('reviews',{ method:'POST', body:row });
           const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
-          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + prenom + '</b> (' + rEmail + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + titre + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
+          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + prenom + '</b> (' + rEmail + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
         }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         return sendJSON(res,{ ok:true });
       }
@@ -848,12 +869,17 @@ const server = http.createServer(async (req, res) => {
             if (pv && pv.valid) { promoDiscount = Number(pv.discount)||0; promoCode = String(d.promo_code).trim().toUpperCase().slice(0,30); }
           } catch(_){}
         }
-        const totalClient = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
-        const plancher = Math.max(0, prixCatalogue * qte - promoDiscount);
-        if (totalClient + 0.01 < plancher) {
-          console.warn('[SECURITE] Total client', totalClient, '< plancher', plancher, '— commande refusee');
+        // Le navigateur envoie le total BRUT (remise non deduite : voir checkout.html).
+        // On compare donc brut contre brut, puis on deduit la remise UNE SEULE fois.
+        const totalBrut = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
+        const plancherBrut = prixCatalogue * qte;   // gravure et options ne peuvent qu'augmenter
+        if (totalBrut + 0.01 < plancherBrut) {
+          console.warn('[SECURITE] Total brut client', totalBrut, '< plancher', plancherBrut, '— commande refusee');
           return sendJSON(res,{ ok:false, error:'montant_invalide' }, 400);
         }
+        // La remise ne peut jamais depasser le montant de la commande
+        if (promoDiscount > totalBrut) promoDiscount = totalBrut;
+        const totalClient = totalBrut;
         // PAS de notifyNewOrder ici — l'email partira UNIQUEMENT apres confirmation Stripe (webhook)
         // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
         let preview = null;
@@ -892,6 +918,7 @@ const server = http.createServer(async (req, res) => {
           user_id: d.user_id || null,
           // Total NET : remise promo (validee serveur) deduite → c'est ce montant que Stripe facturera
           montant_total: Math.max(0, totalClient - promoDiscount),
+          quantite: qte,   // necessaire pour restituer le BON stock si le paiement echoue
           preview: preview,
           items_data: itemsData,
           statut: 'En attente paiement' };
@@ -961,11 +988,19 @@ const server = http.createServer(async (req, res) => {
         if (!stripe) return sendJSON(res,{ ok:false, error:'stripe_not_configured' }, 500);
         const sig = req.headers['stripe-signature'];
         const secret = process.env.STRIPE_WEBHOOK_SECRET;
-        let rawBody = '';
+        // Accumuler des BUFFERS : concatener des strings coupe les caracteres
+        // accentues a la frontiere des paquets -> signature Stripe invalide
+        // (noms/adresses francais = accents tres frequents).
+        let rawBody = Buffer.alloc(0);
+        const chunks = []; let rawLen = 0;
         try {
           await new Promise((resolve, reject) => {
-            req.on('data', c => { rawBody += c.toString('utf8'); });
-            req.on('end', resolve);
+            req.on('data', c => {
+              rawLen += c.length;
+              if (rawLen > 1048576) { reject(new Error('webhook_too_large')); return; }
+              chunks.push(c);
+            });
+            req.on('end', () => { rawBody = Buffer.concat(chunks); resolve(); });
             req.on('error', reject);
           });
         } catch(_){ return sendJSON(res,{ received:false }, 400); }
@@ -1063,6 +1098,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (USE_DB && promoMod && req.method==='POST' && pathname==='/api/promo/validate'){
+        if(!rateAllowed('promo', clientIp(req))) return sendJSON(res,{ valid:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         try {
           const r = await promoMod.validatePromoCode(sb, d.code, Number(d.amount||0));
@@ -1071,6 +1107,7 @@ const server = http.createServer(async (req, res) => {
       }
       /* ----- PANIER ABANDONNE (capture) ----- */
       if (USE_DB && req.method==='POST' && pathname==='/api/abandoned-cart'){
+        if(!rateAllowed('abandoned', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
         const email = String(d.email||'').toLowerCase().trim();
         if(!isEmail(email)) return sendJSON(res,{ ok:false, error:'invalid_email' }, 400);
@@ -1714,7 +1751,7 @@ const server = http.createServer(async (req, res) => {
       res.setHeader('Vary','Accept-Encoding');
       // CACHE : on ne recompresse pas le meme fichier a chaque visite.
       // Cle = chemin + taille (change des que le fichier est modifie/redeploye).
-      const key = file + '|' + buf.length;
+      const key = file + '|' + buf.length + '|' + crypto.createHash('sha1').update(buf).digest('hex').slice(0,12);
       const hit = GZ_CACHE.get(key);
       if (hit) {
         res.setHeader('Content-Encoding','gzip');
@@ -1743,7 +1780,7 @@ async function processAbandonedCarts(){
     const rows = await sb('abandoned_carts?reminder_sent_at=is.null&converted_at=is.null&created_at=lte.'+encodeURIComponent(cutoff)+'&created_at=gte.'+encodeURIComponent(recent)+'&select=*&limit=20');
     for (const c of (rows||[])) {
       const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous attend</h1>' +
-        '<p style="margin:0 0 12px">Bonjour ' + (c.client_prenom || '') + ',</p>' +
+        '<p style="margin:0 0 12px">Bonjour ' + escH(c.client_prenom || '') + ',</p>' +
         '<p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande ?</p>' +
         '<p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(c.cart_total) + '</b></p>' +
         '<p style="margin:24px 0"><a href="https://ellia-paris.fr/panier.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Reprendre ma commande</a></p>' +

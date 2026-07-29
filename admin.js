@@ -31,6 +31,7 @@
     if(n.startsWith('rembours'))return'b-cancel';
     return'b-prep';}
 
+  let DATA_ERROR = false;
   async function get(path,fallback){
     try{
       const r=await fetch(path,{cache:'no-store'});
@@ -38,7 +39,20 @@
       if(!r.ok)throw 0;
       return await r.json();
     }
-    catch(e){return fallback;}
+    catch(e){
+      // On signale visuellement que ce sont des donnees de secours,
+      // sinon on croit lire de vraies commandes alors que la base est en panne.
+      DATA_ERROR = true;
+      return fallback;
+    }
+  }
+  function showDataBanner(){
+    if(!DATA_ERROR) return;
+    const shell=document.querySelector('.shell'); if(!shell || document.getElementById('dataErrBanner')) return;
+    const d=document.createElement('div'); d.id='dataErrBanner';
+    d.style.cssText='background:#fbeae6;border:1px solid #e7cfc9;border-left:4px solid #b1432f;color:#8a3b2c;padding:14px 18px;margin-bottom:20px;border-radius:8px;font-size:13.5px';
+    d.innerHTML='⚠ <b>Données indisponibles</b> — impossible de joindre la base. Les chiffres affichés sont des exemples, <b>pas vos vraies commandes</b>. <a href="#" onclick="location.reload();return false" style="color:#8a3b2c;text-decoration:underline">Réessayer</a>';
+    shell.insertBefore(d, shell.firstChild);
   }
 
   function renderKPIs(s){
@@ -127,14 +141,20 @@
   }
   /* Vue Pipeline : 3 colonnes atelier → expédition (cartes ocard reutilisees) */
   function renderPipeline(list,pbox){
+    const lb=document.getElementById('ordersBody'); if(lb) lb.innerHTML='';  // evite badges/listeners fantomes
     const now=Date.now(), SEPT_JOURS=7*24*3600*1000;
+    const estRecent = o => { const d=new Date(o.date||''); return isNaN(d.getTime()) ? true : (now-d.getTime())<=SEPT_JOURS; };
     const cols=[
       { titre:'À graver', test:o=>norm(o.statut).startsWith('nouvelle') },
       { titre:'À expédier', test:o=>norm(o.statut).startsWith('en prep') },
-      { titre:'Expédiées (7 derniers jours)', test:o=>{
-          if(!norm(o.statut).startsWith('exped')) return false;
-          const d=new Date(o.date||'');
-          return isNaN(d.getTime()) ? true : (now-d.getTime())<=SEPT_JOURS;
+      { titre:'Expédiées (7 j)', test:o=>norm(o.statut).startsWith('exped') && estRecent(o) },
+      // 4e colonne : AUCUNE commande ne doit disparaitre de la vue
+      // (en attente de paiement, livrees, annulees, remboursees, expediees anciennes)
+      { titre:'Autres', test:o=>{
+          const s=norm(o.statut);
+          if(s.startsWith('nouvelle') || s.startsWith('en prep')) return false;
+          if(s.startsWith('exped') && estRecent(o)) return false;
+          return true;
         } }
     ];
     pbox.innerHTML = cols.map(c=>{
@@ -154,12 +174,22 @@
       sel.addEventListener('change', e=>{
         e.stopPropagation();
         const id = sel.dataset.rowStatut, statut = sel.value;
-        const o = ORDERS.find(x=>x.id===id); if(o) o.statut = statut;
-        const b = document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+        const o = ORDERS.find(x=>x.id===id);
+        const ancien = o ? o.statut : '';
+        // Le changement de statut declenche un EMAIL au client : on confirme.
+        if(!confirm('Passer la commande '+id+' en « '+statut+' » ?\nUn e-mail sera envoyé au client.')){
+          sel.value = ancien; return;
+        }
+        sel.disabled = true;
         fetch('/api/orders/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut})})
-          .then(r=>{ if(!r.ok){ alert('Changement refusé (droits insuffisants ?)'); } })
-          .catch(()=>{ alert('Erreur réseau — le statut n\'a peut-être pas été enregistré.'); });
-        updateCounts(); updateDashAlert(); applyFilter();
+          .then(r=>{
+            if(!r.ok) throw new Error(r.status===403?'Droits insuffisants.':'Erreur serveur ('+r.status+')');
+            if(o) o.statut = statut;
+            const b = document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+            updateCounts(); updateDashAlert(); applyFilter();
+          })
+          .catch(err=>{ sel.value = ancien; alert('Changement non enregistré : '+(err.message||'erreur réseau')); })
+          .finally(()=>{ sel.disabled = false; });
       });
     });
   }
@@ -269,7 +299,7 @@
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:12px 24px;background:#111;color:#fff;border:none;cursor:pointer;font-size:13px">🖨 Imprimer</button>'+
       '</body></html>';
     const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); }
+    if (w) { w.document.write(html); w.document.close(); } else { alert('Autorisez les fenêtres pop-up pour imprimer le bon de préparation.'); }
   }
 
   function renderViewMode(o){
@@ -302,7 +332,7 @@
       '<button class="om-close" id="omClose">×</button>'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'+
         '<div><h3 style="margin:0">Commande '+esc(o.id)+manualTag+'</h3><div style="color:var(--gris);font-size:13px;margin-top:4px">'+esc(o.date)+'</div></div>'+
-        '<button id="omEdit" style="font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Modifier</button>'+
+        (window.__role==='admin'||!window.__role ? '<button id="omEdit" style="font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Modifier</button>' : '')+
       '</div>'+
       waitingBanner+
       statusTimeline(esc(o.statut))+
@@ -329,7 +359,8 @@
         '<span class="ord-saved" id="omSaved" style="display:none">✓ Enregistré</span>'+
       '</div>';
     document.getElementById('omClose').addEventListener('click',closeOrder);
-    document.getElementById('omEdit').addEventListener('click',()=>openEditMode(o.id));
+    const omE = document.getElementById('omEdit');
+    if (omE) omE.addEventListener('click',()=>openEditMode(o.id));
     const pBtn = document.getElementById('omPrint');
     if (pBtn) pBtn.addEventListener('click', ()=>printPrepSlip(o));
     const cBtn = document.getElementById('omCopyAddr');
@@ -346,11 +377,24 @@
       if(transporteur==='UPS' && suivi && !/^1Z[A-Z0-9]{16}$/i.test(suivi)){
         if(!confirm('Ce numéro ne ressemble pas à un n° UPS (1Z + 16 caractères). Enregistrer quand même ?')) return;
       }
-      o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
-      const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
-      fetch('/api/orders/'+encodeURIComponent(o.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:statut,transporteur:transporteur,suivi:suivi})}).catch(()=>{});
-      updateCounts(); updateDashAlert(); applyFilter();
-      const sv=document.getElementById('omSaved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2000);
+      // N'envoyer "statut" QUE s'il a change : sinon chaque enregistrement
+      // (correction d'un n° de suivi par ex.) renvoie un email au client.
+      const statutAvant = o.statut;
+      const body = { transporteur:transporteur, suivi:suivi };
+      if (norm(statut) !== norm(statutAvant)) body.statut = statut;
+      const btnSave = document.getElementById('omSave');
+      btnSave.disabled = true; const oldB = btnSave.textContent; btnSave.textContent = 'Enregistrement…';
+      fetch('/api/orders/'+encodeURIComponent(o.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .then(r=>{
+          if(!r.ok) throw new Error(r.status===403?'Droits insuffisants pour cette action.':'Erreur serveur ('+r.status+')');
+          // Succes confirme par le serveur : on met l'affichage a jour
+          o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
+          const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+          updateCounts(); updateDashAlert(); applyFilter();
+          const sv=document.getElementById('omSaved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2000);
+        })
+        .catch(err=>{ alert('Enregistrement impossible : '+(err.message||'erreur réseau')+'\nAucune modification n’a été enregistrée.'); })
+        .finally(()=>{ btnSave.disabled=false; btnSave.textContent=oldB; });
     });
   }
 
@@ -1173,7 +1217,13 @@
         });
       };
       window.__applyRoleMasks();
-    }catch(_){}
+    }catch(_){
+      // Impossible de connaitre le role : on applique le mode le plus restrictif
+      window.__role = 'atelier';
+      document.querySelectorAll('.tab').forEach(t=>{
+        if(!['dash','orders'].includes(t.dataset.tab)) t.style.display='none';
+      });
+    }
   })();
 
   /* ============================================================
@@ -1254,5 +1304,6 @@
     try{ renderOrders(o); }catch(e){ console.warn('Orders:',e); }
     try{ renderStock(p); }catch(e){ console.warn('Stock:',e); }
     if (window.__applyRoleMasks) window.__applyRoleMasks();
+    showDataBanner();
   })();
 })();

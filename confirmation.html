@@ -52,6 +52,7 @@
       <h1 style="font-size:clamp(38px,5.4vw,64px);margin:6px 0 14px;font-weight:400">Merci.</h1>
       <p style="color:#5c5852;font-size:15.5px;line-height:1.65;margin:0 0 6px">Votre commande est confirmée. Un email de confirmation, avec l'aperçu de votre pochette personnalisée, vient de vous être envoyé.</p>
       <div class="conf-num" id="numSuccess">—</div>
+      <div id="payPending" style="display:none;margin:14px auto 0;max-width:460px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;color:#a8631e;font-size:13px;line-height:1.55;border-radius:4px">Votre paiement est en cours de validation par notre banque — votre commande est bien enregistrée. L’e-mail de confirmation arrivera dans quelques instants.</div>
 
       <div class="conf-steps">
         <div class="conf-step">
@@ -72,7 +73,7 @@
       </div>
 
       <div class="cta-row" style="justify-content:center;margin-top:34px;gap:14px;flex-wrap:wrap">
-        <a href="compte.html" class="btn solid">Suivre ma commande</a>
+        <a href="#" id="btnSuivi" class="btn solid">Suivre ma commande</a>
         <a href="index.html" class="btn">Retour à l'accueil</a>
       </div>
       <p style="margin-top:24px;font-size:12.5px;color:#9a9286">Une question ? <a href="contact.html" style="color:#0d0d0d;text-decoration:underline">Écrivez-nous</a> — réponse sous 24h ouvrées.</p>
@@ -120,30 +121,29 @@
     if (sessionId && num) {
       // VERIFICATION SERVEUR : on n'affiche "payé" et on ne vide le panier
       // que si la commande est REELLEMENT payée en base (anti-lien forgé).
-      fetch('/api/order-paystatus?n='+encodeURIComponent(num))
-        .then(r=>r.json())
-        .then(j=>{
-          if (j && j.paid) {
-            try {
-              if (window.Cart && typeof Cart.clear === 'function') Cart.clear();
-              else localStorage.removeItem('ellia_cart');
-            } catch(_){}
-            document.getElementById('numSuccess').textContent = num;
-            show('stateSuccess');
-          } else {
-            // Paiement pas (encore) confirmé : le webhook peut prendre quelques secondes
-            document.getElementById('numSuccess').textContent = num;
-            setTimeout(()=>{
-              fetch('/api/order-paystatus?n='+encodeURIComponent(num)).then(r=>r.json()).then(j2=>{
-                if (j2 && j2.paid) {
-                  try { if (window.Cart && Cart.clear) Cart.clear(); else localStorage.removeItem('ellia_cart'); } catch(_){}
-                  show('stateSuccess');
-                } else { show('stateDefault'); }
-              }).catch(()=>show('stateDefault'));
-            }, 3000);
-          }
-        })
-        .catch(()=>{ document.getElementById('numSuccess').textContent = num; show('stateSuccess'); });
+      // Le client REVIENT DE STRIPE : son paiement est passé. On vide le panier
+      // immédiatement (sinon il pourrait repayer) et on affiche le succès.
+      // On interroge le serveur en arrière-plan pour affiner le message.
+      try {
+        if (window.Cart && typeof Cart.clear === 'function') Cart.clear();
+        else localStorage.removeItem('ellia_cart');
+      } catch(_){}
+      document.getElementById('numSuccess').textContent = num;
+      var bs=document.getElementById('btnSuivi'); if(bs) bs.setAttribute('href','commande.html?n='+encodeURIComponent(num));
+      show('stateSuccess');
+      // Vérification discrète (jusqu'à 4 tentatives) : si le webhook tarde, on
+      // rassure sans jamais faire croire à un échec.
+      (function poll(n){
+        fetch('/api/order-paystatus?n='+encodeURIComponent(num))
+          .then(r=>r.json())
+          .then(j=>{
+            if (j && j.paid) return; // tout est confirmé, rien à changer
+            if (n > 0) { setTimeout(()=>poll(n-1), 2500); return; }
+            const note = document.getElementById('payPending');
+            if (note) { note.style.display='block'; }
+          })
+          .catch(()=>{});
+      })(4);
     } else if (cancelled) {
       document.getElementById('numCancelled').textContent = num || '—';
       show('stateCancelled');
