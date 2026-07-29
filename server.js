@@ -19,6 +19,13 @@ const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
 const zlib   = require('zlib');
+const cluster = require('cluster');
+const os      = require('os');
+/* Cache des fichiers deja compresses (evite de recompresser a chaque visite) */
+const GZ_CACHE = new Map();
+const GZ_CACHE_MAX = 60;
+/* Nombre de processus : 1 par coeur, plafonne a 4 (ajustable via WEB_CONCURRENCY) */
+const WORKERS = Math.max(1, Math.min(Number(process.env.WEB_CONCURRENCY) || os.cpus().length, 4));
 let invoiceMod = null;
 try { invoiceMod = require('./invoice'); }
 catch(e){ console.warn('Module invoice.js indisponible :', e.message); }
@@ -50,14 +57,23 @@ const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').diges
 
 /* Rate-limit generique en memoire (par IP, par bucket) */
 const RATE = { login: new Map(), newsletter: new Map(), orders: new Map(), contact: new Map(), reviews: new Map(), authreset: new Map() };
-const RATE_LIMITS = {
-  login:      { max: 5,  window: 5*60*1000 },
-  newsletter: { max: 5,  window: 60*60*1000 },
-  orders:     { max: 10, window: 60*60*1000 },
-  contact:    { max: 3,  window: 60*60*1000 },
-  reviews:    { max: 5,  window: 24*60*60*1000 },
-  authreset:  { max: 3,  window: 60*60*1000 }
+/* Limites GLOBALES visees (toutes IP confondues sur la fenetre).
+   Note : les operateurs mobiles (Orange, SFR, Free) font passer des milliers de
+   clients derriere une meme IP -> "orders" doit rester genereux, sinon un client
+   legitime en 4G se voit refuser sa commande un jour de forte affluence. */
+const RATE_TARGET = {
+  login:      { max: 8,   window: 5*60*1000 },
+  newsletter: { max: 20,  window: 60*60*1000 },
+  orders:     { max: 60,  window: 60*60*1000 },   // etait 10 : bloquait les clients mobiles
+  contact:    { max: 12,  window: 60*60*1000 },
+  reviews:    { max: 10,  window: 24*60*60*1000 },
+  authreset:  { max: 6,   window: 60*60*1000 }
 };
+/* Chaque processus a son propre compteur : on divise pour que le TOTAL corresponde. */
+const RATE_LIMITS = {};
+for (const k of Object.keys(RATE_TARGET)) {
+  RATE_LIMITS[k] = { max: Math.max(2, Math.ceil(RATE_TARGET[k].max / WORKERS)), window: RATE_TARGET[k].window };
+}
 // Purge periodique des buckets de rate-limit (sinon la memoire grossit indefiniment)
 setInterval(() => {
   const now = Date.now();
@@ -1642,8 +1658,18 @@ const server = http.createServer(async (req, res) => {
     const acceptsGzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
     if (compressible && acceptsGzip && buf.length > 1024) {
       res.setHeader('Vary','Accept-Encoding');
+      // CACHE : on ne recompresse pas le meme fichier a chaque visite.
+      // Cle = chemin + taille (change des que le fichier est modifie/redeploye).
+      const key = file + '|' + buf.length;
+      const hit = GZ_CACHE.get(key);
+      if (hit) {
+        res.setHeader('Content-Encoding','gzip');
+        return res.end(hit);
+      }
       zlib.gzip(buf, { level: 6 }, (zerr, zbuf) => {
         if (zerr) { res.end(buf); return; }
+        if (GZ_CACHE.size >= GZ_CACHE_MAX) GZ_CACHE.delete(GZ_CACHE.keys().next().value);
+        GZ_CACHE.set(key, zbuf);
         res.setHeader('Content-Encoding','gzip');
         res.end(zbuf);
       });
@@ -1673,10 +1699,30 @@ async function processAbandonedCarts(){
     }
   } catch(e){ console.warn('Abandoned cart cron KO :', e.message); }
 }
-if (USE_DB) setInterval(processAbandonedCarts, 10*60*1000); // toutes les 10 min
+/* ============================================================
+   DEMARRAGE — mode multi-processus (1 par coeur, max 4)
+   Chaque processus sert les requetes en parallele : ~4x plus de
+   visiteurs simultanes. Le CRON "panier abandonne" ne tourne QUE
+   dans le processus chef, sinon chaque client recevrait 4 emails.
+   ============================================================ */
+function startServer(tag){
+  server.listen(PORT, () => {
+    console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]') + (tag||''));
+  });
+}
 
-
-server.listen(PORT, () => {
-  console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]'));
-  console.log('Admin : http://localhost:' + PORT + '/admin   (mot de passe : ' + (process.env.ADMIN_PASSWORD ? '****' : 'ellia2026 — a changer') + ')');
-});
+if (WORKERS > 1 && cluster.isPrimary) {
+  console.log('ELLIA PARIS — demarrage de ' + WORKERS + ' processus (port ' + PORT + ')');
+  console.log('Admin : /admin   (mot de passe : ' + (process.env.ADMIN_PASSWORD ? '****' : 'ellia2026 — A CHANGER') + ')');
+  for (let i = 0; i < WORKERS; i++) cluster.fork();
+  // Un processus qui tombe est immediatement remplace (auto-guerison)
+  cluster.on('exit', (worker, code) => {
+    console.warn('[cluster] processus ' + worker.process.pid + ' arrete (code ' + code + ') — relance');
+    cluster.fork();
+  });
+  // CRON dans le chef uniquement (il ne sert aucune requete)
+  if (USE_DB) setInterval(processAbandonedCarts, 10*60*1000);
+} else {
+  if (USE_DB && WORKERS === 1) setInterval(processAbandonedCarts, 10*60*1000);
+  startServer(cluster.worker ? '  [processus ' + cluster.worker.id + '/' + WORKERS + ']' : '');
+}
