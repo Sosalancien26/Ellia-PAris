@@ -117,7 +117,7 @@
         '<div class="orow-sub"><b style="color:#3a352d">'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
         '<div style="margin-top:2px">'+grav+'</div></div>'+
       '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
-        '<select class="statut row-statut" data-row-statut="'+o.id+'" title="Changer le statut">'+sOpts+'</select>'+
+        '<select class="statut row-statut" data-row-statut="'+esc(o.id)+'" title="Changer le statut">'+sOpts+'</select>'+
         '<span class="orow-go">Voir le détail ›</span></div>'+
     '</div>';
   }
@@ -175,7 +175,7 @@
         e.stopPropagation();
         const id = sel.dataset.rowStatut, statut = sel.value;
         const o = ORDERS.find(x=>x.id===id);
-        const ancien = o ? o.statut : '';
+        const ancien = (o && o.statut) ? o.statut : sel.value;
         // Le changement de statut declenche un EMAIL au client : on confirme.
         if(!confirm('Passer la commande '+id+' en « '+statut+' » ?\nUn e-mail sera envoyé au client.')){
           sel.value = ancien; return;
@@ -303,7 +303,11 @@
   }
 
   function renderViewMode(o){
-    const sOpts=STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
+    // Statut absent du referentiel : on l'ajoute, sinon le select retomberait sur
+    // "En attente paiement" et un simple enregistrement retrograderait la commande.
+    const inRefV = STATUTS.some(s=>norm(s)===norm(o.statut));
+    const sOpts=(inRefV?'':'<option selected>'+esc(o.statut)+'</option>')+
+      STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
     const curTransp=(o.transporteur||'')||'UPS'; // UPS pre-selectionne si aucun transporteur renseigne
     const tOpts=TRANSPORTEURS.map(t=>'<option value="'+t+'"'+(curTransp===t?' selected':'')+'>'+(t||'— Transporteur —')+'</option>').join('');
     const manualTag = o.manual ? '<span style="display:inline-block;background:#0d0d0d;color:#fff;font-size:9.5px;letter-spacing:.16em;padding:3px 8px;text-transform:uppercase;margin-left:10px;vertical-align:middle">Manuelle</span>' : '';
@@ -380,8 +384,11 @@
       // N'envoyer "statut" QUE s'il a change : sinon chaque enregistrement
       // (correction d'un n° de suivi par ex.) renvoie un email au client.
       const statutAvant = o.statut;
-      const body = { transporteur:transporteur, suivi:suivi };
+      const body = {};
       if (norm(statut) !== norm(statutAvant)) body.statut = statut;
+      if (transporteur !== (o.transporteur||'')) body.transporteur = transporteur;
+      if (suivi !== (o.suivi||'')) body.suivi = suivi;
+      if (!Object.keys(body).length) { const sv0=document.getElementById('omSaved'); if(sv0){ sv0.style.display='inline'; setTimeout(()=>{sv0.style.display='none';},1500);} return; }
       const btnSave = document.getElementById('omSave');
       btnSave.disabled = true; const oldB = btnSave.textContent; btnSave.textContent = 'Enregistrement…';
       fetch('/api/orders/'+encodeURIComponent(o.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -391,9 +398,9 @@
           o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
           const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
           updateCounts(); updateDashAlert(); applyFilter();
-          const sv=document.getElementById('omSaved'); sv.style.display='inline'; setTimeout(()=>{sv.style.display='none';},2000);
+          const sv=document.getElementById('omSaved'); if(sv){ sv.style.display='inline'; setTimeout(()=>{ if(sv) sv.style.display='none'; },2000); }
         })
-        .catch(err=>{ alert('Enregistrement impossible : '+(err.message||'erreur réseau')+'\nAucune modification n’a été enregistrée.'); })
+        .then(null, err=>{ alert('Enregistrement impossible : '+(err.message||'erreur réseau')+'\nAucune modification n’a été enregistrée.'); })
         .finally(()=>{ btnSave.disabled=false; btnSave.textContent=oldB; });
     });
   }
@@ -1196,7 +1203,7 @@
   };
   (async function(){
     try{
-      const r = await fetch('/api/me'); if(!r.ok) return;
+      const r = await fetch('/api/me'); if(!r.ok) throw new Error('me_failed');
       const me = await r.json();
       window.__role = me.role; window.__login = me.login;
       const allowed = TABS_BY_ROLE[me.role];
@@ -1223,6 +1230,13 @@
       document.querySelectorAll('.tab').forEach(t=>{
         if(!['dash','orders'].includes(t.dataset.tab)) t.style.display='none';
       });
+      window.__applyRoleMasks = function(){
+        document.querySelectorAll('.kpi').forEach(k=>{
+          const l=k.querySelector('.l');
+          if(l && /chiffre|ca |panier/i.test(l.textContent)) k.style.display='none';
+        });
+      };
+      window.__applyRoleMasks();
     }
   })();
 

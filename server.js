@@ -63,7 +63,7 @@ const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
 /* Rate-limit generique en memoire (par IP, par bucket) */
-const RATE = { login: new Map(), newsletter: new Map(), orders: new Map(), contact: new Map(), reviews: new Map(), authreset: new Map() };
+const RATE = {};   // rempli automatiquement depuis RATE_TARGET (voir plus bas)
 /* Limites GLOBALES visees (toutes IP confondues sur la fenetre).
    Note : les operateurs mobiles (Orange, SFR, Free) font passer des milliers de
    clients derriere une meme IP -> "orders" doit rester genereux, sinon un client
@@ -79,10 +79,13 @@ const RATE_TARGET = {
   promo:      { max: 30,  window: 60*60*1000 },  // anti-enumeration des codes promo
   abandoned:  { max: 10,  window: 60*60*1000 }   // anti-relais d'emails
 };
-/* Chaque processus a son propre compteur : on divise pour que le TOTAL corresponde. */
+/* Chaque processus a son propre compteur : on divise pour que le TOTAL corresponde.
+   On cree AUSSI la Map de chaque bucket ici — sinon un bucket oublie dans RATE
+   ferait planter rateAllowed() (TypeError) et renverrait 500 sur la route. */
 const RATE_LIMITS = {};
 for (const k of Object.keys(RATE_TARGET)) {
   RATE_LIMITS[k] = { max: Math.max(2, Math.ceil(RATE_TARGET[k].max / WORKERS)), window: RATE_TARGET[k].window };
+  RATE[k] = new Map();
 }
 // Purge periodique des buckets de rate-limit (sinon la memoire grossit indefiniment)
 setInterval(() => {
@@ -428,7 +431,7 @@ function notifyStatus(order, numero, statut){
   // Normalise + retire les diacritiques (à → a) avant lookup
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
-  const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+order.initiales):'') + '</p>' : '';
+  const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+escH(order.initiales)):'') + '</p>' : '';
   const url = trackUrl(order.transporteur, order.suivi);
   const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
   const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
@@ -862,23 +865,24 @@ const server = http.createServer(async (req, res) => {
         }catch(_){ return sendJSON(res,{ ok:false, error:'stock_indisponible' }, 503); }
         // GARDE-FOU FINANCIER : le total envoye par le navigateur ne peut pas etre
         // inferieur au prix catalogue x quantite (moins une eventuelle remise promo validee serveur).
-        let promoDiscount = 0, promoCode = '';
-        if (d.promo_code && promoMod) {
-          try {
-            const pv = await promoMod.validatePromoCode(sb, String(d.promo_code).trim().toUpperCase(), prixCatalogue * qte);
-            if (pv && pv.valid) { promoDiscount = Number(pv.discount)||0; promoCode = String(d.promo_code).trim().toUpperCase().slice(0,30); }
-          } catch(_){}
-        }
         // Le navigateur envoie le total BRUT (remise non deduite : voir checkout.html).
-        // On compare donc brut contre brut, puis on deduit la remise UNE SEULE fois.
+        // On valide d'abord ce brut, PUIS on calcule la remise sur cette meme base
+        // — sinon le client verrait -21,80 € a l'ecran et serait debite de -15,90 €.
         const totalBrut = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
         const plancherBrut = prixCatalogue * qte;   // gravure et options ne peuvent qu'augmenter
         if (totalBrut + 0.01 < plancherBrut) {
           console.warn('[SECURITE] Total brut client', totalBrut, '< plancher', plancherBrut, '— commande refusee');
           return sendJSON(res,{ ok:false, error:'montant_invalide' }, 400);
         }
-        // La remise ne peut jamais depasser le montant de la commande
-        if (promoDiscount > totalBrut) promoDiscount = totalBrut;
+        let promoDiscount = 0, promoCode = '';
+        if (d.promo_code && promoMod) {
+          try {
+            const pv = await promoMod.validatePromoCode(sb, String(d.promo_code).trim().toUpperCase(), totalBrut);
+            if (pv && pv.valid) { promoDiscount = Number(pv.discount)||0; promoCode = String(d.promo_code).trim().toUpperCase().slice(0,30); }
+          } catch(_){}
+        }
+        // La remise ne peut jamais rendre le paiement impossible (Stripe refuse < 0,50 €)
+        if (promoDiscount > totalBrut - 0.5) promoDiscount = Math.max(0, totalBrut - 0.5);
         const totalClient = totalBrut;
         // PAS de notifyNewOrder ici — l'email partira UNIQUEMENT apres confirmation Stripe (webhook)
         // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
@@ -935,6 +939,7 @@ const server = http.createServer(async (req, res) => {
 
       /* ===== STRIPE : creation session de paiement ===== */
       if (req.method==='POST' && pathname==='/api/checkout/session'){
+        if(!rateAllowed('lookup', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         if (!stripe) return sendJSON(res,{ ok:false, error:'stripe_not_configured' }, 500);
         const d = JSON.parse((await readBody(req))||'{}');
         const numero = clean(d.numero, 30);
@@ -974,7 +979,9 @@ const server = http.createServer(async (req, res) => {
             shipping_address_collection: { allowed_countries: ['FR','BE','CH','LU','MC','GB','DE','ES','IT','US','CA'] }
           });
           if (USE_DB) {
-            try { await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_method:'Stripe', payment_status:'En attente' } }); } catch(_){}
+            // Filtre sur le statut : une commande DEJA PAYEE ne doit jamais
+            // repasser en "En attente" (sinon un tiers casse le suivi de paiement).
+            try { await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&statut=eq.'+encodeURIComponent('En attente paiement'),{ method:'PATCH', body:{ payment_method:'Stripe', payment_status:'En attente' } }); } catch(_){}
           }
           return sendJSON(res,{ ok:true, url: session.url, session_id: session.id });
         } catch(e) {
@@ -1078,7 +1085,7 @@ const server = http.createServer(async (req, res) => {
               // Marquer echouee + RESTITUER le stock (decremente a la creation de commande)
               // Filtre payment_status : ne restituer qu'une fois (idempotence sur rejeu webhook)
               try {
-                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&payment_status=neq.Echouee&select=numero,quantite,statut');
+                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&or=(payment_status.is.null,payment_status.neq.Echouee)&select=numero,quantite,statut');
                 const ord = rows && rows[0];
                 if (ord && String(ord.statut||'').includes('attente')) {
                   await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_status:'Echouee' }});

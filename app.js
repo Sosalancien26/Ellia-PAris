@@ -79,7 +79,9 @@
   if(input&&engrave){
     var monoFinish=document.getElementById('monoFinish');
     var colors={or:'linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#8a6a1d)',orrose:'linear-gradient(135deg,#f3d9cf,#c98e86 55%,#a96b62)',argent:'linear-gradient(135deg,#f4f4f4,#9a9a9a 55%,#dcdcdc)',noir:'#3a352d',blanc:'#ffffff'};
-    var names={or:'Or',orrose:'Or rose',argent:'Argent',noir:'Noir',blanc:'Blanc'};
+    // DOIT couvrir toutes les finitions du configurateur (data-color) : sinon
+    // la finition part vide dans la commande et l'atelier ne sait pas quoi graver.
+    var names={or:'Or',orrose:'Or rose',argent:'Argent',aveugle:'Aveugle',noir:'Noir',blanc:'Blanc'};
     var color='or';
     var fmt=function(v){return v.toUpperCase().split('').join('.');};
     function paint(){
@@ -105,10 +107,13 @@
     if(addBtn) addBtn.addEventListener('click', async function(e){
       e.preventDefault();
       if (addBtn.dataset.busy === '1') return;   // anti double-clic
+      addBtn.dataset.busy = '1';
+      var releaseBusy = function(){ addBtn.dataset.busy = '0'; };
       // SECURITE PRIX : si le module 3D n'a pas charge, le prix affiche (159 €)
       // ne correspond pas au prix reel -> on refuse plutot que de facturer autre chose.
       if (typeof window.__getPersoPrice !== 'function') {
-        alert("Le configurateur n'a pas fini de charger. Patientez quelques secondes puis réessayez.");
+        alert("Le configurateur n'a pas fini de charger. Patientez quelques secondes puis réessayez.\nSi le problème persiste, rechargez la page ou écrivez-nous à contact@ellia-paris.fr.");
+        releaseBusy();
         return;
       }
       // Texte EXACT tape par le client (pas d'uppercase, pas de points ajoutes)
@@ -122,7 +127,10 @@
           // Re-render avant capture pour avoir la derniere version
           if (window.__forceRender) window.__forceRender();
           preview = canvas3d.toDataURL('image/jpeg', 0.78);
-          if (preview && preview.length > 500000) preview = preview.substring(0, 0); // securite si trop gros, on n'envoie pas
+          // Le serveur refuse un corps > 256 Ko : au-dela on degrade puis on abandonne
+          // l'apercu plutot que de faire echouer TOUTE la commande.
+          if (preview && preview.length > 150000) preview = canvas3d.toDataURL('image/jpeg', 0.55);
+          if (preview && preview.length > 150000) preview = null;
         }
       } catch(err){ /* silencieux : la capture est best-effort */ }
       // Prix dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole (+159 base pochette)
@@ -151,10 +159,15 @@
         preview: preview
       };
       var ok=true;
-      if(window.Cart && Cart.tryAdd){ var r=await Cart.tryAdd(item); ok=r.ok; }
-      else if(window.Cart){ Cart.add(item); }
-      if(ok){ location.href='panier.html'; }
-      else { var old=addBtn.textContent; addBtn.textContent='Stock insuffisant'; setTimeout(function(){ addBtn.textContent=old; }, 1800); }
+      try{
+        if(window.Cart && Cart.tryAdd){ var r=await Cart.tryAdd(item); ok=r.ok; }
+        else if(window.Cart){ Cart.add(item); }
+      }catch(err){ ok=false; }
+      if(ok){ location.href='panier.html'; }   // navigation : pas besoin de liberer
+      else {
+        releaseBusy();   // echec : le client doit pouvoir reessayer
+        var old=addBtn.textContent; addBtn.textContent='Stock insuffisant'; setTimeout(function(){ addBtn.textContent=old; }, 1800);
+      }
     });
     paint();
   }

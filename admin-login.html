@@ -73,11 +73,12 @@
       else if(j.need_2fa){
         if(!document.getElementById('twofa')){
           const div = document.createElement('div');
-          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;padding:14px 16px;border:1px solid rgba(0,0,0,.12);font-family:var(--sans);font-size:20px;text-align:center;letter-spacing:8px;background:#fafaf7">';
+          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;font-size:20px;text-align:center;letter-spacing:8px">';
           // Le champ 2FA doit etre insere DANS le formulaire, juste avant le bouton
           const form = document.getElementById('f');
           const btn2 = form.querySelector('button');
           form.insertBefore(div, btn2);
+          const tf=document.getElementById('twofa'); if(tf) tf.focus();
           err.textContent = ''; err.style.color = '#8a857d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
         } else { err.style.color = '#b1432f'; err.textContent = j.error || 'Code incorrect.'; }
       }
