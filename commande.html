@@ -146,7 +146,7 @@
 
   box.innerHTML =
     '<div class="cmd-title"><h1>Commande '+o.numero+'</h1><span class="cmd-amount">'+eur(o.montant_total)+'</span></div>'+
-    '<p style="color:var(--gris-txt);font-size:13px">Passée le '+ (o.created_at||'').slice(0,10) +'</p>'+
+    '<p style="color:var(--gris-txt);font-size:13px">Passée le '+ (function(d){ if(!d) return '—'; const t=new Date(d); return isNaN(t)?String(d).slice(0,10):t.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); })(o.created_at) +'</p>'+
     stepper+
     (idx>=0?('<p class="cmd-status-line">'+SENT[String(idx)]+'</p>'):'')+
     '<div class="cmd-card">'+

@@ -145,7 +145,7 @@ try {
 const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_USER || 'no-reply@ellia-paris.fr') + '>');
 function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
-function emailLayout(inner){
+function emailLayout(inner, preheader){
   // Email HTML complet avec doctype + <html><body> pour deliverability (SpamAssassin)
   return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' +
   '<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">' +
@@ -155,8 +155,12 @@ function emailLayout(inner){
     '<title>ELLIA PARIS</title>' +
   '</head>' +
   '<body style="margin:0;padding:0;background:#f3f1ec;font-family:Georgia,\'Times New Roman\',serif">' +
+  // Preheader : texte d'apercu dans la boite de reception (masque dans le mail)
+  '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0">' + (preheader || 'ELLIA PARIS — maison de maroquinerie parisienne') + '</div>' +
   '<div style="margin:0;padding:40px 12px;background:#f3f1ec">' +
-  '<div style="max-width:580px;margin:0 auto;background:#ffffff;box-shadow:0 30px 60px -25px rgba(0,0,0,.12)">' +
+  // Table + largeur fixe : Outlook Windows ignore max-width sur un div (mail etale sur tout l'ecran)
+  '<table role="presentation" width="580" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width:580px;width:100%;margin:0 auto;background:#ffffff;box-shadow:0 30px 60px -25px rgba(0,0,0,.12)"><tr><td>' +
+  '<div>' +
     '<div style="text-align:center;padding:36px 0 14px">' +
       '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:46px;width:auto" />' +
       '<div style="margin-top:14px;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#8a857d">Maison de maroquinerie · Paris</div>' +
@@ -168,7 +172,7 @@ function emailLayout(inner){
       '<div style="margin-bottom:14px"><a href="https://ellia-paris.fr" style="color:#bdb8af;text-decoration:none">ellia-paris.fr</a> · <a href="https://ellia-paris.fr/contact.html" style="color:#bdb8af;text-decoration:none">Contact</a> · <a href="https://ellia-paris.fr/entretien.html" style="color:#bdb8af;text-decoration:none">Entretien</a></div>' +
       '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© 2026 ELLIA PARIS — Maison de maroquinerie française · Tous droits réservés.</div>' +
     '</div>' +
-  '</div></div>' +
+  '</div></td></tr></table></div>' +
   '</body></html>';
 }
 
@@ -242,6 +246,8 @@ function sendMail(to, subject, html){
   if (!transporter || !to) return;
   transporter.sendMail({
     from: MAIL_FROM,
+    // Le client peut repondre directement a l'email (invite a le faire dans certains messages)
+    replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
     to,
     subject,
     html,
@@ -314,8 +320,13 @@ function _notifyNewOrderInternal(d, numero){
       '<td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">' + euro(d.montant_total) + '</b></td></tr></table>' +
     addressBlock(d) +
     stepsBlock +
-    '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Vous pouvez suivre l\'avancement de votre commande à tout moment depuis votre <a href="https://ellia-paris.fr/compte.html" style="color:#0d0d0d">espace personnel</a>.<br/><br/>Avec soin,<br/>ELLIA PARIS</p>';
-  const clientHtml = emailLayout(inner);
+    '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(numero) + '" style="color:#0d0d0d">voir le suivi</a> (votre e-mail suffit, aucun compte requis).<br/><br/>Avec soin,<br/>ELLIA PARIS</p>' +
+    // Mention legale obligatoire : article personnalise = pas de droit de retractation (art. L221-28 3° C. conso.)
+    '<div style="margin:26px 0 0;padding:14px 16px;background:#faf8f4;border-left:2px solid #e0dbd0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#8a857d;line-height:1.6">' +
+      'Votre pochette étant personnalisée à votre demande, elle est exclue du droit de rétractation de 14 jours (article L221-28 3° du Code de la consommation). ' +
+      'Nos <a href="https://ellia-paris.fr/cgv.html" style="color:#56524c">conditions générales de vente</a> restent consultables à tout moment. En cas de défaut, écrivez-nous : notre garantie légale s\'applique pleinement.' +
+    '</div>';
+  const clientHtml = emailLayout(inner, 'Commande ' + numero + ' confirmée — votre pochette est en préparation');
   if (hasPreview) {
     // Piece jointe inline avec Content-ID -> Gmail/Outlook chargent l'image normalement
     const attachments = [{
@@ -330,7 +341,7 @@ function _notifyNewOrderInternal(d, numero){
     sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
   }
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + numero + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + (d.client_nom||'') + ' — ' + (d.client_email||'') + (d.telephone?(' — '+d.telephone):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d)));
+    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d), 'Nouvelle commande ' + numero));
 }
 const STATUT_MSG = {
   'nouvelle':'a bien été reçue et est en cours de traitement.',

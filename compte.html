@@ -135,7 +135,15 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   const user=session.user;
   const f=id=>document.getElementById(id);
   const nom=(user.user_metadata&&user.user_metadata.nom)||'';
-  f('hello').textContent='Bonjour '+(nom?nom.split(' ')[0]:'').toUpperCase();
+  /* Date lisible : 29 juillet 2026 au lieu de 2026-07-29 */
+  function dateFr(d){
+    if(!d) return '—';
+    const t = new Date(d);
+    if(isNaN(t)) return String(d).slice(0,10);
+    return t.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  }
+  const prenom = nom ? nom.trim().split(' ')[0] : '';
+  f('hello').textContent = prenom ? ('Bonjour '+prenom.toUpperCase()) : 'Bonjour';
   f('mail').textContent=user.email;
   const eur=n=>Number(n||0).toLocaleString('fr-FR')+' €';
 
@@ -153,7 +161,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   function ocb(s){ s=(s||'').toLowerCase(); if(s.includes('nouv'))return'ocb-blue'; if(s.includes('prep')||s.includes('prép'))return'ocb-amber'; if(s.includes('exp'))return'ocb-grey'; if(s.includes('livr'))return'ocb-green'; if(s.includes('annul'))return'ocb-red'; return'ocb-grey'; }
   const card=o=>'<a class="ocard" href="commande.html?n='+encodeURIComponent(o.numero)+'">'+
       '<img loading="lazy" decoding="async" src="assets/product-1.jpg" alt="Pochette">'+
-      '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+(o.created_at||'').slice(0,10)+'</div>'+
+      '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+dateFr(o.created_at)+'</div>'+
       '<div class="ocard-name">La Pochette ELLIA — Noir</div>'+
       '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
       '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+o.statut+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
