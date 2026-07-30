@@ -133,13 +133,15 @@ function setSecurityHeaders(req, res){
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self), interest-cohort=()');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net blob:",
+    // 'wasm-unsafe-eval' est INDISPENSABLE : sans lui, Chrome refuse de compiler
+    // le decodeur WebAssembly du modele 3D et le configurateur reste vide.
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com blob:",
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' https: data: blob:",
     "media-src 'self' https:",
-    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com",
+    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://region1.google-analytics.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -408,6 +408,33 @@ verifier('le message cadeau s\'affiche sur plusieurs lignes',
          (srcServeur.match(/white-space:pre-wrap/g) || []).length >= 2 &&
          (lire('admin.js').match(/white-space:pre-wrap/g) || []).length >= 2);
 
+section('Politique de sécurité du contenu');
+
+// Le CDN de l'hébergeur remplace l'en-tête HTTP : la balise meta est le seul
+// moyen que la politique atteigne réellement le navigateur.
+const pagesCSP = pagesHtml.filter(f => !lire(f).includes('http-equiv="Content-Security-Policy"'));
+verifier('toutes les pages portent la politique en balise', pagesCSP.length === 0, pagesCSP.join(', '));
+
+const cspIndex = (lire('index.html').match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [,''])[1];
+// Sans 'wasm-unsafe-eval', Chrome refuse de compiler le décodeur du modèle 3D
+// et le configurateur reste désespérément vide.
+verifier('la politique autorise WebAssembly (modèle 3D)', cspIndex.includes("'wasm-unsafe-eval'"));
+verifier('la politique autorise les modules three.js',    cspIndex.includes('unpkg.com'));
+verifier('la politique autorise Supabase',                cspIndex.includes('supabase.co'));
+verifier('la politique autorise les polices Google',      cspIndex.includes('fonts.gstatic.com'));
+verifier('la politique autorise les workers du décodeur', cspIndex.includes('worker-src') && cspIndex.includes('blob:'));
+verifier('la politique interdit les objets embarqués',    cspIndex.includes("object-src 'none'"));
+// frame-ancestors et form-action sont ignorés dans une balise meta :
+// les y laisser donnerait une fausse impression de protection.
+verifier('la politique en balise n\'annonce pas de directive inopérante',
+         !cspIndex.includes('frame-ancestors') && !cspIndex.includes('form-action'));
+verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré',
+         srcServeur.includes("X-Frame-Options', 'DENY'") || srcServeur.includes('X-Frame-Options'));
+
+// Les deux politiques (serveur et balise) doivent rester cohérentes.
+verifier('la politique du serveur autorise aussi WebAssembly',
+         srcServeur.includes("'wasm-unsafe-eval'"));
+
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.
    ══════════════════════════════════════════════════════════════ */
