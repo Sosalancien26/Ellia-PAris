@@ -90,10 +90,11 @@ function generateInvoicePDF(order){
     doc.font('Helvetica-Bold').fontSize(11).fillColor(NOIR)
        .text('ELLIA PARIS', 55, yBlocks + 14);
     doc.font('Helvetica').fontSize(9).fillColor(GRIS)
-       .text('Maison de maroquinerie', 55, yBlocks + 30, { lineBreak:false })
-       .text('Paris, France',          55, yBlocks + 43, { lineBreak:false })
-       .text('contact@ellia-paris.fr', 55, yBlocks + 56, { lineBreak:false })
-       .text('ellia-paris.fr',         55, yBlocks + 69, { lineBreak:false });
+       .text(process.env.SOCIETE_FORME || 'Maison de maroquinerie', 55, yBlocks + 30, { lineBreak:false })
+       .text(process.env.SOCIETE_ADRESSE || 'Paris, France',          55, yBlocks + 43, { lineBreak:false })
+       .text((process.env.SOCIETE_SIRET ? ('SIRET ' + process.env.SOCIETE_SIRET) : 'SIRET : en cours d\'immatriculation'), 55, yBlocks + 56, { lineBreak:false })
+       .text((process.env.SOCIETE_TVA ? ('TVA intracom. ' + process.env.SOCIETE_TVA) : ''), 55, yBlocks + 69, { lineBreak:false })
+       .text('contact@ellia-paris.fr · ellia-paris.fr', 55, yBlocks + 82, { lineBreak:false });
 
     const clientX = 320;
     doc.font('Helvetica').fontSize(8).fillColor(GRIS2)
@@ -133,7 +134,23 @@ function generateInvoicePDF(order){
     });
     if (Number(order.prix_personnalisation || 0) > 0) {
       const persoPrixHT = Number(order.prix_personnalisation) / tvaCoef;
-      const persoSub = [
+      // Detail COMPLET depuis items_data : sinon seul le 1er article apparait
+      // et les symboles graves (flamme, hamsa, peace, ellia) sont invisibles.
+      let persoSub = '';
+      try {
+        const arr = Array.isArray(order.items_data) ? order.items_data : [];
+        const lignes = arr.map((it, idx) => {
+          const p = [];
+          if (it.initiales) p.push('« ' + it.initiales + ' » ' + [it.finition, it.emplacement].filter(Boolean).join(' / '));
+          ['flame','extra','extra2','extra3'].forEach(k => {
+            const s = it[k];
+            if (s && s.enabled) p.push((s.symbol_name || 'Symbole') + ' ' + [s.finish, s.placement].filter(Boolean).join(' / '));
+          });
+          return p.length ? ((arr.length > 1 ? ('#' + (idx+1) + ' ') : '') + p.join(' + ')) : '';
+        }).filter(Boolean);
+        if (lignes.length) persoSub = lignes.join('  ·  ');
+      } catch(_){}
+      if (!persoSub) persoSub = [
         order.initiales ? ('Initiales : ' + order.initiales) : null,
         order.finition ? ('Finition : ' + order.finition) : null,
         order.emplacement ? ('Emplacement : ' + order.emplacement) : null
@@ -163,21 +180,48 @@ function generateInvoicePDF(order){
       tableY += rowH;
     });
 
-    /* ---------- TOTAUX ---------- */
+    /* ---------- TOTAUX ----------
+       REGLE ABSOLUE : le TOTAL TTC imprime doit etre EXACTEMENT le montant
+       encaisse (order.montant_total). La remise promo est deduite explicitement. */
     tableY += 14;
-    const sumHT = items.reduce((s,it) => s + it.pu * it.qte, 0);
-    const sumTVA = sumHT * tva / 100;
-    const sumTTC = sumHT + sumTVA;
+    const brutHT   = items.reduce((s,it) => s + it.pu * it.qte, 0);
+    const remise   = Number(order.promo_discount || 0);
+    const remiseHT = remise / tvaCoef;
+    const sumHT    = Math.max(0, brutHT - remiseHT);
+    const sumTVA   = sumHT * tva / 100;
+    let   sumTTC   = sumHT + sumTVA;
+    // Filet : le montant reellement encaisse fait foi. On re-derive HT et TVA
+    // depuis ce TTC, sinon la facture affiche HT + TVA != TTC (incoherence fiscale).
+    const paye = Number(order.montant_total);
+    let ht = sumHT, tvaMt = sumTVA;
+    if (!isNaN(paye) && paye > 0 && Math.abs(paye - sumTTC) > 0.02) {
+      sumTTC = paye;
+      ht    = Math.round((paye / tvaCoef) * 100) / 100;
+      tvaMt = Math.round((paye - ht) * 100) / 100;
+    }
+
     const totX = 350;
     doc.font('Helvetica').fontSize(10).fillColor(GRIS);
-    doc.text('Total HT',          totX,     tableY,    { width:120, align:'right', lineBreak:false });
-    doc.text(eur(sumHT),          totX+125, tableY,    { width:60,  align:'right', lineBreak:false });
-    doc.text('TVA ' + tva + ' %', totX,     tableY+18, { width:120, align:'right', lineBreak:false });
-    doc.text(eur(sumTVA),         totX+125, tableY+18, { width:60,  align:'right', lineBreak:false });
-    doc.moveTo(totX, tableY+38).lineTo(540, tableY+38).strokeColor(NOIR).lineWidth(1).stroke();
+    let ty = tableY;
+    if (remise > 0) {
+      doc.text('Sous-total HT',   totX,     ty,   { width:120, align:'right', lineBreak:false });
+      doc.text(eur(brutHT),       totX+125, ty,   { width:60,  align:'right', lineBreak:false });
+      ty += 18;
+      doc.fillColor('#7a6320');
+      doc.text('Remise' + (order.promo_code ? (' ' + String(order.promo_code).slice(0,14)) : ''), totX, ty, { width:120, align:'right', lineBreak:false });
+      doc.text('- ' + eur(remiseHT), totX+125, ty, { width:60, align:'right', lineBreak:false });
+      doc.fillColor(GRIS);
+      ty += 18;
+    }
+    doc.text('Total HT',          totX,     ty,      { width:120, align:'right', lineBreak:false });
+    doc.text(eur(ht),             totX+125, ty,      { width:60,  align:'right', lineBreak:false });
+    doc.text('TVA ' + tva + ' %', totX,     ty+18,   { width:120, align:'right', lineBreak:false });
+    doc.text(eur(tvaMt),          totX+125, ty+18,   { width:60,  align:'right', lineBreak:false });
+    doc.moveTo(totX, ty+38).lineTo(540, ty+38).strokeColor(NOIR).lineWidth(1).stroke();
     doc.font('Helvetica-Bold').fontSize(13).fillColor(NOIR);
-    doc.text('TOTAL TTC', totX,     tableY+46, { width:120, align:'right', lineBreak:false });
-    doc.text(eur(sumTTC), totX+125, tableY+46, { width:60,  align:'right', lineBreak:false });
+    doc.text('TOTAL TTC', totX,     ty+46, { width:120, align:'right', lineBreak:false });
+    doc.text(eur(sumTTC), totX+125, ty+46, { width:60,  align:'right', lineBreak:false });
+    tableY = ty;
 
     /* ---------- PAIEMENT + NOTES ---------- */
     const payY = tableY + 95;
@@ -188,9 +232,11 @@ function generateInvoicePDF(order){
     if (order.payment_date) {
       doc.text('Réglé le : ' + dateFr(order.payment_date), 55, payY+42, { lineBreak:false });
     }
-    if (order.notes_admin) {
+    // notes_client : colonne prevue pour une note DESTINEE AU CLIENT.
+    // Ne jamais y mettre notes_admin, qui porte la trace comptable des remises.
+    if (order.notes_client) {
       doc.font('Helvetica').fontSize(8).fillColor(GRIS2).text('NOTES', 320, payY, { characterSpacing:1.8, lineBreak:false });
-      doc.font('Helvetica-Oblique').fontSize(9).fillColor(GRIS).text(order.notes_admin, 320, payY+14, { width:220, height:60, ellipsis:true });
+      doc.font('Helvetica-Oblique').fontSize(9).fillColor(GRIS).text(order.notes_client, 320, payY+14, { width:220, height:60, ellipsis:true });
     }
 
     /* ---------- FOOTER LEGAL ---------- */
@@ -198,7 +244,7 @@ function generateInvoicePDF(order){
     doc.moveTo(55, footY).lineTo(540, footY).strokeColor(LIGNE).lineWidth(0.5).stroke();
     doc.font('Helvetica').fontSize(7.5).fillColor(GRIS2);
     const legal = 'ELLIA PARIS · Maison de maroquinerie · contact@ellia-paris.fr · ellia-paris.fr' +
-      '\nTVA non applicable, art. 293 B du CGI · En cas de retard de paiement, indemnité forfaitaire pour frais de recouvrement de 40 € (art. L.441-10 du Code de commerce).';
+      '\nEn cas de retard de paiement : pénalités au taux de 3 fois le taux d\'intérêt légal, et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L.441-10 du Code de commerce).';
     doc.text(legal, 55, footY+10, { width:485, align:'center', lineGap:2, height:40 });
     doc.font('Helvetica-Bold').fontSize(8).fillColor(NOIR)
        .text('Merci de votre confiance', 55, footY+50, { width:485, align:'center', characterSpacing:1.4, lineBreak:false });

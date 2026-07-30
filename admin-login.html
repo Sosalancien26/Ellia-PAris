@@ -42,14 +42,11 @@
 </style>
 <meta name="description" content="Accès administrateur ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
   <div class="box">
-    <img loading="lazy" decoding="async" src="assets/logo_black_trim.png" alt="ELLIA PARIS" />
+    <img loading="lazy" decoding="async" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" />
     <h1>Espace Pro</h1>
     <p>Accès réservé à l'administration</p>
     <form id="f" onsubmit="return false">
@@ -73,7 +70,7 @@
       else if(j.need_2fa){
         if(!document.getElementById('twofa')){
           const div = document.createElement('div');
-          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;font-size:20px;text-align:center;letter-spacing:8px">';
+          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px" for="twofa">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;font-size:20px;text-align:center;letter-spacing:8px">';
           // Le champ 2FA doit etre insere DANS le formulaire, juste avant le bouton
           const form = document.getElementById('f');
           const btn2 = form.querySelector('button');

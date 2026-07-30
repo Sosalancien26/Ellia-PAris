@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Facture — ELLIA PARIS</title>
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -41,12 +42,10 @@
 </style>
 <meta name="description" content="Facture ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <div class="actions">
   <a href="compte.html">← Mon compte</a>
@@ -78,22 +77,23 @@
   const adresse = [o.adresse_livraison,((o.cp_livraison||'')+' '+(o.ville_livraison||'')).trim(),o.pays_livraison].filter(Boolean).join('<br>');
   sheet.innerHTML =
     '<div class="top">'+
-      '<div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png" alt="ELLIA PARIS"><small>Maison de maroquinerie · Paris</small></div>'+
-      '<div class="doc"><h1>Facture</h1><div class="meta">N° '+o.numero+'<br>Émise le '+date+'</div></div>'+
+      '<div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS"><small>Maison de maroquinerie · Paris</small></div>'+
+      '<div class="doc"><h1>Facture</h1><div class="meta">N° '+(o.invoice_number||o.numero)+'<br>Émise le '+date+'<br><span style="font-size:11px;color:#8a857d">Commande '+o.numero+'</span></div></div>'+
     '</div>'+
     '<div class="parties">'+
-      '<div class="party"><h3>Vendeur</h3><p><b>ELLIA PARIS</b><br>[Forme juridique]<br>[Adresse]<br>SIRET : [à compléter]<br>ellia-paris.fr</p></div>'+
+      '<div class="party"><h3>Vendeur</h3><p><b>ELLIA PARIS</b><br>Maison de maroquinerie<br>Paris, France<br>contact@ellia-paris.fr<br>ellia-paris.fr</p></div>'+
       '<div class="party"><h3>Acheteur</h3><p><b>'+(o.client_nom||'')+'</b><br>'+(o.client_email||'')+(o.telephone?('<br>'+o.telephone):'')+'<br><br>'+adresse+'</p></div>'+
     '</div>'+
     '<table><thead><tr><th>Article</th><th class="r">Prix TTC</th></tr></thead><tbody>'+
       lignes.map(l=>'<tr><td>'+l.nom+'</td><td class="r">'+eur(l.prix)+'</td></tr>').join('')+
     '</tbody></table>'+
     '<div class="totals">'+
-      '<div class="row"><span>Total HT</span><span>'+eur(ht)+'</span></div>'+
-      '<div class="row"><span>TVA 20 %</span><span>'+eur(tva)+'</span></div>'+
-      '<div class="row tot"><span>Total TTC</span><span>'+eur(ttc)+'</span></div>'+
+      (Number(o.promo_discount||0)>0 ? '<div class="row" style="color:#7a6320"><span>Remise'+(o.promo_code?(' '+o.promo_code):'')+'</span><span>- '+eur(o.promo_discount)+'</span></div>' : '')+
+      '<div class="row"><span>Total HT</span><span>'+eur(o.montant_ht!=null?o.montant_ht:ht)+'</span></div>'+
+      '<div class="row"><span>TVA '+(o.tva_rate!=null?o.tva_rate:20)+' %</span><span>'+eur(o.montant_tva!=null?o.montant_tva:tva)+'</span></div>'+
+      '<div class="row tot"><span>Total TTC</span><span>'+eur(o.montant_total!=null?o.montant_total:ttc)+'</span></div>'+
     '</div>'+
-    '<div class="legal">Document à valeur de facture. Conditions de vente et politique de retours disponibles sur ellia-paris.fr/cgv. TVA non applicable, art. 293 B du CGI (si auto-entreprise — à ajuster).</div>';
+    '<div class="legal">Document à valeur de facture. Conditions de vente et politique de retours disponibles sur ellia-paris.fr/cgv. Prix exprimés en euros, TVA française applicable.</div>';
 })();
 </script>
 </body>

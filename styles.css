@@ -29,6 +29,10 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.04;letter-spa
 /* Preloader */
 #preloader{position:fixed;inset:0;background:var(--ivoire);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s var(--ease),visibility 1s}
 #preloader.done{opacity:0;visibility:hidden}
+/* FILET : si le JS echoue, le preloader disparait quand meme au bout de 4 s.
+   Sans cette regle, une erreur JS laissait le visiteur sur un ecran vide. */
+#preloader{animation:plAutoHide 0s linear 4s forwards}
+@keyframes plAutoHide{to{opacity:0;visibility:hidden;pointer-events:none}}
 #preloader .pl-line{margin-top:38px;font-family:var(--serif);font-size:28px;letter-spacing:.42em;text-transform:uppercase;color:var(--noir);opacity:0;transform:scale(0.4);will-change:transform,opacity;animation:plTextZoom 1.8s cubic-bezier(.22,.61,.36,1) 0.4s forwards}
 @keyframes plIn{to{opacity:1}}
 @keyframes plTextZoom{
@@ -155,7 +159,7 @@ section{position:relative}
 .bio-points{list-style:none;margin-top:30px}
 .bio-points li{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--ligne-soft);font-size:14.5px;color:var(--gris-clair)}
 .bio-points li b{font-family:var(--serif);font-weight:500;color:var(--noir);font-size:16px;margin-right:6px}
-.bio-points .n{font-family:var(--serif);color:#b3ada3;font-size:13px;letter-spacing:.2em;min-width:28px}
+.bio-points .n{font-family:var(--serif);color:#8a857d;font-size:13px;letter-spacing:.2em;min-width:28px}
 
 /* Campaign band */
 .campaign{position:relative;height:84vh;min-height:520px;overflow:hidden;display:flex;align-items:center;background:#ddd}
@@ -220,6 +224,7 @@ section{position:relative}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px);max-height:0}to{opacity:1;transform:translateY(0);max-height:600px}}
 .perso-preview{position:relative;aspect-ratio:3/2;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.18);background:radial-gradient(130% 130% at 50% 22%,#2a2620 0%,#16130f 72%);box-shadow:inset 0 0 70px rgba(0,0,0,.55)}
 .perso-preview::before{content:"";position:absolute;inset:16px;border:1px solid rgba(255,255,255,.16);pointer-events:none}
+#persoPreview::before{display:none}   /* conteneur transparent : pas de cadre blanc parasite */
 .mono-label{position:absolute;top:26px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:rgba(255,255,255,.5);font-family:var(--sans)}
 .mono-finish{position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.45);font-family:var(--sans)}
 .engrave{font-family:var(--serif);font-weight:600;letter-spacing:.08em;font-size:clamp(54px,10vw,118px);line-height:1;white-space:nowrap;transition:color .4s var(--ease),background .4s var(--ease)}
@@ -935,7 +940,9 @@ html{overflow-x:hidden}
   font-family:var(--sans);font-size:15px;color:var(--noir);
   transition:border-color .3s;
 }
-.contact-form input:focus,.contact-form textarea:focus,.contact-form select:focus{border-color:var(--noir);outline:none}
+.contact-form input:focus,.contact-form textarea:focus,.contact-form select:focus{border-color:var(--noir)}
+/* Ne JAMAIS supprimer l'anneau de focus : seul repere des personnes naviguant au clavier */
+.contact-form input:focus-visible,.contact-form textarea:focus-visible,.contact-form select:focus-visible{outline:2px solid #0d0d0d;outline-offset:2px}
 .contact-form textarea{resize:vertical;min-height:140px;line-height:1.6}
 .contact-form select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230d0d0d' stroke-width='1.4'/></svg>") no-repeat right 18px center;padding-right:42px;cursor:pointer}
 .cf-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -988,7 +995,7 @@ html{overflow-x:hidden}
 .review-card:hover{box-shadow:0 18px 40px -15px rgba(0,0,0,.12)}
 .rv-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px}
 .rv-author{font-family:var(--serif);font-size:18px;color:var(--noir);font-weight:500}
-.rv-date{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a39e96}
+.rv-date{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a756d}
 .rv-rating{color:#c9a14a;font-size:14px;letter-spacing:1.5px;margin-bottom:10px}
 .rv-title{font-family:var(--serif);font-size:17px;color:var(--noir);margin-bottom:8px;font-style:italic}
 .rv-comment{font-size:14.5px;line-height:1.65;color:var(--gris-clair)}
@@ -1104,3 +1111,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     text-align:center;
   }
 }
+
+
+/* Lien d'evitement : permet de sauter la navigation au clavier (WCAG 2.4.1).
+   Invisible tant qu'il n'a pas le focus. */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:3000;background:#0d0d0d;color:#fff;
+  padding:12px 20px;font-family:var(--sans);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.skip-link:focus{left:8px;top:8px}

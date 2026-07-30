@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Personnalisation — ELLIA PARIS</title>
-<meta name="description" content="Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés, 4 symboles superposables (flamme, hamsa, paix, signature), 4 finitions précieuses (Or, Or rose, Argent, Aveugle), emplacements au choix. Configurateur 3D temps réel." />
+<meta name="description" content="Composez votre Pochette ELLIA : jusqu\'à 18 caractères gravés, 4 symboles, 4 finitions précieuses. Configurateur 3D en temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
@@ -14,10 +14,13 @@
 <meta property="og:image" content="https://ellia-paris.fr/assets/social-share-wide.jpg?v=8">
 <meta property="og:url" content="https://ellia-paris.fr/personnalisation.html">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" as="fetch" href="assets/pochette.glb" type="model/gltf-binary" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   /* Selecteur de symbole (Flamme / Hamsa / Peace / Ellia) */
   .sym-btn{background:#fff;border:1px solid #e0ddd6;padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s,background .2s,transform .2s;font-family:inherit}
@@ -28,9 +31,6 @@
   .sym-btn.active small{color:#0d0d0d;font-weight:500}
   @media (max-width:560px){.sym-btn small{font-size:8.5px}}
 </style>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 
 <!-- Personnalisation Product + Breadcrumb Schema -->
 <script type="application/ld+json">
@@ -52,7 +52,7 @@
           "@type": "PriceSpecification",
           "price": "218.00",
           "priceCurrency": "EUR",
-          "description": "Pochette 159 € + personnalisation gravure 59 €"
+          "description": "Pochette 159 € TTC. Gravure en supplément : 5 €/lettre, 2 €/caractère spécial, 10 €/symbole."
         },
         "availability": "https://schema.org/InStock",
         "url": "https://ellia-paris.fr/personnalisation.html"
@@ -78,13 +78,14 @@
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
-<div id="preloader"><div class="pl-scan"><img class="pl-logo-base" src="assets/picto_black_trim.png" alt="" /><img class="pl-logo-fill" src="assets/picto_black_trim.png" alt="ELLIA PARIS" /><div class="pl-beam"></div></div><div class="pl-line">ELLIA&nbsp;&nbsp;PARIS</div></div>
+<div id="preloader"><div class="pl-scan"><img class="pl-logo-base" src="assets/picto_black_trim.png?v=1785400000" alt="" /><img class="pl-logo-fill" src="assets/picto_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><div class="pl-beam"></div></div><div class="pl-line">ELLIA&nbsp;&nbsp;PARIS</div></div>
 
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links">
       <a href="index.html">Accueil</a>
       <a href="pochette.html">La Pochette ELLIA</a>
@@ -92,12 +93,12 @@
       <a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a>
     </nav>
-    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
-<section class="page-hero page-top">
+<section id="contenu" class="page-hero page-top">
   <div class="wrap">
     <div class="breadcrumb reveal"><a href="index.html">Accueil</a> · Personnalisation</div>
     <div class="reveal"><div class="eyebrow" style="margin-top:24px">Sur-mesure</div><h1>Gravée à votre nom</h1><p>Jusqu'à 18 caractères et 4 symboles superposables, quatre finitions précieuses, emplacements au choix. Composez une pièce qui n'appartient qu'à vous.</p></div>
@@ -107,8 +108,8 @@
 <section class="perso pad" style="padding-top:50px">
   <div class="wrap">
     <div class="perso-grid">
-      <div class="perso-preview reveal" id="persoPreview" style="background:transparent;border:none;box-shadow:none;padding:0">
-        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 50%,#c4bdae 100%);box-shadow:inset 0 0 80px rgba(0,0,0,.08);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:none">
+      <div class="perso-preview reveal" id="persoPreview" style="background:transparent;border:none;box-shadow:none;padding:0;aspect-ratio:auto;display:block;overflow:visible">
+        <div id="viewer3d" style="width:100%;aspect-ratio:1/1;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 50%,#c4bdae 100%);box-shadow:inset 0 0 80px rgba(0,0,0,.08);border-radius:4px;position:relative;overflow:hidden;cursor:grab;touch-action:pan-y">
           <div id="viewer3d-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at center,#f5f1ea 0%,#e3dccf 60%,#c4bdae 100%);pointer-events:none;transition:opacity 600ms ease-out;z-index:2">
             <div style="font-size:11px;letter-spacing:.34em;color:#7a7363;text-transform:uppercase">Chargement du modèle</div>
             <div style="width:180px;height:1px;background:rgba(0,0,0,.12);overflow:hidden;border-radius:1px"><div id="viewer3d-bar" style="height:100%;width:0%;background:#0d0d0d;transition:width 200ms linear"></div></div>
@@ -348,6 +349,17 @@
           </div>
           <a href="#" id="addPerso" class="btn solid" style="flex-shrink:0">Ajouter au panier</a>
         </div>
+        <!-- Partage : recuperer sa composition plus tard, ou l'envoyer a qui l'offrira -->
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(0,0,0,.08)">
+          <button type="button" id="shareConfig"
+            style="width:100%;padding:12px 16px;background:transparent;border:1px solid rgba(0,0,0,.18);cursor:pointer;font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--noir)">
+            Garder ma composition
+          </button>
+          <div id="shareOut" style="margin-top:12px"></div>
+          <p style="font-size:12px;color:#9a9286;margin-top:10px;line-height:1.6">
+            Un lien à vous envoyer pour revenir plus tard — ou à transmettre à la personne qui vous l'offre.
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -367,7 +379,7 @@
 <footer id="contact">
   <div class="wrap">
     <div class="foot-grid">
-      <div><img class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
+      <div><img class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
       <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
       <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="#">Livraison & retours</a></li></ul></div>
       <div><h4>Suivez-nous</h4><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
@@ -375,8 +387,8 @@
     <div class="foot-bottom"><span>© 2026 ELLIA PARIS — Tous droits réservés</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div>
   </div>
 </footer>
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
 
 <script type="importmap">
 {
@@ -408,7 +420,33 @@ window.addEventListener('pageshow', function(ev){
   if (ev.persisted) { location.reload(); }
 });
 
-if (container && window.WebGLRenderingContext) {
+// WebGL reellement disponible ? Tester l'existence du constructeur ne suffit
+// pas : le GPU peut etre sur liste noire, le mode economie d'energie actif ou
+// une extension anti-tracage bloquer le contexte. Dans ce cas la cliente
+// restait bloquee sur "Chargement du modele" a 0 %, sans message, pour
+// toujours. On verifie en creant vraiment un contexte.
+function webglDispo(){
+  try {
+    var c = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext &&
+      (c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl')));
+  } catch(e){ return false; }
+}
+function replliSansWebGL(){
+  if (!container) return;
+  container.innerHTML =
+    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;padding:26px;text-align:center;background:#f3f1ec">'
+    + '<img src="assets/pochette-hero.webp" alt="La Pochette ELLIA" style="max-width:78%;height:auto;margin-bottom:20px" '
+    +      'onerror="this.onerror=null;this.src=\'assets/product-1.jpg\'">'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:19px;color:#0d0d0d;margin-bottom:8px">Aperçu 3D indisponible</div>'
+    + '<div style="font-family:Jost,sans-serif;font-size:13px;color:#5c5852;line-height:1.6;max-width:340px">'
+    +   'Votre navigateur ne permet pas l\'affichage 3D. Vous pouvez tout de même composer votre gravure : '
+    +   'le récapitulatif ci-contre reste exact et votre pochette sera réalisée à l\'identique.</div></div>';
+}
+
+if (container && !webglDispo()) {
+  replliSansWebGL();
+} else if (container) {
   try { initConfigurator(); }
   catch(err){
     console.error('[Configurateur 3D] init failed', err);
@@ -450,6 +488,10 @@ function initConfigurator(){
   controls.minPolarAngle = Math.PI*0.15;
   controls.maxPolarAngle = Math.PI*0.85;
   controls.target.set(0,0,0);
+  // OrbitControls impose touch-action:none dans son constructeur, ce qui
+  // confisquait le defilement vertical de la page des que le doigt partait du
+  // modele. pan-y rend le scroll au visiteur et garde la rotation horizontale.
+  try { renderer.domElement.style.touchAction = 'pan-y'; } catch(_){}
 
   // === Eclairage studio premium 3 points + accent gravure ===
   // Ambiance generale plus claire
@@ -553,7 +595,10 @@ function initConfigurator(){
   // === DRACO LOADER (avec preload du décodeur WASM — sinon le GLTFLoader échoue silencieusement) ===
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
-  dracoLoader.setDecoderConfig({ type: 'js' });  // forcer JS decoder si WASM bloqué
+  // WebAssembly : decodeur ~5x plus leger que la version JavaScript (703 Ko a
+  // parser sur le thread principal) et 2 a 3x plus rapide sur mobile.
+  // Repli automatique en JS si le navigateur ne supporte pas WASM.
+  dracoLoader.setDecoderConfig({ type: (typeof WebAssembly === 'object') ? 'wasm' : 'js' });
   dracoLoader.preload();
   
   const loader = new GLTFLoader();
@@ -584,6 +629,7 @@ function initConfigurator(){
       if (o.material && o.material.isMaterial) {
         o.material.envMapIntensity = 0.85;
         o.material.needsUpdate = true;
+        if(window.__persoInvalider) window.__persoInvalider();
       }
       o.geometry.computeBoundingBox();
       allMeshes.push(o);
@@ -756,6 +802,7 @@ function initConfigurator(){
         cuirMat.userData.shader = shader;
       };
       cuirMat.needsUpdate = true;
+      if(window.__persoInvalider) window.__persoInvalider();
     }
 
     // Stocker pour paint()
@@ -792,6 +839,7 @@ function initConfigurator(){
       obj.scale.setScalar(startScale * (0.92 + 0.08 * ease));
       if (k < 1) requestAnimationFrame(fadeIn);
       else obj.traverse(o => { if (o.isMesh && o.material) { o.material.transparent = false; o.material.needsUpdate = true; } });
+      if(window.__persoInvalider) window.__persoInvalider();
     }
     requestAnimationFrame(fadeIn);
 
@@ -1308,6 +1356,7 @@ function initConfigurator(){
       drawInitialsText(ctx1, W1/2, H1/2, initials, state.finish, fontSize);
     }
     engraveTex.needsUpdate = true;
+    if(window.__persoInvalider) window.__persoInvalider();
 
     // === Canvas 2 : FLAMME (symbole principal - position + couleur independantes) ===
     const ctx2 = flameCanvas.getContext('2d');
@@ -1317,6 +1366,7 @@ function initConfigurator(){
       drawFlame(ctx2, W2/2, H2/2, Math.min(W2,H2) * 0.95, state.flameFinish, flameImg);
     }
     flameTex.needsUpdate = true;
+    if(window.__persoInvalider) window.__persoInvalider();
 
     // === Canvas 3 : EXTRA (2e gravure) ===
     const ctx3 = extraCanvas.getContext('2d');
@@ -1326,6 +1376,7 @@ function initConfigurator(){
       drawFlame(ctx3, W3/2, H3/2, Math.min(W3,H3) * 0.95, state.extraFinish, extraImg);
     }
     extraTex.needsUpdate = true;
+    if(window.__persoInvalider) window.__persoInvalider();
 
     // === Canvas 4 : EXTRA2 (3e gravure) ===
     const ctx4 = extra2Canvas.getContext('2d');
@@ -1335,6 +1386,7 @@ function initConfigurator(){
       drawFlame(ctx4, W4/2, H4/2, Math.min(W4,H4) * 0.95, state.extra2Finish, extraImg2);
     }
     extra2Tex.needsUpdate = true;
+    if(window.__persoInvalider) window.__persoInvalider();
 
     // === Canvas 5 : EXTRA3 (4e gravure) ===
     const ctx5 = extra3Canvas.getContext('2d');
@@ -1344,6 +1396,7 @@ function initConfigurator(){
       drawFlame(ctx5, W5/2, H5/2, Math.min(W5,H5) * 0.95, state.extra3Finish, extraImg3);
     }
     extra3Tex.needsUpdate = true;
+    if(window.__persoInvalider) window.__persoInvalider();
   }
 
   // Debounce paint sur la frappe pour eviter de redessiner la texture a chaque keystroke
@@ -1505,6 +1558,10 @@ function initConfigurator(){
     renderer.setSize(w(), h());
     camera.aspect = w()/h();
     camera.updateProjectionMatrix();
+    // setSize vide le tampon de dessin : sans redessin explicite, le modele
+    // disparait (rotation du telephone, barre d'adresse mobile au scroll).
+    if (window.__persoInvalider) window.__persoInvalider();
+    try { renderer.render(scene, camera); } catch(_){}
   }
   // Resize debounce — evite les recompositions multiples
   let _resizeT = null;
@@ -1943,8 +2000,10 @@ function initConfigurator(){
   function computePersoPrice(){
     const txt = (state.initials || '').trim();
     let letters = 0, specials = 0;
-    for (let i = 0; i < txt.length; i++) {
-      const c = txt[i];
+    // for...of itere les POINTS DE CODE, comme le calcul serveur. Avec un
+    // simple index, un emoji ou une lettre "police Instagram" comptait double
+    // ici et simple cote serveur : la commande etait refusee au paiement.
+    for (const c of txt) {
       if (/[\p{L}]/u.test(c)) letters++;
       else if (c !== ' ' || txt.length > 1) specials++;
     }
@@ -1991,6 +2050,145 @@ function initConfigurator(){
   }
 
   // Expose pour app.js (prix au moment de l'ajout panier)
+
+  /* ══════════════════════════════════════════════════════════
+     PARTAGE DE CONFIGURATION
+     Exporte l'etat courant, et sait le restaurer. La restauration
+     passe par des CLICS simules sur les vrais boutons : toute la
+     logique existante (classes actives, emplacements incompatibles,
+     images de symboles, prix) se rejoue exactement comme si la
+     cliente avait tout refait a la main.
+     ══════════════════════════════════════════════════════════ */
+  window.__exportConfig = function(){
+    return {
+      v: 1,
+      initials: state.initials || '',
+      finish: state.finish, placement: state.placement,
+      s1: state.useHebrew ? { sym:state.symbol, fin:state.flameFinish,  pos:state.flamePlacement  } : null,
+      s2: state.useExtra  ? { sym:state.extraSymbol,  fin:state.extraFinish,  pos:state.extraPlacement  } : null,
+      s3: state.useExtra2 ? { sym:state.extra2Symbol, fin:state.extra2Finish, pos:state.extra2Placement } : null,
+      s4: state.useExtra3 ? { sym:state.extra3Symbol, fin:state.extra3Finish, pos:state.extra3Placement } : null
+    };
+  };
+
+  window.__applyConfig = function(cfg){
+    if (!cfg || typeof cfg !== 'object') return false;
+    var clic = function(sel){ var e = document.querySelector(sel); if (e && !e.classList.contains('disabled')) { e.click(); return true; } return false; };
+
+    try {
+      // 1) Texte grave
+      var inp = document.getElementById('initials');
+      if (inp && typeof cfg.initials === 'string') {
+        inp.value = cfg.initials.slice(0, 18);
+        inp.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+      // 2) Finition et emplacement du texte
+      if (cfg.finish)    clic('#swatches .sw[data-color="' + cfg.finish + '"]');
+      if (cfg.placement) clic('#placements .place-btn[data-pos="' + cfg.placement + '"]');
+
+      // 3) Symboles. Le 1er s'active en cliquant son icone ; les suivants
+      //    ont une case a cocher qui ouvre leur carte.
+      var slots = [
+        { cfg: cfg.s1, picker:'#symbolPicker', sw:'#flameSwatches',  pos:'#flamePlacements',  toggle:null },
+        { cfg: cfg.s2, picker:'#extraPicker',  sw:'#extraSwatches',  pos:'#extraPlacements',  toggle:'extraToggle'  },
+        { cfg: cfg.s3, picker:'#extra2Picker', sw:'#extra2Swatches', pos:'#extra2Placements', toggle:'extra2Toggle' },
+        { cfg: cfg.s4, picker:'#extra3Picker', sw:'#extra3Swatches', pos:'#extra3Placements', toggle:'extra3Toggle' }
+      ];
+      slots.forEach(function(sl){
+        if (!sl.cfg) return;
+        if (sl.toggle) {
+          var t = document.getElementById(sl.toggle);
+          if (t && !t.checked) { t.checked = true; t.dispatchEvent(new Event('change', { bubbles:true })); }
+        }
+        if (sl.cfg.sym) clic(sl.picker + ' .sym-btn[data-symbol="' + sl.cfg.sym + '"]');
+        if (sl.cfg.fin) clic(sl.sw + ' .sw[data-color="' + sl.cfg.fin + '"]');
+        if (sl.cfg.pos) clic(sl.pos + ' .place-btn[data-pos="' + sl.cfg.pos + '"]');
+      });
+
+      if (typeof updateDisabledPlacements === 'function') updateDisabledPlacements();
+      if (window.__updatePersoPrice) window.__updatePersoPrice();
+      if (window.__persoInvalider) window.__persoInvalider();
+      paint();
+      return true;
+    } catch(e){ console.warn('[Config] restauration partielle :', e && e.message); return false; }
+  };
+
+  /* Bouton "Garder ma composition" */
+  (function(){
+    var b = document.getElementById('shareConfig');
+    if (!b) return;
+    var out = document.getElementById('shareOut');
+    b.addEventListener('click', async function(){
+      var libelle = b.textContent;
+      b.disabled = true; b.textContent = 'Création du lien…';
+      try {
+        var apercu = null;
+        try {
+          var cv = document.querySelector('#viewer3d canvas');
+          if (cv) { apercu = cv.toDataURL('image/jpeg', 0.6); if (apercu.length > 120000) apercu = null; }
+        } catch(_){}
+        var r = await fetch('/api/config', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ config: window.__exportConfig(), preview: apercu })
+        });
+        var d = await r.json().catch(function(){ return {}; });
+        if (!r.ok || !d.ok || !d.url) throw new Error(d.detail || d.error || 'indisponible');
+
+        out.innerHTML =
+          '<div style="padding:14px 16px;background:#faf8f4;border-left:3px solid #0d0d0d">' +
+            '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#7a7363;margin-bottom:9px">Votre lien</div>' +
+            '<input id="shareUrl" readonly value="' + d.url + '" ' +
+              'style="width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.14);background:#fff;font-family:var(--sans);font-size:12.5px;color:#3d3a35;outline:none">' +
+            '<div style="display:flex;gap:8px;margin-top:10px">' +
+              '<button type="button" id="shareCopy" style="flex:1;padding:10px;border:1px solid #0d0d0d;background:#0d0d0d;color:#fff;cursor:pointer;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase">Copier</button>' +
+              '<a href="mailto:?subject=' + encodeURIComponent('Ma Pochette ELLIA') +
+                 '&body=' + encodeURIComponent("Voici la pochette que j'ai composée :\n\n" + d.url) + '" ' +
+                 'style="flex:1;padding:10px;border:1px solid rgba(0,0,0,.18);text-align:center;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#0d0d0d">Envoyer</a>' +
+            '</div>' +
+            '<div style="font-size:11.5px;color:#9a9286;margin-top:9px">Valable 90 jours</div>' +
+          '</div>';
+
+        document.getElementById('shareCopy').addEventListener('click', function(){
+          var f = document.getElementById('shareUrl');
+          f.select(); f.setSelectionRange(0, 99999);
+          var fait = false;
+          try { fait = document.execCommand('copy'); } catch(_){}
+          if (navigator.clipboard) { navigator.clipboard.writeText(f.value).catch(function(){}); fait = true; }
+          this.textContent = fait ? 'Copié' : 'Sélectionné';
+          var self = this;
+          setTimeout(function(){ self.textContent = 'Copier'; }, 2000);
+        });
+      } catch(e){
+        out.innerHTML = '<div style="padding:12px 14px;background:#fbeae6;border-left:3px solid #b1432f;font-size:13px;color:#8a3a2a">' +
+          'Le lien n\'a pas pu être créé. Réessayez dans un instant.</div>';
+      }
+      b.disabled = false; b.textContent = libelle;
+    });
+  })();
+
+  /* Restauration au chargement si l'URL porte ?c=<code> */
+  (function(){
+    var code = new URLSearchParams(location.search).get('c');
+    if (!code || !/^[A-Za-z0-9_-]{4,24}$/.test(code)) return;
+    fetch('/api/config/' + encodeURIComponent(code))
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if (!d || !d.ok || !d.config) return;
+        // On laisse le modele 3D finir de charger avant de rejouer les clics
+        setTimeout(function(){
+          if (window.__applyConfig(d.config)) {
+            var n = document.createElement('div');
+            n.setAttribute('role','status');
+            n.style.cssText = 'margin:0 0 18px;padding:13px 16px;background:#faf8f4;border-left:3px solid #0d0d0d;font-size:13.5px;color:#3d3a35;line-height:1.6';
+            n.innerHTML = 'Votre composition a été rétablie. Vous pouvez la modifier librement.';
+            var panel = document.querySelector('.perso-panel');
+            if (panel) panel.insertBefore(n, panel.firstChild);
+          }
+        }, 900);
+      })
+      .catch(function(){});
+  })();
+
   window.__getPersoPrice = computePersoPrice;
   window.__updatePersoPrice = updatePriceDisplay;
 
@@ -2011,10 +2209,32 @@ function initConfigurator(){
   }, { threshold: 0.01 });
   io.observe(container);
 
+  // RENDU A LA DEMANDE
+  // Avant : la scene (PBR + PMREM + 5 textures) etait recalculee 60 fois par
+  // seconde en permanence, alors que rien ne bouge tant que la cliente
+  // n'interagit pas. Sur mobile cela chauffait et vidait la batterie pour
+  // afficher exactement la meme image. On ne rend desormais que lorsque
+  // quelque chose a reellement change (rotation, zoom, gravure modifiee),
+  // plus le temps que l'amortissement d'OrbitControls se stabilise.
+  let besoinRendu = 3;                       // quelques frames pour le 1er affichage
+  window.__persoInvalider = function(){ besoinRendu = Math.max(besoinRendu, 2); };
+  controls.addEventListener('change', function(){ besoinRendu = Math.max(besoinRendu, 2); });
+  controls.addEventListener('start',  function(){ besoinRendu = 100000; });
+  controls.addEventListener('end',    function(){ besoinRendu = 90; });  // laisse l'inertie finir
+  // FILET : avec touch-action:pan-y, un glissement vertical fait emettre
+  // 'pointercancel' par le navigateur et OrbitControls ne declenche jamais
+  // 'end'. Sans ces deux ecouteurs, le rendu continu ne s'arretait plus.
+  ['pointercancel','pointerup','pointerleave','touchend','touchcancel'].forEach(function(ev){
+    renderer.domElement.addEventListener(ev, function(){ besoinRendu = Math.min(besoinRendu, 90); }, { passive:true });
+  });
+
   function tick(){
     requestAnimationFrame(tick);
     if (!inView || !tabVisible) return;
-    controls.update();
+    const bougeait = controls.update();      // true tant que l'amortissement travaille
+    if (bougeait) besoinRendu = Math.max(besoinRendu, 2);
+    if (besoinRendu <= 0) return;            // rien n'a change : on ne redessine pas
+    besoinRendu--;
     renderer.render(scene, camera);
   }
   tick();
@@ -2033,6 +2253,6 @@ function initConfigurator(){
   });
 }
 </script>
-<script src="cookies-banner.js?v=1781700000" defer></script>
+<script src="cookies-banner.js?v=1785400000" defer></script>
 </body>
 </html>

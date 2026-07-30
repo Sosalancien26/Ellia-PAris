@@ -10,7 +10,7 @@ const SEUIL_FRANCHISE_TVA= 91900;  // EUR — franchise TVA biens
 function csvEscape(s){ return '"' + String(s==null?'':s).replace(/"/g,'""') + '"'; }
 function eur2(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function dateFR(d){ if(!d) return ''; try{ return new Date(d).toLocaleDateString('fr-FR'); }catch(_){ return ''; } }
-function num2(n){ return Number(n||0).toFixed(2); }
+function num2(n){ return Number(n||0).toFixed(2).replace('.', ','); }
 
 /* Calcul des stats comptables pour une annee donnee */
 async function getCompta(sb, year){
@@ -24,21 +24,32 @@ async function getCompta(sb, year){
   const url = 'orders?select=' + select +
               '&created_at=gte.' + encodeURIComponent(startISO) +
               '&created_at=lte.' + encodeURIComponent(endISO) +
-              '&statut=not.in.(Annulee,Annulée,Annulé)' +
+              '&statut=not.in.(Annulee,Annulée,Annulé,Remboursee,Remboursée)' +
               '&order=created_at.asc';
   let orders = [];
   try { orders = await sb(url); } catch(_) { orders = []; }
 
-  const caTTC = orders.reduce((s,o) => s + Number(o.montant_total||0), 0);
-  const caHT  = orders.reduce((s,o) => s + Number(o.montant_ht||o.montant_total||0), 0);
-  const tva   = orders.reduce((s,o) => s + Number(o.montant_tva||0), 0);
-  const n     = orders.length;
+  // Une recette n'est comptable QUE lorsqu'elle est encaissee (regle de la
+  // comptabilite de tresorerie). Les commandes creees mais non payees
+  // (checkout Stripe abandonne) ne doivent pas gonfler le CA.
+  const estPaye = (o) => {
+    const ps = String(o.payment_status || '').toLowerCase();
+    return ps.indexOf('pay') === 0 || ps === 'paid' || ps === 'succeeded' || !!o.payment_date;
+  };
+  const payes   = orders.filter(estPaye);
+  const attente = orders.filter(o => !estPaye(o));
+
+  const caTTC = payes.reduce((s,o) => s + Number(o.montant_total||0), 0);
+  const caHT  = payes.reduce((s,o) => s + Number(o.montant_ht||o.montant_total||0), 0);
+  const tva   = payes.reduce((s,o) => s + Number(o.montant_tva||0), 0);
+  const n     = payes.length;
+  const caAttente = attente.reduce((s,o) => s + Number(o.montant_total||0), 0);
 
   // CA mensuel
   const byMonth = new Array(12).fill(0);
   const nbByMonth = new Array(12).fill(0);
-  orders.forEach(o => {
-    const d = new Date(o.created_at);
+  payes.forEach(o => {
+    const d = new Date(o.payment_date || o.created_at);
     if(!isNaN(d)) {
       const m = d.getUTCMonth();
       byMonth[m] += Number(o.montant_total||0);
@@ -63,7 +74,10 @@ async function getCompta(sb, year){
     seuil_franchise_tva: SEUIL_FRANCHISE_TVA,
     pct_micro: SEUIL_MICRO_BIENS ? (caTTC/SEUIL_MICRO_BIENS)*100 : 0,
     pct_franchise_tva: SEUIL_FRANCHISE_TVA ? (caTTC/SEUIL_FRANCHISE_TVA)*100 : 0,
+    ca_en_attente: caAttente,
+    nb_en_attente: attente.length,
     nb_factures: orders.filter(o => o.invoice_number).length,
+    orders_payes: payes,
     orders: orders
   };
 }
@@ -72,9 +86,9 @@ async function getCompta(sb, year){
    Colonnes obligatoires : date, n° facture, client, mode encaissement, montant TTC */
 async function exportRecettesCSV(sb, year){
   const c = await getCompta(sb, year);
-  const head = ['Date', 'N° facture', 'N° commande', 'Client', 'Email', 'Mode d\'encaissement', 'Total HT (€)', 'TVA (€)', 'Total TTC (€)'];
-  const rows = c.orders.map(o => [
-    dateFR(o.created_at),
+  const head = ['Date encaissement', 'N° facture', 'N° commande', 'Client', 'Email', 'Mode d\'encaissement', 'Total HT (€)', 'TVA (€)', 'Total TTC (€)'];
+  const rows = (c.orders_payes || c.orders).map(o => [
+    dateFR(o.payment_date || o.created_at),
     o.invoice_number || '',
     o.numero || '',
     ((o.client_prenom||'') + ' ' + (o.client_nom||'')).trim(),

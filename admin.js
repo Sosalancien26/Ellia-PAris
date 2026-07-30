@@ -16,7 +16,7 @@
       {ref:'ELLIA-PERSO',nom:'Gravure initiales (option)',prix:59,stock:999,seuil:0}
     ]
   };
-  const STATUTS=['En attente paiement','Nouvelle','En préparation','Expédiée','Livrée','Annulée','Remboursée'];
+  const STATUTS=['En attente paiement','Nouvelle','En préparation','Prête à expédier','Expédiée','Livrée','Annulée','Remboursée'];
 
   // Garde anti-crash : le role "atelier" recoit les stats/commandes SANS champs financiers
   const eur=n=>(n==null||isNaN(Number(n)))?'—':Number(n).toLocaleString('fr-FR')+' €';
@@ -25,6 +25,7 @@
     if(n.includes('attente paiement'))return'b-wait';
     if(n.startsWith('nouvelle'))return'b-nouvelle';
     if(n.startsWith('en prep'))return'b-prep';
+    if(n.startsWith('prete')||n.startsWith('prête'))return'b-prep';
     if(n.startsWith('exped'))return'b-exp';
     if(n.startsWith('livr'))return'b-livree';
     if(n.startsWith('annul'))return'b-cancel';
@@ -113,7 +114,7 @@
       STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
     return '<div class="'+rowClass+'" data-id="'+esc(o.id)+'">'+
       avatar+
-      '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span></div>'+
+      '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span>'+(o.is_gift ? '<span class="badge" style="background:#f5ead2;color:#7a5c10;border-color:#e0cfa0" title="Commande cadeau — bon de livraison sans prix">Cadeau</span>' : '')+'</div>'+
         '<div class="orow-sub"><b style="color:#3a352d">'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
         '<div style="margin-top:2px">'+grav+'</div></div>'+
       '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
@@ -146,13 +147,13 @@
     const estRecent = o => { const d=new Date(o.date||''); return isNaN(d.getTime()) ? true : (now-d.getTime())<=SEPT_JOURS; };
     const cols=[
       { titre:'À graver', test:o=>norm(o.statut).startsWith('nouvelle') },
-      { titre:'À expédier', test:o=>norm(o.statut).startsWith('en prep') },
+      { titre:'À expédier', test:o=>{ const s=norm(o.statut); return s.startsWith('en prep')||s.startsWith('prete')||s.startsWith('prête'); } },
       { titre:'Expédiées (7 j)', test:o=>norm(o.statut).startsWith('exped') && estRecent(o) },
       // 4e colonne : AUCUNE commande ne doit disparaitre de la vue
       // (en attente de paiement, livrees, annulees, remboursees, expediees anciennes)
       { titre:'Autres', test:o=>{
           const s=norm(o.statut);
-          if(s.startsWith('nouvelle') || s.startsWith('en prep')) return false;
+          if(s.startsWith('nouvelle') || s.startsWith('en prep') || s.startsWith('prete') || s.startsWith('prête')) return false;
           if(s.startsWith('exped') && estRecent(o)) return false;
           return true;
         } }
@@ -219,7 +220,7 @@
   function updateDashAlert(){
     const el = document.getElementById('dashAlert'); if(!el) return;
     const nNew  = ORDERS.filter(o=>norm(o.statut).includes('nouvelle')).length;
-    const nPrep = ORDERS.filter(o=>norm(o.statut).includes('prep') || norm(o.statut).includes('prép')).length;
+    const nPrep = ORDERS.filter(o=>{const s=norm(o.statut);return s.includes('prep')||s.includes('prép')||s.startsWith('prete')||s.startsWith('prête');}).length;
     if (!nNew && !nPrep) { el.innerHTML = ''; return; }
     const parts = [];
     if (nNew)  parts.push('<b>'+nNew+'</b> nouvelle'+(nNew>1?'s':'')+' commande'+(nNew>1?'s':'')+' à préparer');
@@ -292,6 +293,18 @@
     const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Bon de préparation '+esc(o.id)+'</title>'+
       '<style>body{font-family:Arial,sans-serif;color:#111;max-width:640px;margin:30px auto;padding:0 20px}h1{font-size:20px;border-bottom:2px solid #111;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 12px;border:1px solid #ddd;font-size:14px}td:first-child{width:200px;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.08em}img{max-width:280px;border:1px solid #ddd;margin-top:8px}.foot{margin-top:30px;font-size:11px;color:#999}@media print{.noprint{display:none}}</style></head><body>'+
       '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
+      (o.is_gift ? ('<div style="border:2px solid #111;padding:14px 16px;margin:0 0 16px">'+
+        '<div style="font-size:13px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold">Commande cadeau</div>'+
+        '<div style="font-size:13px;margin-top:8px">Bon de livraison <b>sans aucun prix</b> · carte manuscrite à joindre'+
+        (o.gift_date ? (' · arrivée souhaitée le <b>'+esc(o.gift_date)+'</b>') : '')+'</div>'+
+        (o.gift_message
+          ? ('<div style="margin-top:12px;padding:14px 16px;background:#faf8f4;border:1px dashed #999">'+
+             '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#666;margin-bottom:8px">Texte à calligraphier</div>'+
+             '<div style="font-family:Georgia,serif;font-size:17px;line-height:1.8">« '+esc(o.gift_message)+' »</div>'+
+             (o.gift_from ? ('<div style="font-family:Georgia,serif;font-size:14px;margin-top:8px;text-align:right">— '+esc(o.gift_from)+'</div>') : '')+
+             '</div>')
+          : '<div style="margin-top:10px;font-size:13px;font-style:italic;color:#666">Carte vierge demandée.</div>')+
+        '</div>') : '')+
       '<table>'+
         '<tr><td>Article</td><td><b>La Pochette ELLIA — Noir</b></td></tr>'+
         '<tr><td>Quantité</td><td style="font-size:20px"><b>'+(o.quantite||1)+'</b></td></tr>'+
@@ -356,6 +369,9 @@
       omRow('Client',esc(o.client))+omRow('E-mail',esc(o.email))+omRow('Téléphone',esc(o.telephone))+
       omRow('Adresse de livraison',esc(o.adresse))+omRow('Adresse de facturation',esc(o.adresseFact||o.adresse))+
       omRow('Personnalisation',gravureFull(o))+
+      (o.is_gift ? omRow('Cadeau', 'Bon de livraison sans prix'
+          + (o.gift_message ? ('<br><em style="font-family:var(--serif);font-size:15px">« '+esc(o.gift_message)+' »</em>'+(o.gift_from?('<br>— '+esc(o.gift_from)):'')) : '<br><em>Carte vierge</em>')
+          + (o.gift_date ? ('<br>Arrivée souhaitée : <b>'+esc(o.gift_date)+'</b>') : '')) : '')+
       previewBlock+
       // Role atelier : aucune ligne financiere (le serveur ne lui envoie de toute facon pas les montants)
       (window.__role==='atelier' ? '' : omRow('Total','<b>'+eur(o.total)+'</b>')+payRow+invoiceRow)+
@@ -432,8 +448,8 @@
     // et un simple enregistrement effacerait la finition/l'emplacement en base.
     const FINITIONS = ['','Or','Or rose','Argent','Aveugle','Noir','Blanc'];
     const EMPLACEMENTS = ['','Centre','Haut gauche','Haut droit','Bas gauche','Bas droit'];
-    const MODES = ['','Virement bancaire','Chèque','Espèces','Carte bancaire (en main)','PayPal','Autre'];
-    const STATUTS_PAY = ['En attente','Payé','Partiel','Annulé'];
+    const MODES = ['','Stripe','Virement bancaire','Chèque','Espèces','Carte bancaire (en main)','PayPal','Autre'];
+    const STATUTS_PAY = ['En attente','Payee','Payé','Partiel','Remboursé','Annulé'];
     const opt = (arr, cur) => arr.map(v=>'<option value="'+esc(v)+'"'+((v===(cur||''))?' selected':'')+'>'+(v||'— Choisir —')+'</option>').join('');
     const inp = (name, val, type, extra) => '<input name="'+name+'" type="'+(type||'text')+'" value="'+esc(val==null?'':val)+'" '+(extra||'')+' style="width:100%;padding:9px 11px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:13.5px;color:var(--noir);outline:none">';
     const lab = (l, body) => '<div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">'+l+'</label>'+body+'</div>';
@@ -761,7 +777,8 @@
       const pX  = Math.max(0, Number($('[name="prix_personnalisation"]').value)||0);
       const pT  = Math.max(0, Number($('[name="frais_port"]').value)||0);
       const tva = Math.max(0, Number($('[name="tva_rate"]').value)||0);
-      const ttc = (pP + pX) * q + pT;
+      const remise = Number(($('[name="promo_discount"]')||{}).value || window.__ordRemise || 0);
+      const ttc = Math.max(0, (pP + pX) * q + pT - remise);   // aligne sur le calcul serveur
       const ht  = ttc / (1 + tva/100);
       const t   = ttc - ht;
       totTTC.textContent = fmt(ttc);
@@ -769,12 +786,12 @@
       totTVA.textContent = '+ ' + fmt(t) + ' TVA';
     }
 
-    // Auto-fill 59€ perso si initiales remplies
+    // Pas de tarif forfaitaire : la gravure se calcule 5 €/lettre + 2 €/caractère spécial + 10 €/symbole
     $('[name="initiales"]').addEventListener('input', e=>{
       const v = e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
       e.target.value = v;
       const inp = $('[name="prix_personnalisation"]');
-      if (v.length>0 && Number(inp.value)===0) inp.value = 59;
+      // (ancien forfait 59 € supprime : il ne correspond plus a la grille tarifaire)
       if (v.length===0 && Number(inp.value)===59) inp.value = 0;
       recalc();
     });
@@ -880,10 +897,10 @@
     function renderCompta(d){
       // KPIs
       document.getElementById('comptaKpis').innerHTML =
-        kpiCard('CA TTC '+d.year, fmtEur(d.ca_ttc), d.nb_commandes+' commandes')+
+        kpiCard('CA encaissé '+d.year, fmtEur(d.ca_ttc), d.nb_commandes+' commande'+(d.nb_commandes>1?'s':'')+' payée'+(d.nb_commandes>1?'s':''))+
         kpiCard('CA HT', fmtEur(d.ca_ht), 'Hors taxes')+
-        kpiCard('TVA collectée', fmtEur(d.tva_collectee), 'Si redevable')+
-        kpiCard('Panier moyen', fmtEur(d.panier_moyen), d.nb_factures_emises+' factures');
+        kpiCard('TVA collectée', fmtEur(d.tva_collectee), 'À reverser')+
+        kpiCard('En attente de paiement', fmtEur(d.ca_en_attente||0), (d.nb_en_attente||0)+' commande'+((d.nb_en_attente||0)>1?'s':'')+' — hors CA');
 
       // Seuils
       const pctMicro = Math.min(100, d.pct_micro);
@@ -1329,4 +1346,41 @@
     if (window.__applyRoleMasks) window.__applyRoleMasks();
     showDataBanner();
   })();
+
+  /* ---- Controle des paiements (reconciliation Stripe a la demande) ---- */
+  (function(){
+    var b = document.getElementById('btnRecon');
+    if (!b) return;
+    var out = document.getElementById('reconOut');
+    function boite(couleur, fond, titre, corps){
+      return '<div style="padding:14px 16px;border-left:3px solid '+couleur+';background:'+fond+';font-size:13.5px;line-height:1.7;color:#3d3a35">'
+           + '<b>'+titre+'</b>' + (corps ? '<div style="margin-top:8px">'+corps+'</div>' : '') + '</div>';
+    }
+    b.addEventListener('click', async function(){
+      var libelle = b.textContent;
+      b.disabled = true; b.textContent = 'Vérification en cours…';
+      out.innerHTML = '';
+      try{
+        var r = await fetch('/api/admin/reconcilier', { method:'POST' });
+        var d = await r.json().catch(function(){ return {}; });
+        if (!r.ok || !d.ok){
+          out.innerHTML = boite('#b1432f','#fbeae6','Vérification impossible',
+            esc(d.detail || d.error || ('Erreur ' + r.status)));
+        } else if ((d.rattrapees||0) === 0 && !(d.anomalies||[]).length){
+          out.innerHTML = boite('#2f7d4f','#eaf6ee','Tout est en ordre',
+            (d.verifiees||0) + ' paiement(s) vérifié(s) sur les dernières 24 h. Chaque encaissement a bien sa commande.');
+        } else {
+          var c = '';
+          if (d.rattrapees) c += '<p style="margin:0 0 8px"><b>'+d.rattrapees+' commande(s) rattrapée(s)</b> — un paiement confirmé chez Stripe n\'avait pas été enregistré. C\'est corrigé : vérifiez que le client a bien reçu sa confirmation.</p>';
+          if ((d.anomalies||[]).length) c += '<ul style="margin:8px 0 0;padding-left:18px">' + d.anomalies.map(function(a){ return '<li style="margin-bottom:4px">'+esc(a)+'</li>'; }).join('') + '</ul>';
+          out.innerHTML = boite('#a8791f','#fdf6e8', (d.rattrapees ? 'Action effectuée' : 'Points à vérifier'), c);
+          if (d.rattrapees) setTimeout(function(){ location.reload(); }, 2500);   // reafficher les commandes rattrapees
+        }
+      }catch(e){
+        out.innerHTML = boite('#b1432f','#fbeae6','Connexion impossible', esc(e.message||''));
+      }
+      b.disabled = false; b.textContent = libelle;
+    });
+  })();
+
 })();

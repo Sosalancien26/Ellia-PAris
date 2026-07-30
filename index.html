@@ -17,11 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <link rel="preload" as="image" href="assets/hero-sunset.webp?v=1" imagesrcset="assets/hero-sunset-mobile.webp?v=1 680w, assets/hero-sunset.webp?v=1 1920w" imagesizes="100vw" type="image/webp" fetchpriority="high">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 
 <!-- Organization Schema (knowledge graph Google) -->
 <script type="application/ld+json">
@@ -32,7 +29,7 @@
   "name": "ELLIA PARIS",
   "alternateName": "Ellia",
   "url": "https://ellia-paris.fr/",
-  "logo": "https://ellia-paris.fr/assets/logo_black_trim.png",
+  "logo": "https://ellia-paris.fr/assets/logo_black_trim.png?v=1785400000",
   "image": "https://ellia-paris.fr/assets/social-share-wide.jpg",
   "description": "Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique par empreinte digitale, gravée à votre nom.",
   "foundingDate": "2026",
@@ -71,11 +68,12 @@
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <div id="preloader">
   <div class="pl-scan">
-    <img decoding="async" class="pl-logo-base" src="assets/picto_black_trim.png" alt="" />
-    <img decoding="async" class="pl-logo-fill" src="assets/picto_black_trim.png" alt="ELLIA PARIS" />
+    <img decoding="async" class="pl-logo-base" src="assets/picto_black_trim.png?v=1785400000" alt="" />
+    <img decoding="async" class="pl-logo-fill" src="assets/picto_black_trim.png?v=1785400000" alt="ELLIA PARIS" />
     <div class="pl-beam"></div>
   </div>
   <div class="pl-line">ELLIA&nbsp;&nbsp;PARIS</div>
@@ -85,7 +83,7 @@
 
 <header id="header" class="on-dark">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html" aria-label="ELLIA PARIS"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links">
       <a href="index.html" class="active">Accueil</a>
       <a href="pochette.html">La Pochette ELLIA</a>
@@ -96,7 +94,7 @@
     <div class="nav-right">
       <a href="compte.html" class="nav-ico account">Compte</a>
       <a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a>
-      <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+      <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button>
     </div>
   </div>
 </header>
@@ -113,7 +111,7 @@
 </div>
 
 <!-- HERO CINEMA -->
-<section class="hero-cinema">
+<section id="contenu" class="hero-cinema">
   <div class="bg"><picture>
     <source media="(max-width:680px)" srcset="assets/hero-sunset-mobile.webp?v=1" type="image/webp">
     <source srcset="assets/hero-sunset.webp?v=1" type="image/webp">
@@ -148,7 +146,7 @@
     <p>Un cuir grainé au grain profond, une fermeture éclair gunmetal, des lignes épurées et intemporelles. Pensée pour traverser les saisons et porter votre nom — discrètement, élégamment.</p>
     <div class="price-row">
       <div class="price">159&nbsp;€</div>
-      <div class="perso-tag">Personnalisation +59&nbsp;€</div>
+      <div class="perso-tag">Gravure dès +5&nbsp;€</div>
     </div>
     <div class="cta-row">
       <a href="pochette.html" class="btn solid">Voir la pochette</a>
@@ -165,7 +163,7 @@
         <img loading="lazy" decoding="async" src="assets/pochette-hero.jpg?v=8" alt="Pochette ELLIA PARIS tenue à la main — Saint-Tropez" />
         <div class="fp">
           <div class="scan"></div>
-          <img loading="lazy" decoding="async" class="fp-icon" src="assets/picto_black_trim.png?v=23" alt="" />
+          <img loading="lazy" decoding="async" class="fp-icon" src="assets/picto_black_trim.png?v=1785400000" alt="" />
         </div>
       </div>
       <div class="bio-text reveal">
@@ -220,7 +218,7 @@
       <div class="eyebrow">Le Cercle ELLIA</div>
       <h2>Entrez dans la confidence</h2>
       <p>Nouvelles pièces, éditions limitées et invitations privées. Rien d'autre.</p>
-      <form onsubmit="return false"><input type="email" placeholder="Votre adresse e-mail" /><button type="submit">S'inscrire</button></form>
+      <form onsubmit="return false"><input type="email" placeholder="Votre adresse e-mail" aria-label="Votre adresse e-mail" /><button type="submit">S'inscrire</button></form>
     </div>
   </div>
 </section>
@@ -229,7 +227,7 @@
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" />
+        <img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" />
         <p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p>
       </div>
       <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
@@ -243,8 +241,8 @@
   </div>
 </footer>
 
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
-<script src="cookies-banner.js?v=1781700000" defer></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
+<script src="cookies-banner.js?v=1785400000" defer></script>
 </body>
 </html>

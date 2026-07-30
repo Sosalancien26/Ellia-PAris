@@ -2,12 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Mon compte — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   .acct-layout{max-width:1120px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:250px 1fr;gap:46px;align-items:start}
   .acct-side{position:sticky;top:108px}
@@ -42,25 +43,24 @@
 </style>
 <meta name="description" content="Espace personnel ELLIA PARIS — commandes, informations, factures." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html"><img decoding="async" class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a></nav>
-    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
-<section class="pad page-top" style="padding-top:130px"><div class="acct-layout">
+<section class="pad page-top" style="padding-top:130px">
+  <h1 class="sr-only-visual" style="position:absolute;left:-9999px">Mon espace client ELLIA PARIS</h1><div class="acct-layout">
   <aside class="acct-side">
     <div class="acct-hello" id="hello">Bonjour</div>
     <div class="acct-mail" id="mail"></div>
@@ -71,9 +71,9 @@
         <button id="emailModalClose" type="button" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:#6a655d">×</button>
         <h3 style="font-family:var(--serif);font-size:22px;margin-bottom:6px">Modifier l'email du compte</h3>
         <p style="font-size:13px;color:#6a655d;margin-bottom:18px;line-height:1.55">Pour confirmer, saisis ton mot de passe actuel. Un email de validation sera envoyé à ta nouvelle adresse.</p>
-        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px">Nouvel email</label>
+        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px" for="newEmailInput">Nouvel email</label>
         <input id="newEmailInput" type="email" autocomplete="email" placeholder="nouvel@email.com" style="width:100%;padding:13px 14px;border:1px solid rgba(0,0,0,.12);font-family:inherit;font-size:15px;margin-bottom:14px;background:#fafaf7">
-        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px">Mot de passe actuel</label>
+        <label style="display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a655d;margin-bottom:6px" for="currentPwInput">Mot de passe actuel</label>
         <input id="currentPwInput" type="password" autocomplete="current-password" placeholder="••••••••" style="width:100%;padding:13px 14px;border:1px solid rgba(0,0,0,.12);font-family:inherit;font-size:15px;margin-bottom:14px;background:#fafaf7">
         <button id="emailModalSave" type="button" style="width:100%;padding:14px;background:#0d0d0d;color:#fff;border:none;font-family:inherit;font-size:11px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer">Envoyer l'email de validation</button>
         <div id="emailModalMsg" style="font-size:13px;margin-top:12px;text-align:center"></div>
@@ -87,24 +87,24 @@
       <button class="navbtn" data-tab="favoris">Mes favoris</button>
       <button class="navbtn" data-tab="infos">Mes informations</button>
       <a class="navi" href="cgv.html">Livraison & retours</a>
-      <a class="navi" href="maison.html">Contact</a>
+      <a class="navi" href="contact.html">Contact</a>
       <button class="logout" id="logout">Se déconnecter</button>
     </nav>
   </aside>
 
-  <main>
+  <main id="contenu">
     <section class="acct-panel active" id="encours"><h2>Mes commandes en cours</h2><div id="encoursList"></div></section>
     <section class="acct-panel" id="terminees"><h2>Mes commandes terminées</h2><div id="termineesList"></div></section>
     <section class="acct-panel" id="favoris"><h2>Mes favoris</h2><div id="favorisList" style="margin-top:14px"></div></section>
     <section class="acct-panel" id="infos">
       <h2>Mes informations</h2>
       <div class="pform">
-        <div class="field"><label>Nom complet</label><input id="p_nom"></div>
-        <div class="field"><label>Téléphone</label><input id="p_tel" type="tel"></div>
-        <div class="field full"><label>Adresse</label><input id="p_adr"></div>
-        <div class="field"><label>Code postal</label><input id="p_cp"></div>
-        <div class="field"><label>Ville</label><input id="p_ville"></div>
-        <div class="field"><label>Pays</label><input id="p_pays" value="France"></div>
+        <div class="field"><label for="p_nom">Nom complet</label><input id="p_nom"></div>
+        <div class="field"><label for="p_tel">Téléphone</label><input id="p_tel" type="tel"></div>
+        <div class="field full"><label for="p_adr">Adresse</label><input id="p_adr"></div>
+        <div class="field"><label for="p_cp">Code postal</label><input id="p_cp"></div>
+        <div class="field"><label for="p_ville">Ville</label><input id="p_ville"></div>
+        <div class="field"><label for="p_pays">Pays</label><input id="p_pays" value="France"></div>
       </div>
       <div style="margin-top:18px;display:flex;align-items:center;gap:16px">
         <button class="btn solid" id="p_save" style="padding:13px 26px">Enregistrer</button>
@@ -118,9 +118,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-<script src="wishlist.js?v=1781700000"></script>
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
+<script src="wishlist.js?v=1785400000"></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
 <script>
 /* Onglets */
 document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
@@ -130,7 +130,21 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
 }));
 
 (async function(){
-  const { data:{ session } } = await SB.auth.getSession();
+  // Le client Supabase vient d'un CDN externe. Bloqueur de pub, proxy
+  // d'entreprise ou reseau lent = SB indefini. Sans cette garde, toute la page
+  // mourait en silence : "Bonjour" vide, aucune commande, aucun message.
+  if (typeof SB === 'undefined' || !SB || !SB.auth) {
+    var z = document.getElementById('encoursList') || document.body;
+    z.innerHTML = '<div style="padding:26px;text-align:center;color:#5c5852;font-family:Georgia,serif">'
+      + '<p style="margin:0 0 12px">Impossible de charger votre espace client.</p>'
+      + '<p style="margin:0 0 18px;font-size:14px">Votre connexion ou une extension de votre navigateur bloque un composant du site.</p>'
+      + '<a href="compte.html" style="color:#0d0d0d">Réessayer</a> &nbsp;·&nbsp; '
+      + '<a href="commande.html" style="color:#0d0d0d">Suivre une commande sans compte</a></div>';
+    return;
+  }
+  var session = null;
+  try { const r = await SB.auth.getSession(); session = r && r.data ? r.data.session : null; }
+  catch(e){ location.href='connexion.html'; return; }
   if(!session){ location.href='connexion.html'; return; }
   const user=session.user;
   const f=id=>document.getElementById(id);
@@ -158,13 +172,14 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   });
 
   // Commandes
-  function ocb(s){ s=(s||'').toLowerCase(); if(s.includes('nouv'))return'ocb-blue'; if(s.includes('prep')||s.includes('prép'))return'ocb-amber'; if(s.includes('exp'))return'ocb-grey'; if(s.includes('livr'))return'ocb-green'; if(s.includes('annul'))return'ocb-red'; return'ocb-grey'; }
+  function escq(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function ocb(s){ s=(s||'').toLowerCase(); if(s.includes('nouv'))return'ocb-blue'; if(s.includes('prep')||s.includes('prép'))return'ocb-amber'; if(s.startsWith('prete'))return'ocb-amber'; if(s.includes('exp'))return'ocb-grey'; if(s.includes('livr'))return'ocb-green'; if(s.includes('annul'))return'ocb-red'; return'ocb-grey'; }
   const card=o=>'<a class="ocard" href="commande.html?n='+encodeURIComponent(o.numero)+'">'+
       '<img loading="lazy" decoding="async" src="assets/product-1.jpg" alt="Pochette">'+
-      '<div class="ocard-info"><div class="ocard-num">'+o.numero+' · '+dateFr(o.created_at)+'</div>'+
+      '<div class="ocard-info"><div class="ocard-num">'+escq(o.numero)+' · '+dateFr(o.created_at)+'</div>'+
       '<div class="ocard-name">La Pochette ELLIA — Noir</div>'+
-      '<div class="ocard-meta">'+(o.initiales?('Gravure '+o.initiales+' ('+(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
-      '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+o.statut+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
+      '<div class="ocard-meta">'+(o.initiales?('Gravure '+escq(o.initiales)+' ('+escq(o.finition||'')+')'):'Sans gravure')+'</div></div>'+
+      '<div class="ocard-right"><div class="ocb '+ocb(o.statut)+'">'+escq(o.statut)+'</div><div class="ocard-total">'+eur(o.montant_total)+'</div><span class="ocard-link">Voir le suivi ›</span></div></a>';
   let orders=[], loadFailed=false;
   try{
     const r=await SB.from('orders').select('numero,created_at,initiales,finition,montant_total,statut,suivi,transporteur').order('created_at',{ascending:false});
@@ -218,6 +233,6 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
   });
 })();
 </script>
-<script src="cookies-banner.js?v=1781700000" defer></script>
+<script src="cookies-banner.js?v=1785400000" defer></script>
 </body>
 </html>

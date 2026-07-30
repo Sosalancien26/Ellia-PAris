@@ -1,10 +1,32 @@
 /* ELLIA PARIS — interactions partagees */
 (function(){
-  /* Preloader UNIFORME : meme duree sur toutes les pages (~2.5s d'animation luxe) */
-  function hidePreloader(){var p=document.getElementById('preloader');if(p){p.classList.add('done');setTimeout(function(){if(p&&p.parentNode)p.parentNode.removeChild(p);},700);}}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(hidePreloader,2700);});
-  window.addEventListener('load',function(){setTimeout(hidePreloader,2500);});
-  setTimeout(hidePreloader,4500); // garde-fou max 4.5s
+  /* PRELOADER
+     L'animation de marque n'a de sens qu'a la PREMIERE arrivee sur le site.
+     La rejouer a chaque clic ajoutait ~3,5 s d'ecran ivoire sur toutes les
+     pages alors que le HTML arrive en quelques millisecondes. On la joue une
+     fois par session, puis on l'escamote instantanement. */
+  var PL_KEY = 'ellia_intro_vue';
+  var dejaVu = false;
+  try { dejaVu = sessionStorage.getItem(PL_KEY) === '1'; } catch(e){}
+
+  function hidePreloader(instant){
+    var p = document.getElementById('preloader');
+    if(!p) return;
+    if (instant) { if (p.parentNode) p.parentNode.removeChild(p); return; }
+    p.classList.add('done');
+    setTimeout(function(){ if(p && p.parentNode) p.parentNode.removeChild(p); }, 700);
+  }
+
+  if (dejaVu) {
+    // Navigation interne : aucune attente.
+    hidePreloader(true);
+    document.addEventListener('DOMContentLoaded', function(){ hidePreloader(true); });
+  } else {
+    try { sessionStorage.setItem(PL_KEY, '1'); } catch(e){}
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(hidePreloader, 1600); });
+    window.addEventListener('load', function(){ setTimeout(hidePreloader, 1400); });
+    setTimeout(hidePreloader, 3000); // garde-fou
+  }
 
   /* Bandeau cookies : gere UNIQUEMENT par cookies-banner.js.
      L'ancien bandeau de ce fichier faisait doublon (deux bandeaux empiles) et

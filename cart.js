@@ -1,8 +1,27 @@
 /* ELLIA PARIS — Panier (localStorage), partage entre les pages */
 (function(){
   const KEY='ellia_cart';
-  function read(){ try{ return JSON.parse(localStorage.getItem(KEY))||[]; }catch(e){ return []; } }
-  function write(a){ localStorage.setItem(KEY, JSON.stringify(a)); updateCount(); }
+  // Safari en navigation privee et un quota plein font lever setItem. Sans
+  // garde, le client voyait "Stock insuffisant" alors que le stock est plein,
+  // ou un bouton definitivement bloque. On bascule sur une memoire de secours.
+  let MEM = null;   // panier de secours en memoire si localStorage refuse
+  function read(){
+    if (MEM) return MEM.slice();
+    try{ return JSON.parse(localStorage.getItem(KEY))||[]; }catch(e){ return []; }
+  }
+  function write(a){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(a));
+      MEM = null;
+    }catch(e){
+      MEM = a.slice();                       // stockage impossible : on garde en memoire
+      if (!window.__cartWarn){
+        window.__cartWarn = true;
+        console.warn('Panier en memoire seule (stockage navigateur indisponible).');
+      }
+    }
+    updateCount();
+  }
 
   window.Cart = {
     items: read,
@@ -25,11 +44,15 @@
     const cur = read().filter(i=>(i.ref||'').startsWith(ref)).length;
     let stock = Infinity;
     try{
-      const r = await fetch('/api/products');
+      const ctl = ('AbortController' in window) ? new AbortController() : null;
+      const to  = ctl ? setTimeout(()=>ctl.abort(), 6000) : null;
+      const r = await fetch('/api/products', ctl ? { signal: ctl.signal } : undefined);
+      if (to) clearTimeout(to);
       if(r.ok){ const list=await r.json(); const p=(list||[]).find(x=>x.ref===ref); if(p) stock=Number(p.stock); }
     }catch(e){ /* hors-ligne : on laisse passer, le serveur bloquera */ }
-    if(cur+1 > stock) return { ok:false, stock };
-    Cart.add(item); return { ok:true, stock };
+    if(cur+1 > stock) return { ok:false, stock, raison:'stock' };
+    try { Cart.add(item); } catch(e){ return { ok:false, stock, raison:'stockage' }; }
+    return { ok:true, stock };
   }
   window.Cart.tryAdd = tryAdd;
 
@@ -39,10 +62,15 @@
     if(!b || b.dataset.busy==='1') return;
     e.preventDefault();
     b.dataset.busy='1';
-    const res = await tryAdd({ ref:b.dataset.ref, nom:b.dataset.nom, prix:Number(b.dataset.prix), perso:false });
+    let res;
+    try {
+      res = await tryAdd({ ref:b.dataset.ref, nom:b.dataset.nom, prix:Number(b.dataset.prix)||0, perso:false });
+    } catch(e){ res = { ok:false, stock:Infinity, raison:'reseau' }; }
     if(res.ok) toast(b,'✓ Ajouté au panier');
+    else if(res.raison==='stockage') toast(b,'Stockage navigateur bloqué');
+    else if(res.raison==='reseau')   toast(b,'Connexion impossible');
     else toast(b, res.stock<=0 ? 'Épuisé' : 'Stock insuffisant');
-    setTimeout(()=>{ delete b.dataset.busy; }, 50);
+    setTimeout(()=>{ delete b.dataset.busy; }, 1800);   // duree du toast : evite le double ajout
   });
 
   function toast(b,txt){

@@ -60,16 +60,6 @@
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ellia-paris.fr/inscription.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://ellia-paris.fr/connexion.html</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
     <loc>https://ellia-paris.fr/journal/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

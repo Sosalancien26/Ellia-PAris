@@ -2,12 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Détail de commande — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   .cmd{max-width:760px;margin:0 auto;padding:0 24px}
   .cmd-back{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris-txt)}
@@ -35,25 +36,23 @@
 </style>
 <meta name="description" content="Suivi détaillé de votre commande ELLIA PARIS." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a></nav>
-    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
-<section class="pad page-top"><div class="cmd">
+<section id="contenu" class="pad page-top"><div class="cmd">
   <a class="cmd-back" href="compte.html">← Mon compte</a>
   <div id="content"><p style="color:var(--gris-txt);margin-top:30px">Chargement…</p></div>
 </div></section>
@@ -62,8 +61,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
 <script>
 (async function(){
   const box = document.getElementById('content');
@@ -80,7 +79,15 @@
   if(!numero){ box.innerHTML='<p style="margin-top:30px">Commande introuvable. <a href="compte.html" style="text-decoration:underline">Retour</a></p>'; return; }
   const eur=n=>Number(n||0).toLocaleString('fr-FR')+' €';
   const norm=s=>(s||'').toLowerCase().split('é').join('e').split('è').join('e').split('ê').join('e').split('à').join('a');
-  function statusIndex(s){ s=norm(s); if(s.includes('annul'))return -1; if(s.includes('livr'))return 3; if(s.includes('exped'))return 2; if(s.includes('prep'))return 1; return 0; }
+  function statusIndex(s){ s=norm(s);
+    if(s.includes('annul'))return -1;
+    if(s.includes('livr'))return 3;
+    // ATTENTION a l'ordre : "prete a expedier" contient "exped". Sans ce test
+    // en premier, une commande encore a l'atelier s'affichait "Expédiée".
+    if(s.startsWith('prete'))return 1;
+    if(s.includes('exped'))return 2;
+    if(s.includes('prep'))return 1;
+    return 0; }
   function trackUrl(t,n){ if(!n) return ''; t=(t||'').toLowerCase(); n=encodeURIComponent(n);
     if(t.includes('colissimo')||t.includes('poste')) return 'https://www.laposte.fr/outils/suivre-vos-envois?code='+n;
     if(t.includes('chrono')) return 'https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT='+n;
@@ -111,7 +118,7 @@
           '<input id="lkEmail" type="email" inputmode="email" autocomplete="email" placeholder="votre@email.com" style="width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;outline:none;border-radius:7px">'+
           '<button class="btn solid" type="submit" id="lkGo" style="width:100%;text-align:center;margin-top:12px">Afficher ma commande</button>'+
         '</form>'+
-        '<div id="lkMsg" style="font-size:13px;margin-top:12px;color:#b1432f"></div>'+
+        '<div id="lkMsg" role="alert" aria-live="polite" style="font-size:13px;margin-top:12px;color:#b1432f"></div>'+
         '<p style="font-size:12.5px;color:var(--gris-txt);margin-top:18px">Vous avez un compte ? <a href="connexion.html?retour='+encodeURIComponent('commande.html?n='+numero)+'" style="color:var(--noir);text-decoration:underline">Connectez-vous</a></p>'+
       '</div>';
     o = await new Promise(resolve => {
@@ -148,25 +155,26 @@
     }).join('')+'</div>';
   }
 
-  const gravure = (o.initiales) ? (o.initiales+' · '+(o.finition||'')+(o.emplacement?(' · '+o.emplacement):'')) : 'Sans gravure';
+  function escq(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  const gravure = (o.initiales) ? (escq(o.initiales)+' · '+escq(o.finition||'')+(o.emplacement?(' · '+escq(o.emplacement)):'')) : 'Sans gravure';
   const adr = [o.adresse_livraison,((o.cp_livraison||'')+' '+(o.ville_livraison||'')).trim(),o.pays_livraison].filter(x=>x&&String(x).trim()).join(', ');
   const url = trackUrl(o.transporteur,o.suivi);
   let suiviBlock='';
   if(o.suivi){
     suiviBlock='<div class="cmd-card"><div class="cmd-row"><span class="k">Transporteur</span><span class="v">'+(o.transporteur||'—')+'</span></div>'+
-      '<div class="cmd-row"><span class="k">Numéro de suivi</span><span class="v">'+o.suivi+'</span></div></div>'+
+      '<div class="cmd-row"><span class="k">Numéro de suivi</span><span class="v">'+escq(o.suivi)+'</span></div></div>'+
       (url?('<a href="'+url+'" target="_blank" rel="noopener" class="btn solid" style="display:block;text-align:center">Suivre ma livraison →</a>'):'');
   }
 
   box.innerHTML =
-    '<div class="cmd-title"><h1>Commande '+o.numero+'</h1><span class="cmd-amount">'+eur(o.montant_total)+'</span></div>'+
+    '<div class="cmd-title"><h1>Commande '+escq(o.numero)+'</h1><span class="cmd-amount">'+eur(o.montant_total)+'</span></div>'+
     '<p style="color:var(--gris-txt);font-size:13px">Passée le '+ (function(d){ if(!d) return '—'; const t=new Date(d); return isNaN(t)?String(d).slice(0,10):t.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); })(o.created_at) +'</p>'+
     stepper+
     (idx>=0?('<p class="cmd-status-line">'+SENT[String(idx)]+'</p>'):'')+
     '<div class="cmd-card">'+
       '<div class="cmd-row"><span class="k">Article</span><span class="v">La Pochette ELLIA — Noir</span></div>'+
       '<div class="cmd-row"><span class="k">Personnalisation</span><span class="v">'+gravure+'</span></div>'+
-      '<div class="cmd-row"><span class="k">Livraison</span><span class="v">'+(adr||'—')+'</span></div>'+
+      '<div class="cmd-row"><span class="k">Livraison</span><span class="v">'+escq(adr||'—')+'</span></div>'+
       '<div class="cmd-row"><span class="k">Total</span><span class="v" style="font-family:var(--serif);font-size:18px">'+eur(o.montant_total)+'</span></div>'+
     '</div>'+
     suiviBlock +

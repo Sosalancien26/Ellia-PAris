@@ -323,14 +323,11 @@
 <meta name="theme-color" content="#0d0d0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 </head>
 <body>
 
 <div class="admin-top">
-  <div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /><span class="tag">Espace Pro</span></div>
+  <div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><span class="tag">Espace Pro</span></div>
   <div class="actions"><a class="back" href="index.html">← Voir la boutique</a><a class="back" href="#" id="logout">Déconnexion</a></div>
 </div>
 
@@ -362,6 +359,17 @@
       <h3>Chiffre d'affaires</h3>
       <div class="csub">6 derniers mois</div>
       <div class="chart" id="chart"></div>
+    </div>
+    <div class="card" id="cardRecon">
+      <h3>Contrôle des paiements</h3>
+      <div class="csub">Vérification automatique toutes les 15 minutes · dernières 24 h</div>
+      <p style="font-size:13.5px;color:var(--gris);line-height:1.7;margin:12px 0 16px;max-width:640px">
+        Compare les paiements réellement encaissés chez Stripe aux commandes enregistrées.
+        Si un paiement n'a pas été notifié au site, la commande est rattrapée automatiquement
+        et vous recevez un e-mail.
+      </p>
+      <button id="btnRecon" style="padding:11px 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer">Vérifier maintenant</button>
+      <div id="reconOut" style="margin-top:16px"></div>
     </div>
   </div>
 
@@ -399,7 +407,7 @@
           <h4>Client</h4>
           <div class="nc-sub">Coordonnées de la personne qui passe commande.</div>
           <div class="nc-grid">
-            <div class="nc-field"><label>Prénom *</label><input name="client_prenom" type="text" required maxlength="80" autocomplete="off"></div>
+            <div class="nc-field"><label for="stockReasonSelect">Prénom *</label><input name="client_prenom" type="text" required maxlength="80" autocomplete="off"></div>
             <div class="nc-field"><label>Nom *</label><input name="client_nom" type="text" required maxlength="120" autocomplete="off"></div>
             <div class="nc-field"><label>E-mail</label><input name="client_email" type="email" maxlength="254" autocomplete="off"><span class="hint">Si renseigné, la facture lui est envoyée par mail.</span></div>
             <div class="nc-field"><label>Téléphone</label><input name="telephone" type="tel" maxlength="30" autocomplete="off"></div>
@@ -444,7 +452,7 @@
             <div class="nc-field"><label>Frais de port TTC (€)</label><input name="frais_port" type="number" min="0" max="1000" step="0.01" value="0"></div>
           </div>
           <div class="nc-grid three" style="margin-top:14px">
-            <div class="nc-field"><label>Initiales</label><input name="initiales" type="text" maxlength="3" placeholder="3 lettres max" style="text-transform:uppercase"></div>
+            <div class="nc-field"><label>Initiales</label><input name="initiales" type="text" maxlength="3" placeholder="3 lettres max" aria-label="3 lettres max" style="text-transform:uppercase"></div>
             <div class="nc-field"><label>Finition gravure</label>
               <select name="finition">
                 <option value="">— Aucune —</option>
@@ -464,7 +472,7 @@
             </div>
           </div>
           <div class="nc-grid full" style="margin-top:14px">
-            <div class="nc-field"><label>Prix personnalisation TTC (€)</label><input name="prix_personnalisation" type="number" min="0" max="100000" step="0.01" value="0"><span class="hint">59 € si gravure (la valeur s'ajuste automatiquement).</span></div>
+            <div class="nc-field"><label>Prix personnalisation TTC (€)</label><input name="prix_personnalisation" type="number" min="0" max="100000" step="0.01" value="0"><span class="hint">Gravure : 5 € par lettre, 2 € par caractère spécial, 10 € par symbole.</span></div>
           </div>
         </div>
 
@@ -677,7 +685,7 @@
         <option value="loss">Perte / casse / défaut</option>
         <option value="inventory_correction">Correction inventaire</option>
       </select>
-      <label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);display:block;margin-bottom:6px">Notes (optionnel)</label>
+      <label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);display:block;margin-bottom:6px" for="stockReasonNotes">Notes (optionnel)</label>
       <textarea id="stockReasonNotes" maxlength="500" rows="3" placeholder="ex: Livraison Maroquinier Lyon — bon de réception #1234" style="width:100%;padding:12px 14px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;margin-bottom:22px;resize:vertical;background:#fafaf7"></textarea>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button id="stockReasonCancel" class="stock-action set" type="button">Annuler</button>
@@ -692,7 +700,7 @@
       <h3>Comptabilité</h3>
       <div class="csub">Chiffre d'affaires, seuils micro-entreprise, exports comptables (URSSAF / livre des recettes).</div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:24px;flex-wrap:wrap">
-        <label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Année</label>
+        <label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)" for="comptaYear">Année</label>
         <select id="comptaYear" style="font-family:var(--sans);font-size:13.5px;padding:9px 12px;border:1px solid var(--ligne);background:#fff;color:var(--noir)"></select>
         <button id="comptaRefresh" style="font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--ligne);background:#fff;cursor:pointer;color:var(--noir)">Actualiser</button>
       </div>
@@ -718,13 +726,13 @@
       <h3>Codes promotionnels</h3>
       <div class="csub">Crée et gère des codes de réduction pour tes campagnes (Instagram, influencer, ventes flash).</div>
       <form id="promoForm" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;align-items:end">
-        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Code (max 40 car.)</label><input name="code" type="text" required maxlength="40" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;text-transform:uppercase;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)" for="nuLogin">Code (max 40 car.)</label><input name="code" type="text" required maxlength="40" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;text-transform:uppercase;font-family:var(--sans);font-size:14px"></div>
         <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Type</label><select name="discount_type" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"><option value="percent">Pourcentage (%)</option><option value="fixed">Montant fixe (€)</option><option value="shipping">Livraison offerte</option></select></div>
         <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Valeur</label><input name="discount_value" type="number" min="0" step="0.01" value="10" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
         <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Commande min. (€)</label><input name="min_order" type="number" min="0" step="0.01" value="0" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
-        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Nb utilisations max</label><input name="max_uses" type="number" min="1" placeholder="∞ (illimité)" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Nb utilisations max</label><input name="max_uses" type="number" min="1" placeholder="∞ (illimité)" aria-label="∞ (illimité)" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
         <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Expire le</label><input name="expires_at" type="date" style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
-        <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Description (interne)</label><input name="description" type="text" maxlength="200" placeholder="Ex : Influencer Marie, lancement Noël..." style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
+        <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px"><label style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2)">Description (interne)</label><input name="description" type="text" maxlength="200" placeholder="Ex : Influencer Marie, lancement Noël..." aria-label="Ex : Influencer Marie, lancement Noël..." style="padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;font-family:var(--sans);font-size:14px"></div>
         <div style="grid-column:1/-1;display:flex;gap:12px;align-items:center">
           <button type="submit" style="font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;border:none;background:var(--noir);color:#fff;cursor:pointer">Créer le code</button>
           <span id="promoMsg" style="font-size:13px"></span>
@@ -787,9 +795,9 @@
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
       <div><label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px">Identifiant</label>
         <input id="nuLogin" type="text" placeholder="ex: marie" autocapitalize="none" style="padding:11px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;background:#fafaf7;width:180px"></div>
-      <div><label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px">Mot de passe</label>
+      <div><label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px" for="nuPass">Mot de passe</label>
         <input id="nuPass" type="text" placeholder="8 caractères min." style="padding:11px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;background:#fafaf7;width:200px"></div>
-      <div><label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px">Rôle</label>
+      <div><label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:6px" for="nuRole">Rôle</label>
         <select id="nuRole" style="padding:11px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:14px;background:#fff">
           <option value="atelier">Atelier (marquage)</option>
           <option value="comptable">Comptable</option>
@@ -815,6 +823,6 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="admin.js?v=1782500000" defer></script>
+<script src="admin.js?v=1785400000" defer></script>
 </body>
 </html>

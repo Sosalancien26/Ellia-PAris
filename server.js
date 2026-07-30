@@ -59,7 +59,18 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://wwzaqbpyojpzjacbjyqi.s
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
 const USE_DB = !!SERVICE_KEY;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ellia2026';
-const SECRET = process.env.ADMIN_SECRET || ('ellia$' + ADMIN_PASSWORD);
+// Sans ADMIN_SECRET, le secret derivait du mot de passe : avec la valeur par
+// defaut ("ellia$ellia2026", publique dans le depot) n'importe qui pouvait
+// fabriquer un cookie administrateur. On tire un secret aleatoire a la place.
+// En mode cluster, chaque worker tirerait un secret different : le cookie
+// admin ne serait valide que sur un worker sur N. Le primaire genere donc le
+// secret UNE fois et le transmet aux workers par variable d'environnement.
+if (!process.env.ADMIN_SECRET && !process.env.ADMIN_PASSWORD) {
+  process.env.ELLIA_SECRET_AUTO = process.env.ELLIA_SECRET_AUTO || crypto.randomBytes(32).toString('hex');
+}
+const SECRET = process.env.ADMIN_SECRET
+  || (process.env.ADMIN_PASSWORD ? ('ellia$' + process.env.ADMIN_PASSWORD)
+                                 : process.env.ELLIA_SECRET_AUTO);
 const TOKEN = crypto.createHmac('sha256', SECRET).update('ellia-admin-v1').digest('hex');
 
 /* Rate-limit generique en memoire (par IP, par bucket) */
@@ -77,7 +88,8 @@ const RATE_TARGET = {
   authreset:  { max: 6,   window: 60*60*1000 },
   lookup:     { max: 120, window: 60*60*1000 },  // suivi de commande : bucket separe de la creation
   promo:      { max: 30,  window: 60*60*1000 },  // anti-enumeration des codes promo
-  abandoned:  { max: 10,  window: 60*60*1000 }   // anti-relais d'emails
+  abandoned:  { max: 10,  window: 60*60*1000 },  // anti-relais d'emails
+  config:     { max: 30,  window: 60*60*1000 }   // partage de configuration
 };
 /* Chaque processus a son propre compteur : on divise pour que le TOTAL corresponde.
    On cree AUSSI la Map de chaque bucket ici — sinon un bucket oublie dans RATE
@@ -149,7 +161,7 @@ try {
   }
 } catch (e) { console.warn('Nodemailer indisponible :', e.message); }
 const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_USER || 'no-reply@ellia-paris.fr') + '>');
-function euro(n){ return Number(n||0).toLocaleString('fr-FR') + ' €'; }
+function euro(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner, preheader){
   // Email HTML complet avec doctype + <html><body> pour deliverability (SpamAssassin)
@@ -240,17 +252,21 @@ function addressBlock(d){
     (d.telephone ? ('<br/>'+escH(d.telephone)) : '') + '</p>';
 }
 // Headers communs pour bonne deliverability (compat SpamAssassin + RFC 8058)
-function mailHeaders(){
-  return {
-    'List-Unsubscribe': '<mailto:contact@ellia-paris.fr?subject=Désinscription>, <https://ellia-paris.fr/contact.html>',
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    'X-Mailer': 'ELLIA PARIS Mailer',
-    'X-Entity-Ref-ID': String(Date.now())
-  };
+function mailHeaders(marketing){
+  const h = { 'X-Mailer': 'ELLIA PARIS Mailer', 'X-Entity-Ref-ID': String(Date.now()) };
+  // Uniquement sur les envois commerciaux (newsletter, relance panier).
+  // Sur une confirmation de paiement ou un lien de mot de passe oublie, Gmail
+  // afficherait un bouton "Se desabonner" qui n'a aucun sens.
+  if (marketing) {
+    h['List-Unsubscribe'] = '<mailto:contact@ellia-paris.fr?subject=Desinscription>';
+    // Pas de List-Unsubscribe-Post : aucune page ne sait traiter le POST
+    // du desabonnement en un clic. L'annoncer sans le gerer casse le lien.
+  }
+  return h;
 }
-function sendMail(to, subject, html){
-  if (!transporter || !to) return;
-  transporter.sendMail({
+function sendMail(to, subject, html, marketing){
+  if (!transporter || !to) return Promise.resolve(false);
+  return transporter.sendMail({
     from: MAIL_FROM,
     // Le client peut repondre directement a l'email (invite a le faire dans certains messages)
     replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
@@ -258,13 +274,14 @@ function sendMail(to, subject, html){
     subject,
     html,
     text: htmlToText(html),  // version text/plain (multipart alternative)
-    headers: mailHeaders()
-  }).catch(e=>console.warn('Mail KO :', e.message));
+    headers: mailHeaders(marketing)
+  }).then(()=>true).catch(e=>{ console.warn('Mail KO :', e.message); return false; });
 }
 function sendMailWithAttachment(to, subject, html, attachments){
   if (!transporter || !to) return Promise.resolve(false);
   return transporter.sendMail({
     from: MAIL_FROM,
+    replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
     to,
     subject,
     html,
@@ -292,7 +309,7 @@ function _notifyNewOrderInternal(d, numero){
   const previewCid = 'pochette-preview-' + numero;
   // Header image : preview pochette personnalisee (via CID) OU product-1.jpg en fallback
   const headerImg = hasPreview
-    ? '<img src="cid:' + previewCid + '" alt="Votre pochette personnalisee" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
+    ? '<img src="cid:' + previewCid + '" alt="Votre pochette personnalisée" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
     : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette ELLIA" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
   const previewLabel = hasPreview
     ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
@@ -321,10 +338,25 @@ function _notifyNewOrderInternal(d, numero){
     '<p style="margin:0 0 8px">Bonjour ' + escH(d.client_nom||'') + ',</p>' +
     '<p style="margin:0 0 4px">Votre paiement a bien été reçu et votre commande <b>' + numero + '</b> est confirmée. En voici le détail :</p>' +
     lineItems(d.items) +
-    '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px"><tr>' +
+    '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px">' +
+      // Ligne remise : sans elle, la somme des articles ne tombe pas sur le total paye
+      (Number(d.promo_discount||0) > 0 ?
+        ('<tr><td style="padding-bottom:6px;color:#7a6320">Remise' + (d.promo_code ? (' ' + escH(d.promo_code)) : '') + '</td>' +
+         '<td style="text-align:right;padding-bottom:6px;color:#7a6320">- ' + euro(d.promo_discount) + '</td></tr>') : '') +
+      '<tr>' +
       '<td><b style="font-family:Georgia,serif;font-size:17px">Total payé</b></td>' +
       '<td style="text-align:right"><b style="font-family:Georgia,serif;font-size:17px">' + euro(d.montant_total) + '</b></td></tr></table>' +
     addressBlock(d) +
+    (d.is_gift ? (
+      '<div style="margin:24px 0 0;padding:18px 20px;border:1px solid #e0dbd0;background:#faf8f4">' +
+        '<div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7363;font-family:Arial,sans-serif">Commande cadeau</div>' +
+        '<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:14.5px;color:#3d3a35;line-height:1.7">' +
+          'Aucun prix ne figurera dans le colis. Votre facture vous parvient uniquement par e-mail.' +
+          (d.gift_message ? ('<br><br><em style="color:#5c5852">« ' + escH(d.gift_message) + ' »</em>' + (d.gift_from ? ('<br><span style="font-size:13px">— ' + escH(d.gift_from) + '</span>') : '')) : '') +
+          (d.gift_date ? ('<br><br><span style="font-size:13px;color:#5c5852">Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b></span>') : '') +
+        '</p>' +
+      '</div>'
+    ) : '') +
     stepsBlock +
     '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(numero) + '" style="color:#0d0d0d">voir le suivi</a> (votre e-mail suffit, aucun compte requis).<br/><br/>Avec soin,<br/>ELLIA PARIS</p>' +
     // Mention legale obligatoire : article personnalise = pas de droit de retractation (art. L221-28 3° C. conso.)
@@ -333,6 +365,10 @@ function _notifyNewOrderInternal(d, numero){
       'Nos <a href="https://ellia-paris.fr/cgv.html" style="color:#56524c">conditions générales de vente</a> restent consultables à tout moment. En cas de défaut, écrivez-nous : notre garantie légale s\'applique pleinement.' +
     '</div>';
   const clientHtml = emailLayout(inner, 'Commande ' + numero + ' confirmée — votre pochette est en préparation');
+  // On remonte le resultat de l'envoi : sans lui, impossible de savoir si le
+  // client a vraiment recu sa confirmation (le webhook marquait "envoye"
+  // meme quand aucun serveur SMTP n'etait configure).
+  let envoiClient = Promise.resolve(false);
   if (hasPreview) {
     // Piece jointe inline avec Content-ID -> Gmail/Outlook chargent l'image normalement
     const attachments = [{
@@ -342,12 +378,14 @@ function _notifyNewOrderInternal(d, numero){
       cid: previewCid,
       contentDisposition: 'inline'
     }];
-    sendMailWithAttachment(d.client_email, 'Commande confirmée — '+numero, clientHtml, attachments);
+    envoiClient = sendMailWithAttachment(d.client_email, 'Commande confirmée — '+numero, clientHtml, attachments);
   } else {
-    sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
+    // sendMail resout deja a false en cas d'echec : ne PAS ecraser avec .then(()=>true)
+    envoiClient = sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
   }
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + addressBlock(d), 'Nouvelle commande ' + numero));
+    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier : « ' + escH(d.gift_message) + ' »' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
+  return envoiClient;
 }
 const STATUT_MSG = {
   'nouvelle':'a bien été reçue et est en cours de traitement.',
@@ -376,9 +414,18 @@ async function sendInvoiceForOrder(order){
   if (!order.invoice_number) {
     try {
       const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
-      order.invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || ('F-EP-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4));
-      await sb('orders?numero=eq.'+encodeURIComponent(order.numero),{ method:'PATCH', body:{ invoice_number: order.invoice_number } });
+      order.invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
     } catch(e){ console.warn('next_invoice_number KO :', e.message); }
+    // REPLI HORS DU TRY : si le RPC leve, la facture partait sans numero.
+    // Suffixe aleatoire : 4 chiffres de millisecondes rebouclent en 10 s.
+    if (!order.invoice_number) {
+      order.invoice_number = 'F-EP-' + new Date().getFullYear() + '-'
+        + Date.now().toString().slice(-6) + crypto.randomBytes(2).toString('hex').toUpperCase();
+      console.warn('[FACTURE] Numero de repli utilise pour', order.numero, ':', order.invoice_number);
+    }
+    try {
+      await sb('orders?numero=eq.'+encodeURIComponent(order.numero),{ method:'PATCH', body:{ invoice_number: order.invoice_number } });
+    } catch(e){ console.warn('[FACTURE] enregistrement du numero KO :', e.message); }
   }
   let mailSent = false, archiveSent = false;
   try {
@@ -391,8 +438,8 @@ async function sendInvoiceForOrder(order){
 
     if (order.client_email) {
       const innerCli = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande est en route</h1>' +
-        '<p style="margin:0 0 8px">Bonjour ' + (order.client_prenom || order.client_nom || '') + ',</p>' +
-        '<p style="margin:0 0 4px">Votre commande <b>' + order.numero + '</b> a été expédiée. Vous trouverez ci-joint la facture <b>' + order.invoice_number + '</b> correspondante.</p>' +
+        '<p style="margin:0 0 8px">Bonjour ' + escH(order.client_prenom || order.client_nom || '') + ',</p>' +
+        '<p style="margin:0 0 4px">Votre commande <b>' + escH(order.numero) + '</b> a été expédiée. Vous trouverez ci-joint la facture <b>' + escH(order.invoice_number) + '</b> correspondante.</p>' +
         track +
         '<p style="margin:16px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant total : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(order.montant_total) + '</b></p>' +
         '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
@@ -437,7 +484,7 @@ function notifyStatus(order, numero, statut){
   const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
     '<p style="margin:0 0 8px">Bonjour ' + escH(order.client_nom||'') + ',</p>' +
     '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> ' + msg + '</p>' +
-    '<p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">' + statut + '</span></p>' +
+    '<p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">' + escH(statut) + '</span></p>' +
     track + recap +
     '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
   sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner));
@@ -475,12 +522,23 @@ const MOIS = ['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct'
 /* ----- Supabase REST ----- */
 async function sb(pathQuery, opts){
   opts = opts || {};
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + pathQuery, {
-    headers: { apikey:SERVICE_KEY, Authorization:'Bearer '+SERVICE_KEY,
-               'Content-Type':'application/json', Prefer: opts.prefer || '' },
-    method: opts.method || 'GET',
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
+  // DELAI MAXIMAL : sans lui, une base qui ne repond pas laisse la requete du
+  // visiteur suspendue pour toujours (aucune reponse HTTP n'est jamais envoyee).
+  const ctl = new AbortController();
+  const to  = setTimeout(()=>ctl.abort(), Number(opts.timeout) || 15000);
+  let res;
+  try {
+    res = await fetch(SUPABASE_URL + '/rest/v1/' + pathQuery, {
+      headers: { apikey:SERVICE_KEY, Authorization:'Bearer '+SERVICE_KEY,
+                 'Content-Type':'application/json', Prefer: opts.prefer || '' },
+      method: opts.method || 'GET',
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      signal: ctl.signal
+    });
+  } catch(e){
+    if (e && e.name === 'AbortError') throw new Error('Supabase timeout (15 s) sur ' + String(pathQuery).slice(0,80));
+    throw e;
+  } finally { clearTimeout(to); }
   if(!res.ok) throw new Error('Supabase '+res.status+' '+await res.text());
   return res.status===204 ? null : res.json();
 }
@@ -494,7 +552,7 @@ async function getOrders(){
   // ATTENTION : la fiche admin renvoie TOUS ces champs lors d'un enregistrement.
   // Un champ absent ici = valeur par defaut du formulaire ecrite en base
   // (montant ecrase a 159 €, notes internes videes...). Ne rien retirer.
-  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,preview,items_data,created_at,quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,notes_admin,promo_code&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,payment_date,promo_discount,is_gift,gift_message,gift_from,gift_date,preview,items_data,created_at,quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,notes_admin,promo_code&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
@@ -504,6 +562,8 @@ async function getOrders(){
     suivi:r.suivi||'', transporteur:r.transporteur||'',
     invoice_number:r.invoice_number||'', manual:!!r.manual_order,
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
+    payment_date:r.payment_date||null, promo_discount: r.promo_discount==null ? 0 : Number(r.promo_discount),
+    is_gift: !!r.is_gift, gift_message:r.gift_message||'', gift_from:r.gift_from||'', gift_date:r.gift_date||'',
     preview:r.preview||null,
     items_data: r.items_data || null,
     // Montants detailles : indispensables pour que la fiche admin ne reecrive pas
@@ -529,15 +589,29 @@ async function getOrderFull(numero){
 async function getStats(){
   if(!USE_DB) return MOCK_STATS;
   const orders = await getOrders();
-  const ca_total = orders.reduce((s,o)=>s+o.total,0);
-  const commandes = orders.length;
-  const panier_moyen = commandes ? Math.round(ca_total/commandes) : 0;
+  // CA = encaissements uniquement. Sans ce filtre, les paniers Stripe abandonnes
+  // et les commandes annulees gonflaient le chiffre affiche sur l'accueil, qui
+  // ne correspondait alors plus a celui de l'onglet Comptabilite.
+  const encaissee = (o) => {
+    const ps = String(o.payment_status || '').toLowerCase();
+    const st = String(o.statut || '').toLowerCase();
+    if (/annul|rembours/.test(st)) return false;
+    return /^pay|paid|succeeded/.test(ps) || !!o.payment_date;
+  };
+  // Un seul referentiel : tout ce qui touche a l'argent se base sur les
+  // commandes encaissees, tout ce qui compte l'activite sur l'ensemble.
+  const payees = orders.filter(encaissee);
+  const ca_total = payees.reduce((s,o)=>s+o.total,0);
+  const commandes = orders.length;                       // activite totale
+  const commandes_payees = payees.length;                // base du panier moyen
+  const en_attente = commandes - commandes_payees;
+  const panier_moyen = commandes_payees ? Math.round(ca_total/commandes_payees) : 0;
   const perso = orders.filter(o=>o.initiales && o.initiales!=='—').length;
   const taux_perso = commandes ? Math.round(perso/commandes*100) : 0;
   const byMonth = {};
-  orders.forEach(o=>{ const d=new Date(o.date); if(!isNaN(d)){ const k=d.getFullYear()+'-'+('0'+d.getMonth()).slice(-2); byMonth[k]=(byMonth[k]||0)+o.total; }});
+  payees.forEach(o=>{ const d=new Date(o.payment_date || o.date); if(!isNaN(d)){ const k=d.getFullYear()+'-'+('0'+d.getMonth()).slice(-2); byMonth[k]=(byMonth[k]||0)+o.total; }});
   const ca_mois = Object.keys(byMonth).sort().slice(-6).map(k=>({ mois:MOIS[parseInt(k.split('-')[1],10)], ca:byMonth[k] }));
-  return { ca_total, commandes, panier_moyen, taux_perso, ca_mois: ca_mois.length?ca_mois:[] };
+  return { ca_total, commandes, commandes_payees, en_attente, panier_moyen, taux_perso, ca_mois: ca_mois.length?ca_mois:[] };
 }
 
 
@@ -565,6 +639,28 @@ async function deleteAdminSetting(key){
 }
 
 /* ----- Helpers ----- */
+
+/* ── TARIF DE PERSONNALISATION — SOURCE DE VERITE COTE SERVEUR ──
+   Reproduit a l'identique la formule du configurateur
+   (personnalisation.html : PRICE_LETTER 5 / PRICE_SPECIAL 2 / PRICE_SYMBOL 10).
+   Sans ce calcul, le montant paye etait celui annonce par le navigateur. */
+const TARIF_LETTRE = 5, TARIF_SPECIAL = 2, TARIF_SYMBOLE = 10;
+function prixPersoItem(it){
+  if (!it || typeof it !== 'object') return 0;
+  const txt = String(it.initiales || '').trim();
+  let lettres = 0, speciaux = 0;
+  for (const c of txt) {
+    if (/\p{L}/u.test(c)) lettres++;
+    else if (c !== ' ' || txt.length > 1) speciaux++;
+  }
+  let symboles = 0;
+  for (const k of ['flame','extra','extra2','extra3']) {
+    const st = it[k];
+    if (st && st.enabled) symboles++;
+  }
+  return lettres * TARIF_LETTRE + speciaux * TARIF_SPECIAL + symboles * TARIF_SYMBOLE;
+}
+
 const MAX_BODY = 256 * 1024;  // 256 KB — assez pour commandes avec metadata, refuse les abus
 function sendJSON(res, obj, code){ if(code) res.statusCode=code; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(obj)); }
 function readBody(req){
@@ -583,8 +679,11 @@ function cookies(req){ const o={}; (req.headers.cookie||'').split(';').forEach(c
 /* ----- Sessions multi-roles -----
    Legacy : cookie === TOKEN  → compte principal (role admin)
    V2     : cookie === 'v2.' + base64(login|role) + '.' + hmac  → comptes equipe */
+const SESSION_MAX_AGE = 24 * 3600 * 1000;   // 24 h, verifiees cote serveur
 function makeSession(login, role){
-  const payload = Buffer.from(login + '|' + role).toString('base64url');
+  // L'horodatage est DANS la charge signee : c'est le serveur qui decide de
+  // l'expiration, pas le navigateur (Max-Age est contournable).
+  const payload = Buffer.from(login + '|' + role + '|' + Date.now()).toString('base64url');
   const sig = crypto.createHmac('sha256', SECRET).update('ellia-v2.' + payload).digest('hex');
   return 'v2.' + payload + '.' + sig;
 }
@@ -597,8 +696,13 @@ function getAuth(req){
     const expected = crypto.createHmac('sha256', SECRET).update('ellia-v2.' + parts[1]).digest('hex');
     if (parts[2] !== expected) return null;
     try {
-      const [login, role] = Buffer.from(parts[1], 'base64url').toString().split('|');
+      const [login, role, emis] = Buffer.from(parts[1], 'base64url').toString().split('|');
       if (!['admin','comptable','atelier'].includes(role)) return null;
+      // Sessions sans horodatage (emises avant cette version) : refusees,
+      // l'utilisateur se reconnecte une fois.
+      const t = Number(emis);
+      if (!t || !isFinite(t)) return null;
+      if (Date.now() - t > SESSION_MAX_AGE) return null;   // expiree
       return { login, role };
     } catch(_) { return null; }
   }
@@ -609,7 +713,7 @@ function hashPassword(pw, salt){
   return crypto.scryptSync(String(pw), String(salt), 32).toString('hex');
 }
 /* Champs financiers masques pour le role atelier */
-const FINANCE_FIELDS = ['montant_total','montant_ht','montant_tva','prix_pochette','prix_personnalisation','frais_port','tva_rate','payment_method','payment_status','payment_date','invoice_number','invoice_date','promo_code','promo_discount','total'];
+const FINANCE_FIELDS = ['montant_total','montant_ht','montant_tva','prix_pochette','prix_personnalisation','frais_port','tva_rate','payment_method','payment_status','payment_date','invoice_number','invoice_date','promo_code','promo_discount','total','notes_admin','stripe_session_id','stripe_payment_intent'];
 function stripFinance(o){
   if (!o || typeof o !== 'object') return o;
   const copy = { ...o };
@@ -694,6 +798,16 @@ const server = http.createServer(async (req, res) => {
           if (!u || hashPassword(d.password, u.salt) !== u.password_hash) {
             return sendJSON(res,{ ok:false, error:'Identifiant ou mot de passe incorrect' },401);
           }
+          // Un compte equipe de role admin a les memes pouvoirs que le compte
+          // maitre : il doit passer la meme double authentification.
+          if (u.role === 'admin') {
+            const secret2fa = await getAdminSetting('totp_secret');
+            if (secret2fa && totpMod) {
+              if (!d.code) return sendJSON(res,{ ok:false, need_2fa:true });
+              if (!totpMod.verify(secret2fa, d.code, 1))
+                return sendJSON(res,{ ok:false, error:'Code à 6 chiffres invalide', need_2fa:true }, 401);
+            }
+          }
           res.setHeader('Set-Cookie','ellia_session='+makeSession(u.login, u.role)+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
           return sendJSON(res,{ ok:true, role:u.role });
         }
@@ -711,6 +825,60 @@ const server = http.createServer(async (req, res) => {
         res.setHeader('Set-Cookie','ellia_session=; HttpOnly;'+cookieSec+' Path=/; Max-Age=0');
         return sendJSON(res,{ ok:true });
       }
+      /* ══ PARTAGE DE CONFIGURATION ══
+         La cliente compose sa pochette et obtient un lien court : elle
+         revient plus tard, ou l'envoie a la personne qui l'offrira.
+         Sauve les configurateurs abandonnes. */
+      if (req.method==='POST' && pathname==='/api/config'){
+        if(!USE_DB) return sendJSON(res,{ ok:false, error:'indisponible', detail:'Base de données non configurée.' }, 503);
+        if(!rateAllowed('config', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
+        const d = JSON.parse((await readBody(req))||'{}');
+        const cfg = d && d.config;
+        if (!cfg || typeof cfg !== 'object') return sendJSON(res,{ ok:false, error:'config_invalide' }, 400);
+        // Bornage : on n'accepte que les champs attendus, jamais l'objet brut.
+        const propre = {
+          v: 1,
+          initials: String(cfg.initials || '').slice(0, 18),
+          finish:    clean(cfg.finish, 20),
+          placement: clean(cfg.placement, 20)
+        };
+        for (const k of ['s1','s2','s3','s4']) {
+          const x = cfg[k];
+          propre[k] = (x && typeof x === 'object')
+            ? { sym: clean(x.sym, 20), fin: clean(x.fin, 20), pos: clean(x.pos, 20) }
+            : null;
+        }
+        let apercu = (typeof d.preview === 'string' && d.preview.startsWith('data:image/') && d.preview.length < 140000)
+          ? d.preview : null;
+        // Code court sans caracteres ambigus (ni 0/O ni 1/l)
+        const alpha = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+        let code = '';
+        for (const b of crypto.randomBytes(10)) code += alpha[b % alpha.length];
+        try {
+          await sb('shared_configs', { method:'POST', body:{ id: code, config: propre, preview: apercu } });
+        } catch(e){
+          console.warn('[Config] enregistrement KO :', e.message);
+          return sendJSON(res,{ ok:false, error:'enregistrement', detail:e.message }, 500);
+        }
+        const base = process.env.SITE_URL || 'https://ellia-paris.fr';
+        return sendJSON(res,{ ok:true, code, url: base.replace(/\/$/,'') + '/personnalisation.html?c=' + code });
+      }
+
+      if (req.method==='GET' && pathname.startsWith('/api/config/')){
+        if(!USE_DB) return sendJSON(res,{ ok:false, error:'indisponible' }, 503);
+        const code = pathname.split('/').pop();
+        if (!/^[A-Za-z0-9_-]{4,24}$/.test(code)) return sendJSON(res,{ ok:false, error:'code_invalide' }, 400);
+        try {
+          const rows = await sb('shared_configs?id=eq.'+encodeURIComponent(code)+'&select=config,preview,expires_at,views');
+          const r0 = rows && rows[0];
+          if (!r0) return sendJSON(res,{ ok:false, error:'introuvable' }, 404);
+          if (r0.expires_at && new Date(r0.expires_at) < new Date()) return sendJSON(res,{ ok:false, error:'expire' }, 410);
+          // Compteur de consultations (sans bloquer la reponse)
+          sb('shared_configs?id=eq.'+encodeURIComponent(code), { method:'PATCH', body:{ views: Number(r0.views||0) + 1 } }).catch(()=>{});
+          return sendJSON(res,{ ok:true, config: r0.config });
+        } catch(e){ return sendJSON(res,{ ok:false, error:'lecture', detail:e.message }, 500); }
+      }
+
       if (req.method==='POST' && pathname==='/api/newsletter'){
         if(!rateAllowed('newsletter', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
@@ -805,10 +973,10 @@ const server = http.createServer(async (req, res) => {
         const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
         const innerAdmin = '<h2 style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;margin:0 0 18px">Nouveau message — ' + sujLabel + '</h2>' +
           '<table style="width:100%;border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif">' +
-            '<tr><td style="padding:8px 0;color:#666;width:140px">Nom</td><td style="padding:8px 0;color:#0d0d0d"><b>' + nom + '</b></td></tr>' +
-            '<tr><td style="padding:8px 0;color:#666">E-mail</td><td style="padding:8px 0"><a href="mailto:' + cEmail + '" style="color:#0d0d0d">' + cEmail + '</a></td></tr>' +
+            '<tr><td style="padding:8px 0;color:#666;width:140px">Nom</td><td style="padding:8px 0;color:#0d0d0d"><b>' + escH(nom) + '</b></td></tr>' +
+            '<tr><td style="padding:8px 0;color:#666">E-mail</td><td style="padding:8px 0"><a href="mailto:' + escH(cEmail) + '" style="color:#0d0d0d">' + escH(cEmail) + '</a></td></tr>' +
             '<tr><td style="padding:8px 0;color:#666">Sujet</td><td style="padding:8px 0;color:#0d0d0d">' + sujLabel + '</td></tr>' +
-            (cmd ? '<tr><td style="padding:8px 0;color:#666">Commande</td><td style="padding:8px 0;color:#0d0d0d">' + cmd + '</td></tr>' : '') +
+            (cmd ? '<tr><td style="padding:8px 0;color:#666">Commande</td><td style="padding:8px 0;color:#0d0d0d">' + escH(cmd) + '</td></tr>' : '') +
           '</table>' +
           '<div style="margin-top:24px;padding:20px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14.5px;line-height:1.6;color:#333">' + escapeMsg + '</div>' +
           '<p style="margin-top:24px;font-size:12px;color:#999;font-family:Arial,sans-serif">Pour répondre : cliquer sur l\'adresse e-mail ci-dessus.</p>';
@@ -856,7 +1024,7 @@ const server = http.createServer(async (req, res) => {
         try{
           await sb('reviews',{ method:'POST', body:row });
           const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
-          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + prenom + '</b> (' + rEmail + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
+          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + escH(prenom) + '</b> (' + escH(rEmail) + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
         }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         return sendJSON(res,{ ok:true });
       }
@@ -887,10 +1055,17 @@ const server = http.createServer(async (req, res) => {
         // On valide d'abord ce brut, PUIS on calcule la remise sur cette meme base
         // — sinon le client verrait -21,80 € a l'ecran et serait debite de -15,90 €.
         const totalBrut = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
-        const plancherBrut = prixCatalogue * qte;   // gravure et options ne peuvent qu'augmenter
+        // PLANCHER REEL : prix catalogue + gravure recalculee article par article.
+        // Le navigateur ne peut plus annoncer 159 € pour une pochette gravee.
+        const lignes = Array.isArray(d.items) && d.items.length ? d.items : [{}];
+        let persoServeur = 0;
+        for (const it of lignes) persoServeur += prixPersoItem(it);
+        const plancherBrut = Math.round((prixCatalogue * qte + persoServeur) * 100) / 100;
         if (totalBrut + 0.01 < plancherBrut) {
-          console.warn('[SECURITE] Total brut client', totalBrut, '< plancher', plancherBrut, '— commande refusee');
-          return sendJSON(res,{ ok:false, error:'montant_invalide' }, 400);
+          console.warn('[SECURITE] Total client', totalBrut, '< attendu', plancherBrut,
+                       '(catalogue', prixCatalogue, 'x', qte, '+ gravure', persoServeur, ') — commande refusee');
+          return sendJSON(res,{ ok:false, error:'montant_invalide',
+            message:'Le montant de votre panier n\'est plus à jour. Merci de recharger la page.' }, 400);
         }
         let promoDiscount = 0, promoCode = '';
         if (d.promo_code && promoMod) {
@@ -950,6 +1125,11 @@ const server = http.createServer(async (req, res) => {
           montant_ht:  Math.round(((totalBrut - promoDiscount) / 1.2) * 100) / 100,
           montant_tva: Math.round(((totalBrut - promoDiscount) - (totalBrut - promoDiscount) / 1.2) * 100) / 100,
           promo_discount: promoDiscount || 0,
+          // CADEAU : aucun prix dans le colis, mot calligraphie, date souhaitee
+          is_gift:      !!d.is_gift,
+          gift_message: d.is_gift ? clean(d.gift_message, 300) : null,
+          gift_from:    d.is_gift ? clean(d.gift_from, 60)     : null,
+          gift_date:    (d.is_gift && /^\d{4}-\d{2}-\d{2}$/.test(String(d.gift_date||''))) ? d.gift_date : null,
           preview: preview,
           items_data: itemsData,
           statut: 'En attente paiement' };
@@ -1089,16 +1269,27 @@ const server = http.createServer(async (req, res) => {
                       pays_facturation: o.pays_facturation,
                       montant_total: o.montant_total,
                       preview: o.preview, // INCLUS dans l'email !
+                      // Sans ces deux champs, le mail liste les articles au prix
+                      // BRUT puis affiche un total paye plus bas, sans ligne de
+                      // remise : le client voit un courrier qui ne tombe pas juste.
+                      promo_discount: o.promo_discount || 0,
+                      promo_code: o.promo_code || null,
                       // Reconstruit items depuis items_data (JSONB) OU fallback sur initiales seules
                       items: Array.isArray(o.items_data) && o.items_data.length ? o.items_data : [{
                         nom:'La Pochette ELLIA', prix: o.montant_total,
-                        initiales: o.initiales, finition: o.finition, emplacement: o.emplacement
-                      }]
+                        initiales: o.initiales, finition: o.finition, emplacement: o.emplacement }]
                     };
-                    notifyNewOrder(orderForEmail, numero);
-                    // Marquer comme envoye
-                    await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ email_sent_at: new Date().toISOString() }});
-                    console.log('[Stripe webhook] Email confirmation envoye a', o.client_email);
+                    // On ne marque "envoye" que si l'envoi a REELLEMENT abouti.
+                    // Avant, email_sent_at etait ecrit meme sans serveur SMTP
+                    // configure : le client ne recevait rien et le systeme
+                    // croyait l'avoir prevenu — aucune nouvelle tentative.
+                    const envoye = await notifyNewOrder(orderForEmail, numero);
+                    if (envoye === false) {
+                      console.error('[Stripe webhook] Email de confirmation NON envoye a', o.client_email, '— email_sent_at non pose, nouvelle tentative au prochain evenement.');
+                    } else {
+                      await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ email_sent_at: new Date().toISOString() }});
+                      console.log('[Stripe webhook] Email confirmation envoye a', o.client_email);
+                    }
                     // Compter l'utilisation du code promo (uniquement sur paiement confirme)
                     if (o.promo_code && promoMod && promoMod.incrementPromoUsage) {
                       try { await promoMod.incrementPromoUsage(sb, o.promo_code); } catch(pe){ console.warn('Promo count KO:', pe.message); }
@@ -1131,7 +1322,12 @@ const server = http.createServer(async (req, res) => {
               } catch(se){ console.warn('[Stripe webhook] restitution stock KO:', se.message); }
             }
           }
-        } catch(e) { console.error('[Stripe webhook] handler error:', e.message); }
+        } catch(e) {
+          console.error('[Stripe webhook] ECHEC de traitement:', event && event.type, '-', e.message);
+          // 500 => Stripe rejoue l'evenement (jusqu'a 3 jours). Sans cela un
+          // incident passager de la base perdait definitivement le paiement.
+          return sendJSON(res,{ received:false, error:'handler_failed' }, 500);
+        }
         return sendJSON(res,{ received:true });
       }
 
@@ -1219,6 +1415,17 @@ const server = http.createServer(async (req, res) => {
         if (!okAtelier) return sendJSON(res,{ error:'acces_refuse', detail:'Compte atelier : commandes et statuts uniquement.' },403);
       }
 
+      // Verification manuelle des paiements (bouton dans l'administration).
+      // Reservee a l'admin : elle peut modifier des statuts de commande.
+      if (req.method==='POST' && pathname==='/api/admin/reconcilier'){
+        if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
+        if (!stripe)  return sendJSON(res,{ ok:false, error:'stripe_absent', detail:'Clé Stripe non configurée sur le serveur.' }, 503);
+        try {
+          const r = await reconcilierStripe(true);
+          return sendJSON(res, Object.assign({ ok:true }, r || {}));
+        } catch(e){ return sendJSON(res,{ ok:false, error:'echec', detail:String(e.message||e) }, 500); }
+      }
+
       if (req.method==='GET' && pathname==='/api/stats'){
         const s = await getStats();
         if (ROLE === 'atelier'){
@@ -1239,7 +1446,21 @@ const server = http.createServer(async (req, res) => {
         // Atelier : seuls le statut, le suivi colis et les notes sont modifiables
         if (ROLE === 'atelier') {
           const allowed = {};
-          for (const k of ['statut','suivi','transporteur','notes_admin']) if (d[k]!==undefined) allowed[k] = d[k];
+          // notes_admin retire : ce champ porte la trace comptable des remises
+          // (voir FINANCE_FIELDS). L'atelier ne peut pas la lire, il ne doit pas
+          // pouvoir l'ecraser non plus.
+          for (const k of ['statut','suivi','transporteur']) if (d[k]!==undefined) allowed[k] = d[k];
+          // "Expediee" declenche l'emission de la facture (numero legal + mail
+          // avec le montant au client). Un compte sans acces financier ne peut
+          // pas provoquer cet acte : on plafonne a "Prete a expedier".
+          // NFD + suppression des diacritiques : sans cela "Expédiée" (envoye
+          // par l'admin) ne correspondait pas a /expedi/ et passait au travers.
+          const statutSansAccent = String(allowed.statut || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+          if (allowed.statut !== undefined && /expedi|livr/.test(statutSansAccent) && !statutSansAccent.startsWith('prete')) {
+            return sendJSON(res,{ ok:false, error:'acces_refuse',
+              detail:'Le passage en expédition émet la facture : réservé à un compte administrateur. Marquez la commande « Prête à expédier ».' }, 403);
+          }
           d = allowed;
         }
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
@@ -1267,8 +1488,25 @@ const server = http.createServer(async (req, res) => {
         if(d.finition!==undefined)    upd.finition    = clean(d.finition, 40);
         if(d.emplacement!==undefined) upd.emplacement = clean(d.emplacement, 40);
         // Paiement + notes
-        if(d.payment_method!==undefined) upd.payment_method = clean(d.payment_method, 40);
-        if(d.payment_status!==undefined) upd.payment_status = clean(d.payment_status, 30);
+        // GARDE-FOU : le webhook Stripe ecrit payment_status='Payee' et
+        // payment_method='Stripe'. Ces valeurs ne figuraient pas dans les menus
+        // deroulants de l'admin : un simple enregistrement les remplacait par
+        // "En attente" / vide, ce qui declarait impayee une commande encaissee.
+        // On refuse desormais toute retrogradation non explicite.
+        if(d.payment_method!==undefined && String(d.payment_method).trim() !== '')
+          upd.payment_method = clean(d.payment_method, 40);
+        if(d.payment_status!==undefined && String(d.payment_status).trim() !== ''){
+          const nouveau = clean(d.payment_status, 30);
+          const curPay = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=payment_status,payment_date')
+                            .then(r => (r && r[0]) || {}).catch(()=>({}));
+          const etaitPaye = /pay/i.test(String(curPay.payment_status||'')) || !!curPay.payment_date;
+          const devientNonPaye = /attente|impay/i.test(nouveau);
+          if (etaitPaye && devientNonPaye) {
+            console.warn('[ADMIN] Retrogradation de paiement ignoree sur', numero, ':', curPay.payment_status, '->', nouveau);
+          } else {
+            upd.payment_status = nouveau;
+          }
+        }
         if(d.notes_admin!==undefined)    upd.notes_admin    = clean(d.notes_admin, 500);
         // Montants (optionnels — pour ajustements manuels)
         if(d.prix_pochette!==undefined)         upd.prix_pochette = Math.max(0, Math.min(100000, Number(d.prix_pochette)||0));
@@ -1279,14 +1517,15 @@ const server = http.createServer(async (req, res) => {
         // Recalcul total TTC si les composantes ont change
         if (upd.prix_pochette!==undefined || upd.prix_personnalisation!==undefined || upd.frais_port!==undefined || upd.quantite!==undefined || upd.tva_rate!==undefined){
           try {
-            const cur = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=prix_pochette,prix_personnalisation,frais_port,quantite,tva_rate');
+            const cur = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=prix_pochette,prix_personnalisation,frais_port,quantite,tva_rate,promo_discount');
             const o = (cur && cur[0]) || {};
             const pP = upd.prix_pochette!=null ? upd.prix_pochette : Number(o.prix_pochette||0);
             const pX = upd.prix_personnalisation!=null ? upd.prix_personnalisation : Number(o.prix_personnalisation||0);
             const pT = upd.frais_port!=null ? upd.frais_port : Number(o.frais_port||0);
             const qte= upd.quantite!=null ? upd.quantite : Number(o.quantite||1);
             const tva= upd.tva_rate!=null ? upd.tva_rate : Number(o.tva_rate!=null?o.tva_rate:20);
-            const ttc = (pP + pX) * qte + pT;
+            const remise = Number(o.promo_discount || 0);   // sinon la remise disparait du total
+            const ttc = Math.max(0, (pP + pX) * qte + pT - remise);
             const ht  = ttc / (1 + tva/100);
             upd.montant_total = Number(ttc.toFixed(2));
             upd.montant_ht    = Number(ht.toFixed(2));
@@ -1312,6 +1551,10 @@ const server = http.createServer(async (req, res) => {
                   notifyStatus(ord, numero, d.statut);
                 }
                 invoice_sent_now = true;
+              } else if (key.startsWith('expedi') && ord.invoice_sent_at) {
+                // Deja expediee : ne pas renvoyer un second "votre commande est
+                // en route" a chaque reenregistrement du meme statut.
+                console.log('[Expedition]', numero, 'deja notifiee le', ord.invoice_sent_at, '— aucun envoi.');
               } else {
                 // Email simple de changement de statut (pas de PDF)
                 notifyStatus(ord, numero, d.statut);
@@ -1404,7 +1647,7 @@ const server = http.createServer(async (req, res) => {
         if(!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
 
         // 1) Numero commande + numero facture
-        const numero = 'EP-'+Date.now().toString().slice(-6);
+        const numero = 'EP-'+Date.now().toString().slice(-6)+crypto.randomBytes(2).toString('hex').toUpperCase();
         let invoice_number = null;
         try {
           const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
@@ -1669,7 +1912,7 @@ const server = http.createServer(async (req, res) => {
         const year = Number(url.searchParams.get('year')) || new Date().getFullYear();
         try {
           const data = await comptaMod.getCompta(sb, year);
-          const { orders, ...stats } = data;
+          const { orders, orders_payes, ...stats } = data;
           stats.nb_factures_emises = orders.filter(o => o.invoice_number).length;
           return sendJSON(res, stats);
         } catch(e){ return sendJSON(res,{ error:'compta_failed', detail:String(e.message||e) }, 500); }
@@ -1779,8 +2022,34 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const ext = path.extname(file).toLowerCase();
-    if (['.html','.css','.js','.json'].includes(ext)) res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
-    else res.setHeader('Cache-Control','public, max-age=86400, immutable');
+    // CACHE NAVIGATEUR
+    //  - .html : jamais mis en cache, sinon une mise a jour du site n'arrive
+    //    jamais chez les visiteurs deja venus.
+    //  - .css / .js : nos URLs sont versionnees (styles.css?v=1781700000). Le
+    //    numero change a chaque deploiement, donc on peut cacher 1 an sans
+    //    risque. Sans ?v=, on reste prudent (revalidation).
+    //  - images / polices / .glb : 1 an.
+    const versionne = /[?&]v=/.test(req.url || '');
+    if (ext === '.html') {
+      // no-cache (et non no-store) : le navigateur garde la page mais revalide
+      // a chaque visite. Si rien n'a change, on repond 304 = 0 octet transfere.
+      res.setHeader('Cache-Control','no-cache, must-revalidate');
+    } else if (['.css','.js','.json'].includes(ext)) {
+      res.setHeader('Cache-Control', versionne
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+    }
+    // ETAG : empreinte du contenu. Si le navigateur renvoie la meme, on
+    // repond 304 Not Modified sans reenvoyer le fichier (navigation instantanee).
+    const etag = '"' + buf.length.toString(16) + '-' + crypto.createHash('sha1').update(buf).digest('hex').slice(0,16) + '"';
+    res.setHeader('ETag', etag);
+    const inm = req.headers['if-none-match'];
+    if (inm && (inm === etag || inm.split(',').some(t => t.trim() === etag))) {
+      res.statusCode = 304;
+      return res.end();
+    }
     res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
     // Compression gzip pour les types texte (HTML/CSS/JS/JSON/SVG/XML) — divise le transfert par ~4
     const compressible = ['.html','.css','.js','.json','.svg','.xml','.txt'].includes(ext);
@@ -1809,6 +2078,157 @@ const server = http.createServer(async (req, res) => {
 });
 
 
+
+/* ============================================================
+   ALERTES EXPLOITATION
+   Sans elles, une panne se decouvre par un client mecontent.
+   Anti-spam : un meme type d'alerte n'est envoye qu'une fois par heure.
+   ============================================================ */
+const ALERTE_DERNIERE = new Map();
+const ALERTE_SILENCE   = 60 * 60 * 1000;   // 1 h entre deux alertes du meme type
+
+function alerte(type, titre, details, gravite){
+  const cle = String(type);
+  const now = Date.now();
+  if (ALERTE_DERNIERE.get(cle) && (now - ALERTE_DERNIERE.get(cle)) < ALERTE_SILENCE) return;
+  ALERTE_DERNIERE.set(cle, now);
+
+  const dest = process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+  const urgent = gravite === 'critique';
+  console.error('[ALERTE' + (urgent ? ' CRITIQUE' : '') + '] ' + titre + ' — ' + details);
+  if (!dest || !transporter) return;
+
+  const couleur = urgent ? '#b1432f' : '#a8791f';
+  const inner =
+    '<div style="border-left:4px solid ' + couleur + ';padding:16px 20px;background:#fdf9f6">' +
+      '<div style="font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:' + couleur + ';font-family:Arial,sans-serif">' +
+        (urgent ? 'Alerte critique' : 'Avertissement') + '</div>' +
+      '<h2 style="font-family:Georgia,serif;font-weight:normal;font-size:21px;margin:8px 0 12px;color:#0d0d0d">' + escH(titre) + '</h2>' +
+      '<pre style="white-space:pre-wrap;font-family:Consolas,Menlo,monospace;font-size:12.5px;color:#4a4640;margin:0;line-height:1.65">' + escH(details) + '</pre>' +
+    '</div>' +
+    '<p style="margin:18px 0 0;font-size:12.5px;color:#8a857d;font-family:Arial,sans-serif">' +
+      new Date().toLocaleString('fr-FR', { dateStyle:'full', timeStyle:'short' }) +
+      ' · <a href="https://ellia-paris.fr/admin" style="color:#0d0d0d">Ouvrir l\'administration</a>' +
+    '</p>';
+  sendMail(dest, (urgent ? '[URGENT] ' : '[Alerte] ') + 'ELLIA PARIS — ' + titre, emailLayout(inner));
+}
+
+/* ============================================================
+   RECONCILIATION STRIPE
+   Le webhook peut ne jamais arriver (panne reseau, incident Stripe,
+   serveur redemarre au mauvais moment). Dans ce cas la cliente est
+   debitee et la commande reste "En attente paiement" pour toujours.
+   Toutes les 15 min, on demande a Stripe la liste de ce qui a
+   REELLEMENT ete paye et on rattrape ce qui manque.
+   ============================================================ */
+async function reconcilierStripe(manuel){
+  if (!USE_DB || !stripe) return { rattrapees:0, anomalies:[], verifiees:0 };
+  let rattrapees = 0, anomalies = [];
+  try {
+    // Sessions de paiement des dernieres 24 h, les plus recentes d'abord
+    const depuis = Math.floor((Date.now() - 24*60*60*1000) / 1000);
+    const liste = await stripe.checkout.sessions.list({
+      limit: 100,
+      created: { gte: depuis }
+    });
+
+    let verifiees = 0;
+    for (const sess of (liste.data || [])) {
+      if (sess.payment_status !== 'paid') continue;
+      verifiees++;
+      const numero = (sess.metadata && sess.metadata.numero) || null;
+      if (!numero) {
+        anomalies.push('Paiement Stripe ' + sess.id + ' (' + ((sess.amount_total||0)/100).toFixed(2) + ' €) SANS numero de commande.');
+        continue;
+      }
+      let rows = [];
+      try { rows = await sb('orders?numero=eq.' + encodeURIComponent(numero) + '&select=numero,statut,payment_status,payment_date,montant_total,email_sent_at'); }
+      catch(e){ anomalies.push('Base injoignable pour ' + numero + ' : ' + e.message); continue; }
+
+      const o = rows && rows[0];
+      if (!o) {
+        anomalies.push('Paiement encaisse pour ' + numero + ' (' + ((sess.amount_total||0)/100).toFixed(2) + ' €) mais AUCUNE commande en base.');
+        continue;
+      }
+      const dejaPaye = /^pay|paid|succeeded/i.test(String(o.payment_status||'')) || !!o.payment_date;
+      if (dejaPaye) continue;   // rien a faire, le webhook a fonctionne
+
+      // Webhook perdu : on rattrape exactement ce qu'il aurait fait.
+      console.warn('[Reconciliation] Webhook manquant pour ' + numero + ' — rattrapage.');
+      try {
+        await sb('orders?numero=eq.' + encodeURIComponent(numero) + '&statut=eq.En attente paiement', { method:'PATCH', body:{
+          statut: 'Nouvelle',
+          payment_status: 'Payee',
+          payment_method: 'Stripe',
+          payment_date: new Date((sess.created || Math.floor(Date.now()/1000)) * 1000).toISOString()
+        }});
+        rattrapees++;
+      } catch(e){ anomalies.push('Rattrapage impossible pour ' + numero + ' : ' + e.message); continue; }
+
+      // Ecart de montant : le signaler sans rien modifier.
+      const paye = (sess.amount_total || 0) / 100;
+      if (o.montant_total != null && Math.abs(Number(o.montant_total) - paye) > 0.02) {
+        anomalies.push('Ecart de montant sur ' + numero + ' : encaisse ' + paye.toFixed(2) + ' €, enregistre ' + Number(o.montant_total).toFixed(2) + ' €.');
+      }
+    }
+
+    if (rattrapees > 0) {
+      alerte('reconciliation', rattrapees + ' commande(s) rattrapée(s)',
+        rattrapees + ' paiement(s) confirmé(s) chez Stripe n\'avaient pas été enregistrés (webhook perdu).\n' +
+        'Les commandes sont maintenant marquées payées et visibles dans l\'administration.\n' +
+        'Vérifiez que les clients concernés ont bien reçu leur e-mail de confirmation.', 'critique');
+    }
+    if (anomalies.length) {
+      alerte('reconciliation_anomalies', anomalies.length + ' anomalie(s) de paiement',
+        anomalies.join('\n'), 'critique');
+    }
+    return { rattrapees, anomalies, verifiees };
+  } catch(e){
+    console.warn('[Reconciliation Stripe] KO :', e.message);
+    alerte('reconciliation_panne', 'Réconciliation Stripe en échec',
+      'La vérification automatique des paiements n\'a pas pu s\'exécuter :\n' + e.message +
+      '\n\nTant que ce message revient, un paiement perdu ne serait pas détecté.', 'critique');
+    if (manuel) throw e;
+    return { rattrapees:0, anomalies:['Vérification impossible : ' + e.message], verifiees:0 };
+  }
+}
+
+/* ============================================================
+   SURVEILLANCE — ce qui doit alerter meme sans reconciliation
+   ============================================================ */
+async function surveillance(){
+  if (!USE_DB) return;
+  try {
+    // 1) Commande payee mais jamais traitee depuis plus de 2 h
+    const limite = new Date(Date.now() - 2*60*60*1000).toISOString();
+    const bloquees = await sb('orders?payment_status=like.Pay*&statut=eq.En attente paiement&created_at=lte.' +
+                              encodeURIComponent(limite) + '&select=numero,montant_total,created_at&limit=20');
+    if (bloquees && bloquees.length) {
+      alerte('commandes_bloquees', bloquees.length + ' commande(s) payée(s) non traitée(s)',
+        bloquees.map(o => '· ' + o.numero + ' — ' + Number(o.montant_total||0).toFixed(2) + ' € — ' + String(o.created_at||'').slice(0,16).replace('T',' ')).join('\n') +
+        '\n\nCes commandes ont été payées mais sont restées au statut « En attente paiement ».', 'critique');
+    }
+
+    // 2) Stock bas ou epuise
+    const prods = await sb('products?select=ref,nom,stock,seuil');
+    for (const p of (prods || [])) {
+      const stock = Number(p.stock);
+      if (isNaN(stock)) continue;
+      if (stock <= 0) {
+        alerte('rupture_' + p.ref, 'Rupture de stock — ' + (p.nom || p.ref),
+          'Le stock de ' + (p.nom || p.ref) + ' est à ' + stock + '.\nLe site refuse désormais toute nouvelle commande de ce produit.', 'critique');
+      } else if (stock <= Number(p.seuil || 5)) {
+        alerte('stock_bas_' + p.ref, 'Stock bas — ' + (p.nom || p.ref),
+          'Il reste ' + stock + ' exemplaire(s) de ' + (p.nom || p.ref) + ' (seuil d\'alerte : ' + (p.seuil||5) + ').', 'avertissement');
+      }
+    }
+  } catch(e){
+    console.warn('[Surveillance] KO :', e.message);
+    alerte('surveillance_panne', 'Surveillance en échec',
+      'La base de données ne répond pas à la surveillance automatique :\n' + e.message, 'critique');
+  }
+}
+
 /* ----- CRON INTERNE — relance panier abandonne (toutes les 10 min) ----- */
 async function processAbandonedCarts(){
   if (!USE_DB || !transporter) return;
@@ -1822,8 +2242,13 @@ async function processAbandonedCarts(){
         '<p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande ?</p>' +
         '<p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(c.cart_total) + '</b></p>' +
         '<p style="margin:24px 0"><a href="https://ellia-paris.fr/panier.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Reprendre ma commande</a></p>' +
-        '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
-      sendMail(c.email, 'Votre pochette vous attend — ELLIA PARIS', emailLayout(inner));
+        '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>' +
+        // Message commercial : le lien de retrait doit figurer dans le corps.
+        '<p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">' +
+          'Vous recevez ce message parce que vous avez commencé une commande sur ellia-paris.fr. ' +
+          'Pour ne plus recevoir de rappel, <a href="mailto:contact@ellia-paris.fr?subject=Desinscription%20rappels" style="color:#56524c">écrivez-nous en un clic</a>.' +
+        '</p>';
+      sendMail(c.email, 'Votre pochette vous attend — ELLIA PARIS', emailLayout(inner), true);
       try { await sb('abandoned_carts?id=eq.'+c.id, { method:'PATCH', body:{ reminder_sent_at: new Date().toISOString() } }); } catch(_){}
     }
   } catch(e){ console.warn('Abandoned cart cron KO :', e.message); }
@@ -1835,6 +2260,18 @@ async function processAbandonedCarts(){
    dans le processus chef, sinon chaque client recevrait 4 emails.
    ============================================================ */
 function startServer(tag){
+  // Une requete ne peut pas monopoliser une connexion indefiniment.
+  server.headersTimeout = 20000;   // en-tetes completes sous 20 s
+  server.requestTimeout = 60000;   // corps complet sous 60 s
+  server.keepAliveTimeout = 65000;
+  if (!process.env.ADMIN_PASSWORD && !process.env.ADMIN_SECRET) {
+    console.warn('\n[SECURITE] ADMIN_PASSWORD n\'est pas defini : le mot de passe par defaut');
+    console.warn('           du depot est actif. Definissez-le dans les variables');
+    console.warn('           d\'environnement de l\'hebergement.');
+    console.warn('           (Les sessions sont protegees par un secret aleatoire :');
+    console.warn('            aucun cookie ne peut etre forge, mais chaque redemarrage');
+    console.warn('            deconnecte les sessions ouvertes.)\n');
+  }
   server.listen(PORT, () => {
     console.log('ELLIA PARIS — http://localhost:' + PORT + (USE_DB ? '  [Supabase: ACTIF]' : '  [donnees DEMO]') + (tag||''));
   });
@@ -1850,8 +2287,20 @@ if (WORKERS > 1 && cluster.isPrimary) {
     cluster.fork();
   });
   // CRON dans le chef uniquement (il ne sert aucune requete)
-  if (USE_DB) setInterval(processAbandonedCarts, 10*60*1000);
+  if (USE_DB) {
+    setInterval(processAbandonedCarts, 10*60*1000);
+    setInterval(reconcilierStripe, 15*60*1000);
+    setInterval(surveillance,       30*60*1000);
+    setTimeout(reconcilierStripe, 45*1000);   // premiere passe peu apres le demarrage
+    setTimeout(surveillance,      70*1000);
+  }
 } else {
-  if (USE_DB && WORKERS === 1) setInterval(processAbandonedCarts, 10*60*1000);
+  if (USE_DB && WORKERS === 1) {
+    setInterval(processAbandonedCarts, 10*60*1000);
+    setInterval(reconcilierStripe, 15*60*1000);
+    setInterval(surveillance,       30*60*1000);
+    setTimeout(reconcilierStripe, 45*1000);
+    setTimeout(surveillance,      70*1000);
+  }
   startServer(cluster.worker ? '  [processus ' + cluster.worker.id + '/' + WORKERS + ']' : '');
 }

@@ -2,12 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Commande — ELLIA PARIS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   .co-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;max-width:1100px;margin:0 auto;padding:0 40px}
   .co-form h3{font-size:20px;margin:0 0 18px}
@@ -32,25 +33,23 @@
 </style>
 <meta name="description" content="Validez votre commande ELLIA PARIS en toute sécurité." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a></nav>
-    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
-<section class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
+<section id="contenu" class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
 
 <section class="pad" style="padding-top:30px">
   <div class="co-grid">
@@ -59,32 +58,62 @@
 
       <h3>Coordonnées</h3>
       <div class="frow">
-        <div class="co-field"><label>Prénom</label><input id="prenom" autocomplete="given-name"></div>
-        <div class="co-field"><label>Nom</label><input id="nom" autocomplete="family-name"></div>
+        <div class="co-field"><label for="prenom">Prénom</label><input id="prenom" autocomplete="given-name"></div>
+        <div class="co-field"><label for="nom">Nom</label><input id="nom" autocomplete="family-name"></div>
       </div>
       <div class="frow">
-        <div class="co-field"><label>E-mail</label><input id="email" type="email" autocomplete="email"></div>
-        <div class="co-field"><label>Téléphone</label><input id="telephone" type="tel" autocomplete="tel"></div>
+        <div class="co-field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email"></div>
+        <div class="co-field"><label for="telephone">Téléphone</label><input id="telephone" type="tel" autocomplete="tel"></div>
       </div>
 
       <div class="co-sep"><h3>Adresse de livraison</h3></div>
-      <div class="co-field"><label>Adresse</label><input id="l_adresse" autocomplete="shipping street-address"></div>
+      <div class="co-field"><label for="l_adresse">Adresse</label><input id="l_adresse" autocomplete="shipping street-address"></div>
       <div class="frow">
-        <div class="co-field"><label>Code postal</label><input id="l_cp"></div>
-        <div class="co-field"><label>Ville</label><input id="l_ville"></div>
+        <div class="co-field"><label for="l_cp">Code postal</label><input id="l_cp"></div>
+        <div class="co-field"><label for="l_ville">Ville</label><input id="l_ville"></div>
       </div>
-      <div class="co-field"><label>Pays</label><input id="l_pays" value="France"></div>
+      <div class="co-field"><label for="l_pays">Pays</label><input id="l_pays" value="France"></div>
 
-      <label class="co-check"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
+      <label class="co-check" for="f_adresse"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
 
       <div id="billing" style="display:none">
         <div class="co-sep"><h3>Adresse de facturation</h3></div>
-        <div class="co-field"><label>Adresse</label><input id="f_adresse"></div>
+        <div class="co-field"><label for="f_adresse">Adresse</label><input id="f_adresse"></div>
         <div class="frow">
-          <div class="co-field"><label>Code postal</label><input id="f_cp"></div>
-          <div class="co-field"><label>Ville</label><input id="f_ville"></div>
+          <div class="co-field"><label for="f_cp">Code postal</label><input id="f_cp"></div>
+          <div class="co-field"><label for="f_ville">Ville</label><input id="f_ville"></div>
         </div>
-        <div class="co-field"><label>Pays</label><input id="f_pays" value="France"></div>
+        <div class="co-field"><label for="f_pays">Pays</label><input id="f_pays" value="France"></div>
+      </div>
+
+      <!-- ══ MODE CADEAU ══ -->
+      <label class="co-check" for="isGift" style="align-items:flex-start;margin:26px 0 0;padding:16px 18px;background:#fafaf7;border:1px solid var(--ligne);font-size:14px;line-height:1.5;cursor:pointer">
+        <input type="checkbox" id="isGift" style="margin-top:3px;flex-shrink:0">
+        <span><b style="font-family:var(--serif);font-size:16px">C'est un cadeau</b><br>
+        <span style="color:var(--gris-txt);font-size:13px">Aucun prix ne figurera dans le colis. Ajoutez un mot, choisissez la date d'arrivée.</span></span>
+      </label>
+
+      <div id="giftBox" style="display:none;border:1px solid var(--ligne);border-top:none;padding:20px 18px;background:#fff">
+        <div class="co-field" style="margin-bottom:16px">
+          <label for="giftMessage">Votre message <span style="color:var(--gris-txt);font-weight:400;text-transform:none;letter-spacing:0">— calligraphié sur notre carte, à la main</span></label>
+          <textarea id="giftMessage" rows="3" maxlength="300" placeholder="Pour toi, parce que…"
+            style="width:100%;padding:12px 14px;border:1px solid rgba(0,0,0,.12);background:#fafaf7;font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--noir);outline:none;resize:vertical"></textarea>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gris-txt);margin-top:6px">
+            <span>Laissez vide pour une carte vierge</span><span><span id="giftCount">0</span>/300</span>
+          </div>
+        </div>
+        <div class="co-field" style="margin-bottom:16px">
+          <label for="giftFrom">De la part de</label>
+          <input id="giftFrom" maxlength="60" placeholder="Votre prénom, ou anonyme">
+        </div>
+        <div class="co-field">
+          <label for="giftDate">Arrivée souhaitée <span style="color:var(--gris-txt);font-weight:400;text-transform:none;letter-spacing:0">— facultatif</span></label>
+          <input id="giftDate" type="date">
+          <div style="font-size:12px;color:var(--gris-txt);margin-top:6px">Nous ferons notre possible pour livrer ce jour-là. Comptez 5 à 7 jours ouvrés pour une pièce gravée.</div>
+        </div>
+        <div style="margin-top:16px;padding:12px 14px;background:#faf8f4;border-left:2px solid #e0dbd0;font-size:12.5px;color:var(--gris-txt);line-height:1.6">
+          Le bon de livraison sera sans prix. Votre facture vous est envoyée séparément, par e-mail.
+        </div>
       </div>
 
       <div class="pay-note" style="background:rgba(13,13,13,.04);border:1px solid rgba(13,13,13,.12);color:#0d0d0d">Paiement sécurisé par carte (Visa, Mastercard, Amex) via Stripe. Vous serez redirigé après validation pour finaliser votre commande.</div>
@@ -95,8 +124,8 @@
         <span>J'ai lu et j'accepte les <a href="cgv.html" target="_blank" style="color:var(--noir);text-decoration:underline">Conditions Générales de Vente</a> ainsi que la <a href="confidentialite.html" target="_blank" style="color:var(--noir);text-decoration:underline">Politique de confidentialité</a> d'ELLIA PARIS. <span style="color:#b1432f">*</span></span>
       </label>
 
-      <button class="btn solid" id="validate" style="width:100%;text-align:center">Valider ma commande</button>
-      <div class="err" id="err"></div>
+      <button class="btn solid" id="validate" style="width:100%;text-align:center">Commander avec obligation de paiement</button>
+      <div class="err" id="err" role="alert" aria-live="polite"></div>
       <p style="font-size:12px;color:var(--gris-txt);margin-top:14px;text-align:center;line-height:1.5">En validant votre commande, vous reconnaissez avoir pris connaissance et accepté les <a href="cgv.html" target="_blank" style="color:inherit;text-decoration:underline">CGV</a>. <br>Droit de rétractation : 14 jours à compter de la réception, sauf produits personnalisés (art. L221-28 du Code de la consommation).</p>
     </form>
 
@@ -112,14 +141,14 @@
       </div>
       <div id="coDiscount" style="display:none;justify-content:space-between;padding:6px 0;font-size:13.5px;color:#2f7d52"><span>Réduction <span id="coDiscountCode"></span></span><span id="coDiscountAmount">-0 €</span></div>
       <div class="co-tot"><span class="eyebrow">Total</span><span class="v" id="coTotal">0 €</span></div>
-      <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte · Retours sous 30 jours</p>
+      <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte · Rétractation 14 jours (hors pièces gravées)</p>
     </div>
   </div>
 </section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
 <script>
 // On attend que cart.js (defer) soit charge avant d'utiliser Cart
 document.addEventListener('DOMContentLoaded', function(){
@@ -176,11 +205,64 @@ document.addEventListener('DOMContentLoaded', function(){
     }catch(e){}
   })();
 
+  // Retour arriere depuis Stripe : la page est restauree telle quelle par le
+  // navigateur (bfcache), bouton desactive compris. On la reactive.
+  window.addEventListener('pageshow', function(ev){
+    if (!ev.persisted) return;
+    var b = document.getElementById('validate');
+    if (b) { b.disabled = false; b.textContent = 'Commander avec obligation de paiement'; }
+    var e2 = document.getElementById('err');
+    if (e2) e2.textContent = '';
+  });
+
+  /* ══ MODE CADEAU ══ */
+  (function(){
+    var chk = document.getElementById('isGift'), box = document.getElementById('giftBox');
+    var txt = document.getElementById('giftMessage'), cnt = document.getElementById('giftCount');
+    var dte = document.getElementById('giftDate');
+    if(!chk || !box) return;
+    chk.addEventListener('change', function(){
+      box.style.display = chk.checked ? 'block' : 'none';
+      if (chk.checked && txt) txt.focus();
+    });
+    if (txt && cnt) txt.addEventListener('input', function(){ cnt.textContent = txt.value.length; });
+    // Pas de date passee, et jamais avant le delai de fabrication d'une piece gravee
+    if (dte) {
+      var d = new Date(); d.setDate(d.getDate() + 5);
+      dte.min = d.toISOString().slice(0,10);
+      var max = new Date(); max.setDate(max.getDate() + 120);
+      dte.max = max.toISOString().slice(0,10);
+    }
+  })();
+
   const v=id=>document.getElementById(id).value.trim();
+
+  // RESEAU : sans delai maximum, si la connexion decroche en plein appel la
+  // promesse fetch ne se resout JAMAIS et le bouton reste mort. 20 s max.
+  async function fetchT(url, opts, ms){
+    opts = opts || {}; ms = ms || 20000;
+    if (!('AbortController' in window)) return fetch(url, opts);
+    const ctl = new AbortController();
+    const to  = setTimeout(()=>ctl.abort(), ms);
+    try { return await fetch(url, Object.assign({}, opts, { signal: ctl.signal })); }
+    finally { clearTimeout(to); }
+  }
+  const RE_MAIL = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
   document.getElementById('validate').addEventListener('click', async ()=>{
     const err=document.getElementById('err'); err.textContent='';
-    if(!v('prenom')||!v('nom')||!v('email')){ err.textContent='Merci de remplir prénom, nom et e-mail.'; return; }
-    if(!v('l_adresse')||!v('l_cp')||!v('l_ville')){ err.textContent='Merci de compléter l\'adresse de livraison.'; return; }
+    function stop(msg, id){ err.textContent = msg; const el = id && document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); } return true; }
+    if(v('prenom').length < 2) return void stop('Merci d\'indiquer votre prénom.', 'prenom');
+    if(v('nom').length    < 2) return void stop('Merci d\'indiquer votre nom.', 'nom');
+    if(!RE_MAIL.test(v('email'))) return void stop('Cette adresse e-mail semble incorrecte. Exemple : marie@exemple.fr', 'email');
+    if(v('l_adresse').length < 4) return void stop('Merci d\'indiquer votre adresse complète.', 'l_adresse');
+    if(!/^[0-9A-Za-z][0-9A-Za-z\s-]{2,9}$/.test(v('l_cp'))) return void stop('Code postal invalide. Exemple : 75004', 'l_cp');
+    if(v('l_ville').length < 2) return void stop('Merci d\'indiquer votre ville.', 'l_ville');
+    if(v('telephone') && v('telephone').replace(/[^0-9]/g,'').length < 9) return void stop('Numéro de téléphone incomplet — il sert au transporteur pour la livraison.', 'telephone');
+    if(!same.checked){
+      if(v('f_adresse').length < 4) return void stop('Merci de compléter l\'adresse de facturation.', 'f_adresse');
+      if(!/^[0-9A-Za-z][0-9A-Za-z\s-]{2,9}$/.test(v('f_cp'))) return void stop('Code postal de facturation invalide.', 'f_cp');
+      if(v('f_ville').length < 2) return void stop('Merci d\'indiquer la ville de facturation.', 'f_ville');
+    }
     // CGV obligatoires (Art. L121-19 Code conso)
     var cgv = document.getElementById('acceptCgv');
     if(cgv && !cgv.checked){ err.textContent='Vous devez accepter les Conditions Générales de Vente pour finaliser la commande.'; cgv.focus(); return; }
@@ -205,7 +287,12 @@ document.addEventListener('DOMContentLoaded', function(){
       items:itemsLight, montant_total:Cart.total(), user_id:userId,
       preview: orderPreview,
       // Code promo : revalide et applique COTE SERVEUR (le total Stripe sera le net)
-      promo_code: (window.elliaPromoApplied && window.elliaPromoApplied() ? window.elliaPromoApplied().code : null)
+      promo_code: (window.elliaPromoApplied && window.elliaPromoApplied() ? window.elliaPromoApplied().code : null),
+      // Cadeau : aucun prix dans le colis, mot calligraphie, date souhaitee
+      is_gift:      !!(document.getElementById('isGift') || {}).checked,
+      gift_message: (document.getElementById('isGift')||{}).checked ? v('giftMessage') : '',
+      gift_from:    (document.getElementById('isGift')||{}).checked ? v('giftFrom')    : '',
+      gift_date:    (document.getElementById('isGift')||{}).checked ? v('giftDate')    : ''
     };
     // RETRY : si une commande a deja ete creee pour ce panier, on la reutilise
     // au lieu d'en recreer une (qui reserverait le stock une seconde fois).
@@ -224,12 +311,17 @@ document.addEventListener('DOMContentLoaded', function(){
     if (numero) { /* commande deja creee : on saute directement au paiement */ }
     else
     try{
-      const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const r=await fetchT('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(r.status===409){ err.textContent='Désolé, La Pochette ELLIA est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
       if(r.ok){ const dd=await r.json(); if(dd&&dd.numero){ numero=dd.numero;
         try{ sessionStorage.setItem('ellia_pending_order', JSON.stringify({numero:numero, total:Cart.total(), ts:Date.now()})); }catch(_){} } }
       else { err.textContent='Erreur lors de la création de la commande. Réessayez.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
-    }catch(e){ err.textContent='Connexion impossible. Vérifiez votre connexion internet.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
+    }catch(e){
+      err.textContent = (e && e.name === 'AbortError')
+        ? 'Le serveur met trop de temps à répondre. Votre commande n\'a pas été enregistrée — réessayez dans un instant.'
+        : 'Connexion impossible. Vérifiez votre connexion internet, puis réessayez.';
+      validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return;
+    }
     // Si connecté, on enregistre l'adresse dans le profil pour le pré-remplissage la prochaine fois
     if(userId && window.SB){
       try{ await SB.from('profiles').upsert({ id:userId, nom:v('prenom')+' '+v('nom'), telephone:v('telephone'), adresse:v('l_adresse'), cp:v('l_cp'), ville:v('l_ville'), pays:v('l_pays')||'France' }); }catch(_){}
@@ -237,14 +329,17 @@ document.addEventListener('DOMContentLoaded', function(){
     // === REDIRECTION VERS STRIPE CHECKOUT ===
     validateBtn.textContent = 'Redirection vers le paiement…';
     try{
-      const sr = await fetch('/api/checkout/session',{
+      const sr = await fetchT('/api/checkout/session',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ numero: numero })
       });
       const sd = await sr.json();
       if(sd.ok && sd.url){
-        try{ sessionStorage.removeItem('ellia_pending_order'); }catch(_){}
+        // NE PAS effacer 'ellia_pending_order' ici : si la cliente annule sur
+        // la page Stripe et revient, c'est ce marqueur qui evite de recreer une
+        // 2e commande et de decrementer le stock une seconde fois. Il est
+        // efface sur la page de confirmation, apres paiement reussi.
         // NE PAS vider le panier ici : si la cliente annule sur la page Stripe,
         // elle revient avec son panier + sa personnalisation intacts.
         // Le panier sera vide sur la page de confirmation apres paiement reussi.

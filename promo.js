@@ -11,7 +11,9 @@ async function createPromoCode(sb, d){
   const row = {
     code: String(d.code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,40),
     discount_type: ['percent','fixed','shipping'].includes(d.discount_type) ? d.discount_type : 'percent',
-    discount_value: Math.max(0, Math.min(100000, Number(d.discount_value||0))),
+    discount_value: (String(d.discount_type) === 'percent')
+      ? Math.max(0, Math.min(100, Number(d.discount_value||0)))      // pourcentage : 0-100
+      : Math.max(0, Math.min(100000, Number(d.discount_value||0))),  // montant fixe
     min_order: Math.max(0, Math.min(100000, Number(d.min_order||0))),
     max_uses: d.max_uses ? Math.max(1, Math.min(100000, Number(d.max_uses))) : null,
     expires_at: d.expires_at || null,
@@ -42,7 +44,11 @@ async function validatePromoCode(sb, code, orderTTC){
   const amt = Number(orderTTC||0);
   if(amt < Number(p.min_order||0)) return { valid:false, error:'min_order', min_order:Number(p.min_order) };
   let discount = 0, free_shipping = false;
-  if(p.discount_type === 'percent') discount = Math.round(amt * Number(p.discount_value) / 100 * 100) / 100;
+  if(p.discount_type === 'percent'){
+    const pct = Math.max(0, Math.min(100, Number(p.discount_value) || 0));   // jamais plus de 100 %
+    if (Number(p.discount_value) > 100) console.warn('[PROMO] '+p.code+' : pourcentage '+p.discount_value+' plafonne a 100');
+    discount = Math.min(amt, Math.round(amt * pct) / 100);
+  }
   else if(p.discount_type === 'fixed') discount = Math.min(amt, Number(p.discount_value));
   else if(p.discount_type === 'shipping') free_shipping = true;
   return { valid:true, code:p.code, discount, type:p.discount_type, description:p.description, free_shipping };

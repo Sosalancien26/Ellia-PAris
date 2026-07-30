@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1781700000">
+<link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   .cart-wrap{max-width:980px;margin:0 auto;padding:0 40px}
   .cart-line{display:grid;grid-template-columns:auto 1fr auto auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--ligne)}
@@ -24,28 +24,26 @@
 </style>
 <meta name="description" content="Votre panier ELLIA PARIS — finalisez votre commande." />
 <meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#f3f1ec">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png" alt="ELLIA PARIS" /></a>
+    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links">
       <a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a>
       <a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a>
     </nav>
-    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button></div>
+    <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
-<section class="page-hero page-top"><div class="wrap"><div class="eyebrow">Votre sélection</div><h1>Panier</h1></div></section>
+<section id="contenu" class="page-hero page-top"><div class="wrap"><div class="eyebrow">Votre sélection</div><h1>Panier</h1></div></section>
 
 <section class="pad" style="padding-top:30px">
   <div class="cart-wrap">
@@ -53,14 +51,14 @@
     <div id="cartFooter"></div>
   </div>
 </section>
-<script src="app.js?v=1781700000" defer></script>
-<script src="cart.js?v=1781700000" defer></script>
+<script src="app.js?v=1785400000" defer></script>
+<script src="cart.js?v=1785400000" defer></script>
 <script>
 // On attend que cart.js (defer) soit charge avant d'utiliser Cart
 document.addEventListener('DOMContentLoaded', function(){
 (function(){
   const list=document.getElementById('cartList'), foot=document.getElementById('cartFooter');
-  const eur=n=>n.toLocaleString('fr-FR')+' €';
+  const eur=n=>(Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
   function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function persoTxt(it){
     if(!it.initiales && !(it.flame && it.flame.enabled)) return 'Sans gravure';
@@ -108,6 +106,6 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 }); // end DOMContentLoaded
 </script>
-<script src="cookies-banner.js?v=1781700000" defer></script>
+<script src="cookies-banner.js?v=1785400000" defer></script>
 </body>
 </html>
