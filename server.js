@@ -1107,15 +1107,10 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (req.method==='GET' && pathname==='/api/reviews'){
-        if(!USE_DB){
-          // Demo data si pas de DB
-          return sendJSON(res,{ reviews:[
-            {prenom:'Camille',note:5,titre:'Un objet d\'exception',commentaire:'La qualité du cuir et la finition de la plaque chromée sont absolument remarquables. Le verrouillage biométrique fonctionne à merveille et la gravure de mes initiales est d\'une précision impressionnante. Un investissement qui vaut chaque euro.',created_at:'2026-04-22T10:00:00Z',validated:true},
-            {prenom:'Élodie',note:5,titre:'Discrète et raffinée',commentaire:'J\'aime particulièrement le côté discret de la fermeture biométrique — on ne la remarque qu\'au second regard. La pochette accompagne aussi bien mes tenues du soir que celles de tous les jours.',created_at:'2026-04-18T14:30:00Z',validated:true},
-            {prenom:'Margaux',note:4,titre:'Belle pièce',commentaire:'Très satisfaite de l\'achat. L\'écrin est magnifique, le cuir vraiment qualitatif. Petit bémol sur le délai de livraison, un peu long, mais l\'attente en vaut la peine.',created_at:'2026-04-10T09:15:00Z',validated:true},
-            {prenom:'Pauline',note:5,titre:'Service client au top',commentaire:'J\'ai eu une question sur la personnalisation, l\'équipe a été d\'une grande disponibilité. Le résultat dépasse mes attentes : finition impeccable, et le picto Ellia gravé sur la plaque est superbe.',created_at:'2026-03-28T16:45:00Z',validated:true}
-          ]});
-        }
+        // Aucun avis de demonstration : publier de faux temoignages sur un
+        // site marchand est une pratique commerciale trompeuse. Sans base,
+        // on n'affiche rien.
+        if(!USE_DB) return sendJSON(res,{ reviews:[] });
         try{
           const rows = await sb('reviews?validated=eq.true&order=created_at.desc&limit=50',{ method:'GET' });
           return sendJSON(res,{ reviews: rows||[] });
@@ -1134,12 +1129,24 @@ const server = http.createServer(async (req, res) => {
         if(!prenom || !isEmail(rEmail) || !note || commentaire.length<20 || !rgpd){
           return sendJSON(res,{ ok:false, error:'invalid' }, 400);
         }
-        const row = { prenom, email:rEmail, note, titre, commentaire, validated:false, ref_produit:'ELLIA-NOIR', created_at:new Date().toISOString() };
+        // L'article L.111-7-2 du Code de la consommation interdit d'annoncer
+        // un avis « verifie » sans controle reel. On rapproche donc l'adresse
+        // de l'auteur des commandes reellement livrees. Si elle n'y figure
+        // pas, l'avis reste publiable mais sans aucun badge.
+        let achat_verifie = false;
+        if (USE_DB) {
+          try {
+            const found = await sb('orders?select=numero&client_email=eq.'
+              + encodeURIComponent(rEmail) + '&statut=ilike.livr*&limit=1', { method:'GET' });
+            achat_verifie = Array.isArray(found) && found.length > 0;
+          } catch(e){ console.warn('[AVIS] verification achat impossible :', e.message); }
+        }
+        const row = { prenom, email:rEmail, note, titre, commentaire, validated:false, achat_verifie, ref_produit:'ELLIA-NOIR', created_at:new Date().toISOString() };
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         try{
           await sb('reviews',{ method:'POST', body:row });
           const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
-          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom, emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + escH(prenom) + '</b> (' + escH(rEmail) + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
+          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom + (achat_verifie ? ' (achat confirme)' : ' (ACHAT NON RETROUVE)'), emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + escH(prenom) + '</b> (' + escH(rEmail) + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
         }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         return sendJSON(res,{ ok:true });
       }

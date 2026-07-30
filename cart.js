@@ -110,17 +110,23 @@
         '<div class="rv-rating">'+star(r.note||5)+'</div>'+
         (r.titre?'<div class="rv-title">« '+escapeHtml(r.titre)+' »</div>':'')+
         '<div class="rv-comment">'+escapeHtml(r.commentaire||'')+'</div>'+
-        '<div class="rv-verified">Avis vérifié</div>'+
+        (r.achat_verifie?'<div class="rv-verified">Achat vérifié</div>':'')+
       '</div>';
     }).join('');
   }
   function renderSummary(list){
     var score=document.getElementById('rsScore'),count=document.getElementById('rsCount');
+    var etoiles=document.getElementById('rsStars');
     if(!score||!count)return;
-    if(!list||!list.length){score.textContent='—';count.textContent='0';return;}
+    if(!list||!list.length){
+      score.textContent='—';count.textContent='0';
+      if(etoiles)etoiles.textContent='☆☆☆☆☆';   // sinon 5 étoiles pleines sans aucun avis
+      return;
+    }
     var avg=list.reduce(function(s,r){return s+Number(r.note||0);},0)/list.length;
     score.textContent=(Math.round(avg*10)/10).toFixed(1);
     count.textContent=list.length;
+    if(etoiles)etoiles.textContent=star(Math.round(avg));
   }
   async function loadReviews(){
     if(!document.getElementById('reviewsList'))return;

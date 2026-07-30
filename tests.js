@@ -455,6 +455,36 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Avis clients — loyauté commerciale');
+
+{
+  const srcCart = lire('cart.js');
+  const srcPoch = lire('pochette.html');
+
+  // Quatre faux temoignages etaient ecrits en dur dans le serveur et
+  // servis des que la base etait injoignable : les effacer en base ne
+  // suffisait pas, ils revenaient tout seuls.
+  for (const faux of ['Pauline', 'Margaux', 'Élodie', 'Un objet d\'exception']) {
+    verifier('aucun faux avis « ' + faux + ' » dans le serveur',
+             !srcServeur.includes(faux));
+  }
+
+  // « Avis verifie » etait affiche sous chaque temoignage sans le
+  // moindre controle (art. L.111-7-2 du Code de la consommation).
+  verifier('le badge ne s\'affiche que si l\'achat est confirmé',
+           srcCart.includes('r.achat_verifie?'));
+  verifier('le serveur rapproche l\'e-mail d\'une commande livrée',
+           srcServeur.includes('achat_verifie') && srcServeur.includes('statut=ilike.livr'));
+  verifier('le compteur ne prétend plus que les avis sont vérifiés',
+           !srcPoch.includes('avis vérifiés'));
+  verifier('la page explique comment les avis sont contrôlés',
+           srcPoch.includes('Achat vérifié') && srcPoch.includes('rémunéré'));
+
+  // Cinq etoiles pleines s'affichaient meme avec zero avis.
+  verifier('aucune étoile pleine sans avis',
+           srcCart.includes("'☆☆☆☆☆'"));
+}
+
 section('Indicateurs du tableau de bord');
 
 {
