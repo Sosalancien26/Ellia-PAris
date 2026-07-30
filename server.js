@@ -540,7 +540,14 @@ async function sb(pathQuery, opts){
     throw e;
   } finally { clearTimeout(to); }
   if(!res.ok) throw new Error('Supabase '+res.status+' '+await res.text());
-  return res.status===204 ? null : res.json();
+  if (res.status === 204) return null;
+  // Une insertion sans "Prefer: return=representation" renvoie 201 avec un
+  // corps VIDE : res.json() levait alors une exception et l'appelant croyait
+  // que l'ecriture avait echoue alors qu'elle avait reussi.
+  const texte = await res.text();
+  if (!texte) return null;
+  try { return JSON.parse(texte); }
+  catch(_) { return null; }
 }
 async function getProducts(){
   if(!USE_DB) return MOCK_PRODUCTS;
