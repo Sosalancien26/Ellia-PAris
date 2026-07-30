@@ -2395,8 +2395,18 @@ function versCSV(lignes){
          lignes.map(l => colonnes.map(c => ech(l[c])).join(';')).join('\n');
 }
 
-async function sauvegardeQuotidienne(){
+let _derniereSauvegarde = 0;
+async function sauvegardeQuotidienne(forcee){
   if (!USE_DB) return;
+  // VERROU DE FREQUENCE. Sans lui, une erreur de planification peut relancer
+  // la sauvegarde en boucle : chaque passage ouvre une connexion au serveur
+  // de messagerie, qui finit par bloquer le compte pour abus.
+  const ecoule = Date.now() - _derniereSauvegarde;
+  if (!forcee && _derniereSauvegarde && ecoule < 12 * 3600 * 1000) {
+    console.warn('[Sauvegarde] Ignoree : deja effectuee il y a ' + Math.round(ecoule/60000) + ' min.');
+    return;
+  }
+  _derniereSauvegarde = Date.now();
   const dest = process.env.BACKUP_TO || process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
   if (!dest || !transporter) {
     console.warn('[Sauvegarde] Aucune adresse ou pas de serveur mail — sauvegarde impossible.');
@@ -2506,24 +2516,44 @@ async function purgerPartages(){
 
 /* Declenche la sauvegarde chaque nuit a 3 h, heure de Paris. */
 function planifierSauvegarde(){
-  // 3 h heure de PARIS : le serveur est souvent en UTC, ce qui decalait
-  // la sauvegarde a 5 h du matin en ete.
+  const UN_JOUR = 24 * 60 * 60 * 1000;
+
+  // 3 h heure de PARIS. ATTENTION : en francais, Intl formate l'heure « 15 h »
+  // — un Number() dessus donne NaN, et setTimeout(fn, NaN) se declenche
+  // IMMEDIATEMENT puis se rearme en boucle. C'est ce qui a martele le serveur
+  // de messagerie jusqu'a le faire bloquer. On lit desormais les composantes
+  // une par une, et tout resultat invalide bascule sur un repli sur.
   const prochaine = () => {
-    const maintenant = new Date();
-    const hParis = Number(new Intl.DateTimeFormat('fr-FR',
-      { timeZone:'Europe/Paris', hour:'2-digit', hour12:false }).format(maintenant));
-    const mParis = Number(new Intl.DateTimeFormat('fr-FR',
-      { timeZone:'Europe/Paris', minute:'2-digit' }).format(maintenant));
-    let minutesAvant = ((3 - hParis) * 60) - mParis;
-    if (minutesAvant <= 0) minutesAvant += 24 * 60;
-    return minutesAvant * 60 * 1000;
+    try {
+      const parties = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(new Date());
+      const h = Number((parties.find(p => p.type === 'hour')   || {}).value);
+      const m = Number((parties.find(p => p.type === 'minute') || {}).value);
+      if (!Number.isFinite(h) || !Number.isFinite(m)) throw new Error('heure illisible');
+      let minutes = ((3 - h) * 60) - m;
+      if (minutes <= 0) minutes += 24 * 60;
+      const delai = minutes * 60 * 1000;
+      // Deuxieme filet : jamais moins d'une minute, jamais plus de 25 heures.
+      if (!Number.isFinite(delai) || delai < 60000 || delai > 25 * 3600 * 1000) throw new Error('delai aberrant');
+      return delai;
+    } catch(e) {
+      console.warn('[Sauvegarde] Heure de Paris illisible (' + e.message + ') — repli sur 24 h.');
+      return UN_JOUR;
+    }
   };
-  const armer = () => setTimeout(async () => {
-    try { await sauvegardeQuotidienne(); } catch(e){ console.warn('[Sauvegarde] KO :', e.message); }
-    armer();
-  }, prochaine());
-  armer();
-  console.log('[Sauvegarde] Prochaine dans ' + Math.round(prochaine()/3600000) + ' h.');
+
+  const armer = () => {
+    const delai = prochaine();
+    setTimeout(async () => {
+      try { await sauvegardeQuotidienne(); }
+      catch(e){ console.warn('[Sauvegarde] KO :', e.message); }
+      armer();
+    }, delai);
+    return delai;
+  };
+  const premier = armer();
+  console.log('[Sauvegarde] Prochaine dans ' + (premier / 3600000).toFixed(1) + ' h.');
 }
 
 /* ============================================================

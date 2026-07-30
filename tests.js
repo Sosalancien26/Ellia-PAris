@@ -438,6 +438,69 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Tâches planifiées');
+
+// Un délai invalide passé à setTimeout vaut 0 : la tâche se déclenche
+// immédiatement et se réarme en boucle. C'est ce qui a martelé le serveur
+// de messagerie jusqu'à faire bloquer le compte.
+verifier('le calcul de l\'heure de sauvegarde lit les composantes séparément',
+         srcServeur.includes('formatToParts'));
+verifier('un délai invalide bascule sur un repli sûr',
+         srcServeur.includes('delai aberrant') && srcServeur.includes('Number.isFinite(delai)'));
+verifier('la sauvegarde ne peut pas s\'exécuter deux fois dans la journée',
+         srcServeur.includes('_derniereSauvegarde'));
+
+// Vérification exécutée du calcul réel, pas seulement de sa présence
+{
+  const parties = new Intl.DateTimeFormat('fr-FR', {
+    timeZone:'Europe/Paris', hour:'2-digit', minute:'2-digit', hour12:false
+  }).formatToParts(new Date());
+  const h = Number((parties.find(p => p.type === 'hour')   || {}).value);
+  const m = Number((parties.find(p => p.type === 'minute') || {}).value);
+  verifier('l\'heure de Paris se lit sans NaN', Number.isFinite(h) && Number.isFinite(m),
+           'heure=' + h + ' minute=' + m);
+  let minutes = ((3 - h) * 60) - m;
+  if (minutes <= 0) minutes += 24 * 60;
+  const delai = minutes * 60 * 1000;
+  verifier('le délai calculé est plausible (entre 1 min et 25 h)',
+           Number.isFinite(delai) && delai > 60000 && delai < 25*3600*1000,
+           (delai/3600000).toFixed(1) + ' h');
+}
+
+// Aucune autre minuterie ne doit reposer sur un délai calculé sans garde-fou.
+// On isole le VRAI dernier argument en comptant les parenthèses, sinon un
+// corps de fonction sur plusieurs lignes est pris pour un délai.
+{
+  const delaisSuspects = [];
+  // On retire les commentaires : ils citent des exemples de code fautif
+  // (« setTimeout(fn, NaN) ») qui ne sont pas du code exécuté.
+  const codeSeul = srcServeur
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').map(l => l.replace(/(^|[^:'"\\])\/\/.*$/, '$1')).join('\n');
+  const re = /set(?:Timeout|Interval)\(/g;
+  let m;
+  while ((m = re.exec(codeSeul)) !== null) {
+    let i = m.index + m[0].length, prof = 1, dernierVirgule = -1;
+    while (i < codeSeul.length && prof > 0) {
+      const c = codeSeul[i];
+      if (c === '(' || c === '[' || c === '{') prof++;
+      else if (c === ')' || c === ']' || c === '}') prof--;
+      else if (c === ',' && prof === 1) dernierVirgule = i;
+      i++;
+    }
+    if (dernierVirgule < 0) continue;
+    const delai = codeSeul.slice(dernierVirgule + 1, i - 1).trim();
+    // Sûrs : un nombre, un calcul de nombres, la variable déjà validée,
+    // ou le délai d'expiration des appels à la base.
+    const sur = /^[\d*+\-\s.]+$/.test(delai)
+             || delai === 'delai'
+             || /^Number\(opts\.timeout\)\s*\|\|\s*\d+$/.test(delai);
+    if (!sur) delaisSuspects.push(delai.replace(/\s+/g, ' ').slice(0, 60));
+  }
+  verifier('aucune minuterie ne dépend d\'un délai calculé non vérifié',
+           delaisSuspects.length === 0, delaisSuspects.join(' | '));
+}
+
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.
    ══════════════════════════════════════════════════════════════ */
