@@ -20,7 +20,10 @@ const path = require('path');
 const crypto = require('crypto');
 
 const RACINE = __dirname;
-const lire = (f) => fs.readFileSync(path.join(RACINE, f), 'utf8');
+// Git convertit les fins de ligne en CRLF sur Windows. Sans cette
+// normalisation, les motifs de recherche cessent de correspondre après un
+// commit et les tests échouent alors que le code est intact.
+const lire = (f) => fs.readFileSync(path.join(RACINE, f), 'utf8').replace(/\r\n/g, '\n');
 
 let reussis = 0, echoues = 0;
 const echecs = [];
@@ -52,7 +55,7 @@ const srcPerso   = lire('personnalisation.html');
    qui tourne en production, sans conflit de noms. */
 const os = require('os');
 function chargerExtrait(nom, code){
-  const f = path.join(os.tmpdir(), 'ellia-test-' + nom + '-' + process.pid + '.js');
+  const f = path.join(os.tmpdir(), 'ellia-test-' + nom + '-' + process.pid + '.cjs');
   fs.writeFileSync(f, code, 'utf8');
   try { return require(f); }
   finally { try { fs.unlinkSync(f); } catch(_){} }
@@ -349,7 +352,7 @@ verifier('aucun message d\'erreur de base renvoyé au public',
 let versCSV = null;
 try {
   const os2 = require('os');
-  const f = path.join(os2.tmpdir(), 'ellia-csv-' + process.pid + '.js');
+  const f = path.join(os2.tmpdir(), 'ellia-csv-' + process.pid + '.cjs');
   fs.writeFileSync(f, srcServeur.match(/function versCSV\(lignes\)\{[\s\S]*?\n\}/)[0] + '\nmodule.exports = versCSV;');
   versCSV = require(f); fs.unlinkSync(f);
 } catch(e){}
