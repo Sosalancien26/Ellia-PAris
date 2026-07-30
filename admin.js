@@ -214,7 +214,7 @@
     a.download = 'ellia-commandes-' + new Date().toISOString().slice(0,10) + '.csv';
     document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0);
   }
-  function renderOrders(list){ ORDERS=list; updateCounts(); applyFilter(); updateDashAlert(); }
+  function renderOrders(list){ ORDERS=list; updateCounts(); applyFilter(); updateDashAlert(); majCompteurBons(); }
 
   /* Bandeau "à traiter" sur le tableau de bord */
   function updateDashAlert(){
@@ -284,21 +284,66 @@
     '</div>';
   }
 
-  /* Bon de préparation imprimable — SANS aucun prix (pour l'atelier / le colis) */
-  function printPrepSlip(o){
-    // gravureFull() detaille AUSSI les symboles (flamme, hamsa, peace, ellia) :
-    // sans cela l'atelier grave uniquement les initiales et oublie les symboles.
-    const detail = (typeof gravureFull === 'function') ? gravureFull(o) : '';
-    const gravure = (o.initiales && o.initiales !== '—')
+
+  // Nombre de pieces en attente de gravure, affiche sur le bouton pour que
+  // l'atelier sache d'un coup d'oeil ce qui l'attend.
+  function majCompteurBons(){
+    var el = document.getElementById('ordBonsCount');
+    if (!el) return;
+    var n = (ORDERS || []).filter(function(o){
+      var st = norm(o.statut || '');
+      if (st.includes('attente paiement')) return false;
+      return st.startsWith('nouvelle') || st.startsWith('en prep');
+    }).length;
+    el.textContent = n ? ('· ' + n) : '';
+    var b = document.getElementById('ordBonsGraver');
+    if (b) b.style.opacity = n ? '1' : '.45';
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     IMPRESSION GROUPEE DES BONS A GRAVER
+     Changer le foil de la presse est l'etape lente de l'atelier.
+     Sortir les bons dans l'ordre d'arrivee impose un changement par
+     commande ; les grouper par finition en impose un par COULEUR.
+     ══════════════════════════════════════════════════════════════ */
+
+  // Toutes les finitions reellement necessaires pour une commande :
+  // les initiales ET chaque symbole peuvent avoir la leur.
+  function finitionsRequises(o){
+    var f = [];
+    if (o.initiales && o.initiales !== '—' && o.finition && o.finition !== '—') f.push(String(o.finition).trim());
+    (Array.isArray(o.items_data) ? o.items_data : []).forEach(function(it){
+      ['flame','extra','extra2','extra3'].forEach(function(k){
+        var sy = it && it[k];
+        if (sy && sy.enabled && sy.finish) f.push(String(sy.finish).trim());
+      });
+    });
+    return f.filter(function(v,i,a){ return v && a.indexOf(v) === i; });
+  }
+
+  // Ordre de passage : du plus clair au plus sombre, l'aveugle en dernier
+  // car il ne demande aucun foil.
+  var ORDRE_FINITIONS = ['Or', 'Or rose', 'Argent', 'Aveugle'];
+  function rangFinition(f){
+    var i = ORDRE_FINITIONS.findIndex(function(x){ return norm(x) === norm(f || ''); });
+    return i < 0 ? 99 : i;
+  }
+
+  // Le corps d'un bon, sans l'enveloppe HTML : reutilise pour l'impression
+  // unitaire comme pour l'impression groupee.
+  function corpsBon(o){
+    var detail = (typeof gravureFull === 'function') ? gravureFull(o) : '';
+    var gravure = (o.initiales && o.initiales !== '—')
       ? '<tr><td>Initiales à graver</td><td style="font-size:26px;font-family:Georgia,serif;letter-spacing:.2em"><b>'+esc(o.initiales)+'</b></td></tr>'+
         '<tr><td>Finition</td><td><b>'+esc(o.finition||'—')+'</b></td></tr>'+
         '<tr><td>Emplacement</td><td><b>'+esc(o.emplacement||'—')+'</b></td></tr>'+
         (detail ? '<tr><td>Détail complet</td><td>'+detail+'</td></tr>' : '')
       : (detail ? '<tr><td>Gravure</td><td>'+detail+'</td></tr>'
                 : '<tr><td colspan="2"><b>Sans gravure</b></td></tr>');
-    const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Bon de préparation '+esc(o.id)+'</title>'+
-      '<style>body{font-family:Arial,sans-serif;color:#111;max-width:640px;margin:30px auto;padding:0 20px}h1{font-size:20px;border-bottom:2px solid #111;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 12px;border:1px solid #ddd;font-size:14px}td:first-child{width:200px;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.08em}img{max-width:280px;border:1px solid #ddd;margin-top:8px}.foot{margin-top:30px;font-size:11px;color:#999}@media print{.noprint{display:none}}</style></head><body>'+
-      '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
+    var fins = finitionsRequises(o);
+    return '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
+      (fins.length > 1 ? ('<div style="border:1px solid #111;padding:9px 12px;margin:0 0 14px;font-size:13px">'+
+        '<b>Plusieurs foils sur cette pièce :</b> '+esc(fins.join(' · '))+'</div>') : '')+
       (o.is_gift ? ('<div style="border:2px solid #111;padding:14px 16px;margin:0 0 16px">'+
         '<div style="font-size:13px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold">Commande cadeau</div>'+
         '<div style="font-size:13px;margin-top:8px">Bon de livraison <b>sans aucun prix</b> · carte manuscrite à joindre'+
@@ -320,11 +365,94 @@
         (o.notes_admin ? '<tr><td>Notes internes</td><td>'+esc(o.notes_admin)+'</td></tr>' : '')+
       '</table>'+
       (apercuSur(o.preview) ? '<div><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em">Aperçu personnalisation client</div><img src="'+apercuSur(o.preview)+'"></div>' : '')+
-      '<div class="foot">Document interne — ne contient aucune information de prix. À joindre au poste de gravure / préparation.</div>'+
+      '<div class="foot">Document interne — ne contient aucune information de prix. À joindre au poste de gravure / préparation.</div>';
+  }
+
+  var STYLE_BON = 'body{font-family:Arial,sans-serif;color:#111;max-width:640px;margin:30px auto;padding:0 20px}'+
+    'h1{font-size:20px;border-bottom:2px solid #111;padding-bottom:10px}'+
+    'table{width:100%;border-collapse:collapse;margin:18px 0}'+
+    'td{padding:10px 12px;border:1px solid #ddd;font-size:14px}'+
+    'td:first-child{width:200px;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.08em}'+
+    'img{max-width:280px;border:1px solid #ddd;margin-top:8px}'+
+    '.foot{margin-top:30px;font-size:11px;color:#999}'+
+    '.bon{page-break-after:always;break-after:page}'+
+    '.bon:last-of-type{page-break-after:auto;break-after:auto}'+
+    '@media print{.noprint{display:none}}';
+
+  function ouvrirImpression(titre, corps){
+    var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+titre+'</title>'+
+      '<style>'+STYLE_BON+'</style></head><body>'+corps+
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:12px 24px;background:#111;color:#fff;border:none;cursor:pointer;font-size:13px">🖨 Imprimer</button>'+
       '</body></html>';
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); } else { alert('Autorisez les fenêtres pop-up pour imprimer le bon de préparation.'); }
+    var w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+    else alert('Autorisez les fenêtres pop-up pour imprimer.');
+  }
+
+  /* Bon de préparation imprimable — SANS aucun prix (pour l'atelier / le colis) */
+  function printPrepSlip(o){
+    ouvrirImpression('Bon de préparation ' + esc(o.id), '<div class="bon">' + corpsBon(o) + '</div>');
+  }
+
+  /* Tous les bons en attente, groupés par finition */
+  function printBonsAGraver(){
+    var aFaire = (ORDERS || []).filter(function(o){
+      var st = norm(o.statut || '');
+      // Ce qui reste a graver : nouvelles et en preparation. On exclut les
+      // commandes non payees (rien ne doit partir a l'atelier avant paiement)
+      // et tout ce qui est deja pret, expedie, livre ou annule.
+      if (st.includes('attente paiement') || st.startsWith('prete') ||
+          st.startsWith('exped') || st.startsWith('livr') ||
+          st.startsWith('annul') || st.startsWith('rembours')) return false;
+      return st.startsWith('nouvelle') || st.startsWith('en prep');
+    });
+
+    if (!aFaire.length) {
+      alert('Aucune commande à graver pour le moment.\n\nSont concernées les commandes « Nouvelle » et « En préparation », hors commandes non payées.');
+      return;
+    }
+
+    // Tri : par finition principale (ordre du plus clair au plus sombre),
+    // puis par date pour respecter l'ordre d'arrivée à l'intérieur d'un foil.
+    aFaire.sort(function(a, b){
+      var ra = rangFinition((finitionsRequises(a)[0]) || 'zzz');
+      var rb = rangFinition((finitionsRequises(b)[0]) || 'zzz');
+      if (ra !== rb) return ra - rb;
+      return String(a.date || '').localeCompare(String(b.date || ''));
+    });
+
+    // Feuille de route : combien de pièces par foil, dans l'ordre de passage.
+    var parFinition = {};
+    aFaire.forEach(function(o){
+      var f = (finitionsRequises(o)[0]) || 'Sans gravure';
+      parFinition[f] = (parFinition[f] || 0) + 1;
+    });
+    var lignes = Object.keys(parFinition)
+      .sort(function(a,b){ return rangFinition(a) - rangFinition(b); })
+      .map(function(f){
+        return '<tr><td style="font-size:15px;text-transform:none;letter-spacing:0;color:#111;width:auto"><b>'+esc(f)+'</b></td>'+
+               '<td style="font-size:18px"><b>'+parFinition[f]+'</b> pièce'+(parFinition[f]>1?'s':'')+'</td></tr>';
+      }).join('');
+
+    var multi = aFaire.filter(function(o){ return finitionsRequises(o).length > 1; }).length;
+    var cadeaux = aFaire.filter(function(o){ return o.is_gift; }).length;
+
+    var sommaire = '<div class="bon">'+
+      '<h1>ELLIA PARIS — Série à graver<br><span style="font-size:15px;font-weight:normal">'+
+        aFaire.length+' pièce'+(aFaire.length>1?'s':'')+' · '+new Date().toLocaleDateString('fr-FR',{dateStyle:'long'})+'</span></h1>'+
+      '<p style="font-size:13.5px;line-height:1.7;color:#444;margin:0 0 4px">'+
+        'Les bons qui suivent sont classés <b>par finition</b> : un seul changement de foil par couleur, '+
+        'au lieu d\'un par commande. Suivez l\'ordre des pages.</p>'+
+      '<table>'+lignes+'</table>'+
+      (multi ? ('<p style="font-size:13px;color:#111;border-left:3px solid #111;padding-left:12px;margin-top:16px">'+
+        '<b>'+multi+' pièce'+(multi>1?'s':'')+'</b> demande'+(multi>1?'nt':'')+' plusieurs foils — signalé en tête du bon concerné.</p>') : '')+
+      (cadeaux ? ('<p style="font-size:13px;color:#111;border-left:3px solid #111;padding-left:12px;margin-top:10px">'+
+        '<b>'+cadeaux+' commande'+(cadeaux>1?'s':'')+' cadeau</b> — carte manuscrite à préparer.</p>') : '')+
+      '<div class="foot">Document interne — aucune information de prix.</div>'+
+      '</div>';
+
+    var corps = sommaire + aFaire.map(function(o){ return '<div class="bon">' + corpsBon(o) + '</div>'; }).join('');
+    ouvrirImpression('Série à graver — ' + aFaire.length + ' pièces', corps);
   }
 
   /* Journal des actions de cette commande — visible par l'admin seulement */
@@ -1389,6 +1517,11 @@
     try{ renderStock(p); }catch(e){ console.warn('Stock:',e); }
     if (window.__applyRoleMasks) window.__applyRoleMasks();
     showDataBanner();
+  })();
+
+  (function(){
+    var b = document.getElementById('ordBonsGraver');
+    if (b) b.addEventListener('click', function(){ printBonsAGraver(); });
   })();
 
   /* ---- Controle des paiements (reconciliation Stripe a la demande) ---- */

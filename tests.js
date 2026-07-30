@@ -455,6 +455,76 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Bons à graver');
+
+{
+  const srcAdmin = lire('admin.js');
+  verifier('l\'impression groupée existe', srcAdmin.includes('function printBonsAGraver'));
+  verifier('le bouton est présent dans l\'interface', lire('admin.html').includes('ordBonsGraver'));
+
+  // On rejoue le vrai tri sur un jeu de commandes représentatif.
+  const norm = s => (s||'').toLowerCase().split('é').join('e').split('è').join('e').split('ê').join('e').split('à').join('a');
+  let finitionsRequises = null, rangFinition = null;
+  try {
+    const mod = chargerExtrait('bons',
+      // norm() vit ailleurs dans admin.js : on l'extrait aussi, sinon
+      // rangFinition plante à l'exécution.
+      srcAdmin.match(/const norm\s*=\s*[^\n]+/)[0] + '\n' +
+      srcAdmin.match(/function finitionsRequises[\s\S]*?\n  }/)[0] + '\n' +
+      srcAdmin.match(/var ORDRE_FINITIONS[\s\S]*?\n  }/)[0] + '\n' +
+      'module.exports = { finitionsRequises, rangFinition };');
+    finitionsRequises = mod.finitionsRequises;
+    rangFinition = mod.rangFinition;
+    verifier('les fonctions de tri sont extraites du vrai code', typeof finitionsRequises === 'function');
+  } catch(e){
+    verifier('les fonctions de tri sont extraites du vrai code', false, e.message);
+  }
+
+  if (typeof finitionsRequises === 'function') {
+    const cmds = [
+      { id:'A', date:'2026-07-28', statut:'Nouvelle',        finition:'Argent',  initiales:'AB', items_data:[] },
+      { id:'B', date:'2026-07-29', statut:'En préparation',  finition:'Or',      initiales:'CD', items_data:[] },
+      { id:'C', date:'2026-07-27', statut:'Nouvelle',        finition:'Or',      initiales:'EF', items_data:[{extra:{enabled:true,finish:'Argent'}}] },
+      { id:'D', date:'2026-07-30', statut:'Nouvelle',        finition:'Aveugle', initiales:'GH', items_data:[] },
+      { id:'E', date:'2026-07-26', statut:'Expédiée',        finition:'Or',      initiales:'IJ', items_data:[] },
+      { id:'F', date:'2026-07-25', statut:'En attente paiement', finition:'Or',  initiales:'KL', items_data:[] },
+      { id:'G', date:'2026-07-24', statut:'Prête à expédier',finition:'Or',      initiales:'MN', items_data:[] }
+    ];
+    const retenues = cmds.filter(o => {
+      const st = norm(o.statut||'');
+      if (st.includes('attente paiement') || st.startsWith('prete') || st.startsWith('exped') ||
+          st.startsWith('livr') || st.startsWith('annul') || st.startsWith('rembours')) return false;
+      return st.startsWith('nouvelle') || st.startsWith('en prep');
+    });
+    verifier('les commandes non payées sont exclues',  !retenues.some(o => o.id === 'F'));
+    verifier('les commandes expédiées sont exclues',   !retenues.some(o => o.id === 'E'));
+    verifier('les commandes déjà prêtes sont exclues', !retenues.some(o => o.id === 'G'));
+    verifier('les commandes à graver sont retenues',   retenues.length === 4, retenues.length + ' retenues');
+
+    retenues.sort((a,b) => {
+      const ra = rangFinition(finitionsRequises(a)[0] || 'zzz');
+      const rb = rangFinition(finitionsRequises(b)[0] || 'zzz');
+      return ra !== rb ? ra - rb : String(a.date||'').localeCompare(String(b.date||''));
+    });
+    const ordre = retenues.map(o => finitionsRequises(o)[0]);
+    verifier('les bons sortent groupés par finition',
+             JSON.stringify(ordre) === JSON.stringify(['Or','Or','Argent','Aveugle']), ordre.join(' → '));
+    verifier('à finition égale, l\'ordre d\'arrivée est respecté',
+             retenues[0].id === 'C' && retenues[1].id === 'B');
+    verifier('une pièce à deux foils est détectée', finitionsRequises(cmds[2]).length === 2,
+             finitionsRequises(cmds[2]).join(' + '));
+  }
+
+  // Le bon part à l'atelier : il ne doit contenir AUCUN montant.
+  // On cherche un VRAI affichage de montant, pas le mot « prix » de la phrase
+  // « ne contient aucune information de prix » du pied de page.
+  const corps = (srcAdmin.match(/function corpsBon\(o\)\{[\s\S]*?\n  }/) || [''])[0];
+  const montants = [/eur\(/i, /o\.total/, /montant_total/, /o\.prix/, /prix_pochette/, /promo_discount/]
+                     .filter(re => re.test(corps));
+  verifier('le bon de préparation n\'affiche aucun montant', montants.length === 0,
+           montants.map(String).join(' '));
+}
+
 section('Envoi des e-mails');
 
 // Quand le fournisseur bloque pour abus, chaque nouvelle tentative RALLONGE
