@@ -321,6 +321,38 @@
     if (w) { w.document.write(html); w.document.close(); } else { alert('Autorisez les fenêtres pop-up pour imprimer le bon de préparation.'); }
   }
 
+  /* Journal des actions de cette commande — visible par l'admin seulement */
+  async function chargerJournal(numero){
+    var zone = document.getElementById('omJournal');
+    if (!zone) return;
+    try {
+      var r = await fetch('/api/admin/logs?cible=' + encodeURIComponent(numero));
+      if (!r.ok) { zone.innerHTML = ''; return; }
+      var d = await r.json();
+      var l = (d && d.logs) || [];
+      if (!l.length) { zone.innerHTML = '<div style="font-size:12.5px;color:var(--gris)">Aucune modification enregistrée.</div>'; return; }
+      zone.innerHTML = l.map(function(e){
+        var q = new Date(e.created_at);
+        var quand = isNaN(q) ? '' : q.toLocaleString('fr-FR', { dateStyle:'short', timeStyle:'short' });
+        var quoi = ({ 'commande.modifiee':'Modification', 'stock.ajuste':'Stock ajusté',
+                      'compte.cree':'Compte créé', 'compte.supprime':'Compte supprimé' })[e.action] || e.action;
+        var det = '';
+        if (e.details) {
+          try {
+            var o = JSON.parse(e.details);
+            det = Object.keys(o).map(function(k){ return k + ' → ' + o[k]; }).join(' · ');
+          } catch(_) { det = e.details; }
+        }
+        return '<div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--ligne);font-size:12.5px;line-height:1.6">'
+             + '<span style="color:var(--gris);white-space:nowrap;min-width:112px">' + esc(quand) + '</span>'
+             + '<span style="flex:1"><b>' + esc(quoi) + '</b>'
+             + (det ? ('<br><span style="color:var(--gris)">' + esc(det).slice(0,240) + '</span>') : '')
+             + '</span>'
+             + '<span style="color:var(--gris);white-space:nowrap">' + esc(e.auteur||'?') + '</span></div>';
+      }).join('');
+    } catch(_) { zone.innerHTML = ''; }
+  }
+
   function renderViewMode(o){
     // Statut absent du referentiel : on l'ajoute, sinon le select retomberait sur
     // "En attente paiement" et un simple enregistrement retrograderait la commande.
@@ -365,6 +397,11 @@
         '<button type="button" class="of" id="omCopyAddr" style="font-size:11px">📋 Copier l\'adresse</button>'+
         (o.telephone ? '<a class="of" href="tel:'+esc(String(o.telephone).replace(/\s/g,''))+'" style="font-size:11px;text-decoration:none">📞 '+esc(o.telephone)+'</a>' : '')+
       '</div>'+
+      (window.__role==='admin' ?
+        ('<details style="margin:16px 0 4px;border-top:1px solid var(--ligne);padding-top:14px">'+
+          '<summary style="cursor:pointer;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);list-style:none">Historique des modifications</summary>'+
+          '<div id="omJournal" style="margin-top:12px"><div style="font-size:12.5px;color:var(--gris)">Chargement…</div></div>'+
+        '</details>') : '')+
       '<div style="height:8px"></div>'+
       omRow('Client',esc(o.client))+omRow('E-mail',esc(o.email))+omRow('Téléphone',esc(o.telephone))+
       omRow('Adresse de livraison',esc(o.adresse))+omRow('Adresse de facturation',esc(o.adresseFact||o.adresse))+
@@ -385,6 +422,7 @@
         '<span class="ord-saved" id="omSaved" style="display:none">✓ Enregistré</span>'+
       '</div>';
     document.getElementById('omClose').addEventListener('click',closeOrder);
+    if (window.__role === 'admin') chargerJournal(o.id);
     const omE = document.getElementById('omEdit');
     if (omE) omE.addEventListener('click',()=>openEditMode(o.id));
     const pBtn = document.getElementById('omPrint');

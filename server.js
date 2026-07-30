@@ -683,6 +683,29 @@ function readBody(req){
   });
 }
 function cookies(req){ const o={}; (req.headers.cookie||'').split(';').forEach(c=>{ const i=c.indexOf('='); if(i>0)o[c.slice(0,i).trim()]=c.slice(i+1).trim(); }); return o; }
+
+/* ============================================================
+   JOURNAL DES ACTIONS ADMIN
+   Six personnes utilisent l'interface. Sans trace horodatee,
+   impossible de savoir qui a modifie un montant ou un statut.
+   L'ecriture ne doit jamais faire echouer l'action elle-meme.
+   ============================================================ */
+async function journaliser(auteur, role, action, cible, details){
+  if (!USE_DB) return;
+  try {
+    await sb('admin_logs', { method:'POST', body:{
+      auteur:  String(auteur  || '?').slice(0, 60),
+      role:    String(role    || '?').slice(0, 20),
+      action:  String(action  || '').slice(0, 60),
+      cible:   String(cible   || '').slice(0, 60),
+      details: details == null ? null : String(typeof details === 'object' ? JSON.stringify(details) : details).slice(0, 1000)
+    }});
+  } catch(e){
+    // Un journal indisponible ne doit jamais bloquer une commande.
+    console.warn('[Journal] ecriture KO :', e.message);
+  }
+}
+
 /* ----- Sessions multi-roles -----
    Legacy : cookie === TOKEN  → compte principal (role admin)
    V2     : cookie === 'v2.' + base64(login|role) + '.' + hmac  → comptes equipe */
@@ -1433,6 +1456,17 @@ const server = http.createServer(async (req, res) => {
         } catch(e){ return sendJSON(res,{ ok:false, error:'echec', detail:String(e.message||e) }, 500); }
       }
 
+      /* Journal des actions — admin uniquement */
+      if (req.method==='GET' && pathname==='/api/admin/logs'){
+        if (ROLE !== 'admin') return sendJSON(res,{ error:'acces_refuse' }, 403);
+        const cible = url.searchParams.get('cible');
+        try {
+          const q = 'admin_logs?select=*&order=created_at.desc&limit=200'
+                  + (cible ? ('&cible=eq.' + encodeURIComponent(cible)) : '');
+          return sendJSON(res, { logs: (await sb(q)) || [] });
+        } catch(e){ return sendJSON(res,{ logs:[], error:e.message }); }
+      }
+
       if (req.method==='GET' && pathname==='/api/stats'){
         const s = await getStats();
         if (ROLE === 'atelier'){
@@ -1539,7 +1573,10 @@ const server = http.createServer(async (req, res) => {
             upd.montant_tva   = Number((ttc - ht).toFixed(2));
           } catch(_){}
         }
-        if(Object.keys(upd).length) await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
+        if(Object.keys(upd).length) {
+          await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:upd });
+          journaliser(AUTH.login, ROLE, 'commande.modifiee', numero, upd);
+        }
 
         let invoice_sent_now = false;
         if(d.statut!==undefined){
@@ -1605,6 +1642,7 @@ const server = http.createServer(async (req, res) => {
         if(!Number.isFinite(delta) || delta === 0) return sendJSON(res,{ ok:false, error:'invalid_delta' }, 400);
         if(Math.abs(delta) > 9999) return sendJSON(res,{ ok:false, error:'delta_too_large' }, 400);
         try {
+          journaliser(AUTH.login, ROLE, 'stock.ajuste', 'ELLIA-NOIR', d);
           const r = await sb('rpc/adjust_stock',{ method:'POST', body:{
             p_ref: ref,
             p_delta: Math.round(delta),
@@ -1789,6 +1827,7 @@ const server = http.createServer(async (req, res) => {
         const salt = crypto.randomBytes(16).toString('hex');
         try{
           await sb('admin_users',{ method:'POST', body:{ login, salt, password_hash: hashPassword(password, salt), role } });
+          journaliser(AUTH.login, ROLE, 'compte.cree', login, { role });
           return sendJSON(res,{ ok:true });
         }catch(e){
           const msg = String(e.message||'');
@@ -1820,6 +1859,7 @@ const server = http.createServer(async (req, res) => {
         }catch(e){ return sendJSON(res,{ error:'db' }, 500); }
       }
       if (req.method==='DELETE' && pathname.startsWith('/api/admin/users/')){
+        journaliser(AUTH.login, ROLE, 'compte.supprime', pathname.split('/').pop(), null);
         if(!USE_DB) return sendJSON(res,{ error:'no_db' }, 503);
         const uid = pathname.split('/').pop();
         if(!/^[0-9a-f-]{36}$/.test(uid)) return sendJSON(res,{ error:'bad_id' }, 400);
@@ -2236,6 +2276,180 @@ async function surveillance(){
   }
 }
 
+
+/* ============================================================
+   SAUVEGARDE QUOTIDIENNE
+   Si la base est perdue ou corrompue, tout part : commandes,
+   clients, factures, comptabilite. Chaque nuit on s'envoie un
+   export complet en piece jointe.
+   ============================================================ */
+function versCSV(lignes){
+  if (!lignes || !lignes.length) return '';
+  const colonnes = Object.keys(lignes[0]);
+  const ech = (v) => {
+    if (v == null) return '""';
+    let t = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+    return '"' + t.replace(/"/g, '""') + '"';
+  };
+  return '﻿' + colonnes.join(';') + '\n' +
+         lignes.map(l => colonnes.map(c => ech(l[c])).join(';')).join('\n');
+}
+
+async function sauvegardeQuotidienne(){
+  if (!USE_DB) return;
+  const dest = process.env.BACKUP_TO || process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+  if (!dest || !transporter) {
+    console.warn('[Sauvegarde] Aucune adresse ou pas de serveur mail — sauvegarde impossible.');
+    return;
+  }
+  const jour = new Date().toISOString().slice(0,10);
+  const pieces = [];
+  const resume = [];
+
+  // preview et items_data contiennent des images base64 : on les exclut du CSV
+  // (des dizaines de Mo) mais on les garde dans l'export JSON complet.
+  const tables = [
+    { nom:'commandes', req:'orders?select=*&order=created_at.desc' },
+    { nom:'clients',   req:'profiles?select=*' },
+    { nom:'avis',      req:'reviews?select=*' },
+    { nom:'newsletter',req:'newsletters?select=*' },
+    { nom:'promos',    req:'promo_codes?select=*' },
+    { nom:'produits',  req:'products?select=*' }
+  ];
+
+  for (const t of tables) {
+    try {
+      const rows = await sb(t.req);
+      const n = (rows || []).length;
+      resume.push('· ' + t.nom + ' : ' + n + ' ligne' + (n > 1 ? 's' : ''));
+      if (!n) continue;
+      const allege = rows.map(r => {
+        const c = { ...r };
+        if (c.preview) c.preview = '[image retirée du CSV]';
+        return c;
+      });
+      pieces.push({
+        filename: 'ellia-' + jour + '-' + t.nom + '.csv',
+        content: Buffer.from(versCSV(allege), 'utf8'),
+        contentType: 'text/csv; charset=utf-8'
+      });
+    } catch(e){
+      resume.push('· ' + t.nom + ' : ÉCHEC — ' + e.message);
+    }
+  }
+
+  if (!pieces.length) {
+    alerte('sauvegarde_vide', 'Sauvegarde quotidienne vide',
+      'Aucune donnée n\'a pu être exportée :\n' + resume.join('\n'), 'critique');
+    return;
+  }
+
+  const inner =
+    '<h2 style="font-family:Georgia,serif;font-weight:normal;font-size:22px;margin:0 0 14px">Sauvegarde du ' +
+      new Date().toLocaleDateString('fr-FR', { dateStyle:'long' }) + '</h2>' +
+    '<pre style="font-family:Consolas,Menlo,monospace;font-size:13px;color:#4a4640;line-height:1.8;margin:0">' +
+      escH(resume.join('\n')) + '</pre>' +
+    '<p style="margin:20px 0 0;font-size:12.5px;color:#8a857d;font-family:Arial,sans-serif;line-height:1.7">' +
+      'Fichiers CSV en pièce jointe, ouvrables dans Excel. Conservez ce message : ' +
+      'c\'est votre filet de sécurité si la base venait à être perdue.<br>' +
+      'Les aperçus d\'images sont retirés des CSV pour ne pas les alourdir.' +
+    '</p>';
+
+  const ok = await sendMailWithAttachment(dest,
+    'Sauvegarde ELLIA PARIS — ' + jour, emailLayout(inner), pieces);
+  if (ok) console.log('[Sauvegarde] Export du ' + jour + ' envoyé à ' + dest + ' (' + pieces.length + ' fichiers).');
+  else alerte('sauvegarde_echec', 'Sauvegarde quotidienne non envoyée',
+    'L\'export a été généré mais l\'e-mail n\'est pas parti. Vérifiez la configuration SMTP.', 'critique');
+}
+
+/* Declenche la sauvegarde chaque nuit a 3 h, heure de Paris. */
+function planifierSauvegarde(){
+  const prochaine = () => {
+    const n = new Date(), c = new Date(n);
+    c.setHours(3, 0, 0, 0);
+    if (c <= n) c.setDate(c.getDate() + 1);
+    return c - n;
+  };
+  const armer = () => setTimeout(async () => {
+    try { await sauvegardeQuotidienne(); } catch(e){ console.warn('[Sauvegarde] KO :', e.message); }
+    armer();
+  }, prochaine());
+  armer();
+  console.log('[Sauvegarde] Prochaine dans ' + Math.round(prochaine()/3600000) + ' h.');
+}
+
+/* ============================================================
+   CONTROLE DE L'ENVOI D'E-MAILS AU DEMARRAGE
+   Sans serveur mail configure, AUCUN client ne recoit rien —
+   ni confirmation, ni facture — et le site n'en dit rien.
+   ============================================================ */
+async function verifierEnvoiMail(){
+  if (!transporter) {
+    console.error('\n[E-MAIL] AUCUN SERVEUR MAIL CONFIGURE.');
+    console.error('         SMTP_USER et SMTP_PASS ne sont pas definis :');
+    console.error('         vos clients ne recevront ni confirmation, ni facture.\n');
+    return false;
+  }
+  try {
+    await transporter.verify();
+    console.log('[E-MAIL] Serveur d\'envoi joignable et authentifie.');
+    return true;
+  } catch(e){
+    console.error('\n[E-MAIL] LE SERVEUR MAIL REFUSE LA CONNEXION : ' + e.message);
+    console.error('         Vos clients ne recevront ni confirmation, ni facture.\n');
+    return false;
+  }
+}
+
+
+/* ============================================================
+   DEMANDE D'AVIS APRES LIVRAISON
+   La fiche produit affiche aujourd'hui cinq etoiles et aucun avis :
+   contre-productif. Dix jours apres la livraison, on demande son
+   avis a la cliente, une seule fois.
+   ============================================================ */
+async function demanderAvis(){
+  if (!USE_DB || !transporter) return;
+  try {
+    const delai = new Date(Date.now() - 10*24*60*60*1000).toISOString();
+    // Livrees depuis 10 jours ou plus, jamais sollicitees, pas plus vieilles
+    // que 60 jours (au-dela la demande n'a plus de sens).
+    const limite = new Date(Date.now() - 60*24*60*60*1000).toISOString();
+    const rows = await sb('orders?statut=like.Livr*&review_asked_at=is.null' +
+                          '&created_at=lte.' + encodeURIComponent(delai) +
+                          '&created_at=gte.' + encodeURIComponent(limite) +
+                          '&select=numero,client_prenom,client_nom,client_email,initiales&limit=15');
+    for (const o of (rows || [])) {
+      if (!o.client_email) continue;
+      const prenom = (o.client_prenom || '').trim() || (o.client_nom || '').trim().split(' ')[0] || '';
+      const lien = 'https://ellia-paris.fr/pochette.html?avis=1&n=' + encodeURIComponent(o.numero) + '#avis';
+      const inner =
+        '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous plaît-elle&nbsp;?</h1>' +
+        '<p style="margin:0 0 14px">Bonjour ' + escH(prenom) + ',</p>' +
+        '<p style="margin:0 0 14px">Votre Pochette ELLIA' +
+          (o.initiales ? (' gravée <b>' + escH(o.initiales) + '</b>') : '') +
+          ' est arrivée il y a quelques jours. Nous serions heureux de savoir ce que vous en pensez.</p>' +
+        '<p style="margin:0 0 18px">Quelques mots suffisent — et si le cœur vous en dit, une photo. ' +
+          'Votre retour aide les personnes qui hésitent encore.</p>' +
+        '<p style="margin:26px 0"><a href="' + lien + '" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:15px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Donner mon avis</a></p>' +
+        '<p style="margin:22px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.7">' +
+          'Une remarque, un souci&nbsp;? Répondez simplement à ce message : nous lisons tout.<br><br>' +
+          'Avec soin,<br>ELLIA PARIS</p>' +
+        '<p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">' +
+          'Message unique lié à votre commande ' + escH(o.numero) + '. Vous n\'en recevrez pas d\'autre.</p>';
+
+      const envoye = await sendMail(o.client_email,
+        'Votre Pochette ELLIA — un mot sur votre expérience ?', emailLayout(inner));
+      // On marque meme en cas d'echec : pas de relance en boucle.
+      try {
+        await sb('orders?numero=eq.' + encodeURIComponent(o.numero),
+          { method:'PATCH', body:{ review_asked_at: new Date().toISOString() } });
+      } catch(_){}
+      if (envoye) console.log('[Avis] Demande envoyee pour', o.numero);
+    }
+  } catch(e){ console.warn('[Avis] KO :', e.message); }
+}
+
 /* ----- CRON INTERNE — relance panier abandonne (toutes les 10 min) ----- */
 async function processAbandonedCarts(){
   if (!USE_DB || !transporter) return;
@@ -2300,7 +2514,11 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setInterval(surveillance,       30*60*1000);
     setTimeout(reconcilierStripe, 45*1000);   // premiere passe peu apres le demarrage
     setTimeout(surveillance,      70*1000);
+    planifierSauvegarde();
+    setInterval(demanderAvis, 12*60*60*1000);
+    setTimeout(demanderAvis, 120*1000);
   }
+  setTimeout(verifierEnvoiMail, 8*1000);
 } else {
   if (USE_DB && WORKERS === 1) {
     setInterval(processAbandonedCarts, 10*60*1000);
@@ -2308,6 +2526,10 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setInterval(surveillance,       30*60*1000);
     setTimeout(reconcilierStripe, 45*1000);
     setTimeout(surveillance,      70*1000);
+    planifierSauvegarde();
+    setInterval(demanderAvis, 12*60*60*1000);
+    setTimeout(demanderAvis, 120*1000);
   }
+  setTimeout(verifierEnvoiMail, 8*1000);
   startServer(cluster.worker ? '  [processus ' + cluster.worker.id + '/' + WORKERS + ']' : '');
 }

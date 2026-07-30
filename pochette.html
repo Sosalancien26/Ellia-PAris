@@ -424,5 +424,33 @@
 <script src="cart.js?v=1785400000" defer></script>
 <script src="wishlist.js?v=1785400000"></script>
 <script src="cookies-banner.js?v=1785400000" defer></script>
+<script>
+/* Arrivee depuis l'e-mail de demande d'avis : on ouvre le formulaire,
+   on y fait defiler la page et on accueille la personne. */
+(function(){
+  var q = new URLSearchParams(location.search);
+  if (q.get('avis') !== '1') return;
+  document.addEventListener('DOMContentLoaded', function(){
+    var d = document.getElementById('avis-form');
+    if (!d) return;
+    d.open = true;
+    var f = document.getElementById('reviewForm');
+    if (f && !document.getElementById('avisBienvenue')) {
+      var n = document.createElement('div');
+      n.id = 'avisBienvenue';
+      n.style.cssText = 'margin:0 0 18px;padding:14px 16px;background:#faf8f4;border-left:3px solid #0d0d0d;font-size:13.5px;line-height:1.7;color:#3d3a35';
+      var num = q.get('n');
+      n.innerHTML = 'Merci de prendre ce moment.' + (num ? (' Votre commande <b>' + String(num).replace(/[<>&"]/g,'') + '</b>.') : '') +
+        '<br>Quelques lignes suffisent — et une photo si le cœur vous en dit.';
+      f.insertBefore(n, f.firstChild);
+    }
+    setTimeout(function(){
+      d.scrollIntoView({ behavior:'smooth', block:'center' });
+      var p = f && f.querySelector('input[name="prenom"]');
+      if (p) p.focus({ preventScroll:true });
+    }, 400);
+  });
+})();
+</script>
 </body>
 </html>

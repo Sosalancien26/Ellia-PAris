@@ -332,7 +332,7 @@
         <details id="persoPriceBreakdown" style="margin-top:24px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5c5852">
           <summary style="cursor:pointer;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;padding:8px 0;list-style:none;outline:none;display:flex;align-items:center;gap:6px">Voir le détail du tarif <span style="font-size:10px">›</span></summary>
           <div style="margin-top:6px;padding:14px 16px;background:#fafaf7;border:1px solid #e6e3dc;line-height:1.7">
-            <div style="display:flex;justify-content:space-between"><span>Pochette</span><span>159 €</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Pochette</span><span data-prix-base>159 €</span></div>
             <div id="pbInitiales" style="display:flex;justify-content:space-between"></div>
             <div id="pbSymbol" style="display:flex;justify-content:space-between;display:none"></div>
             <div style="height:1px;background:#e0ddd6;margin:8px 0"></div>
@@ -1992,7 +1992,10 @@ function initConfigurator(){
   window.__refreshAllCards = refreshAllCards;
 
   // === Pricing dynamique : 5€/lettre + 2€/caractère spécial + 10€/symbole ===
-  const PRICE_BASE = 159;        // Pochette
+  // Prix catalogue : valeur de repli uniquement. La vraie source est la base,
+  // lue au chargement ci-dessous. Sans cela, changer le prix dans Supabase
+  // faisait refuser toutes les commandes gravees par le garde-fou serveur.
+  let PRICE_BASE = 159;
   const PRICE_LETTER = 5;        // Par lettre
   const PRICE_SPECIAL = 2;       // Par caractère spécial (point, espace, virgule…)
   const PRICE_SYMBOL = 10;       // Par symbole gravé
@@ -2187,6 +2190,25 @@ function initConfigurator(){
         }, 900);
       })
       .catch(function(){});
+  })();
+
+  /* Prix catalogue reel, lu au chargement. Toute la page s'aligne dessus. */
+  (function(){
+    fetch('/api/products')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(list){
+        if (!Array.isArray(list)) return;
+        var p = list.find(function(x){ return x && x.ref === 'ELLIA-NOIR'; });
+        var prix = p && Number(p.prix);
+        if (!prix || !isFinite(prix) || prix <= 0 || prix === PRICE_BASE) return;
+        PRICE_BASE = prix;
+        // Reafficher partout ou le tarif apparait
+        document.querySelectorAll('[data-prix-base]').forEach(function(el){
+          el.textContent = prix.toLocaleString('fr-FR') + ' €';
+        });
+        if (window.__updatePersoPrice) window.__updatePersoPrice();
+      })
+      .catch(function(){ /* hors ligne : on garde la valeur de repli */ });
   })();
 
   window.__getPersoPrice = computePersoPrice;
