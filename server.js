@@ -555,7 +555,7 @@ const MOCK_ORDERS = [
   { id:'EP-1038', date:'2026-05-23', client:'Léa R.', initiales:'L·R', finition:'Noir', total:218, statut:'Livrée' }
 ];
 const MOCK_STATS = {
-  ca_total:12460, commandes:57, panier_moyen:218, taux_perso:78,
+  ca_total:12460, commandes:57, commandes_payees:57, en_attente:0, panier_moyen:218, taux_perso:78,
   ca_mois:[{mois:'Déc',ca:1180},{mois:'Jan',ca:1620},{mois:'Fév',ca:1840},{mois:'Mars',ca:2150},{mois:'Avr',ca:2480},{mois:'Mai',ca:3190}]
 };
 const MOIS = ['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
@@ -658,8 +658,17 @@ async function getStats(){
   const taux_perso = commandes ? Math.round(perso/commandes*100) : 0;
   const byMonth = {};
   payees.forEach(o=>{ const d=new Date(o.payment_date || o.date); if(!isNaN(d)){ const k=d.getFullYear()+'-'+('0'+d.getMonth()).slice(-2); byMonth[k]=(byMonth[k]||0)+o.total; }});
-  const ca_mois = Object.keys(byMonth).sort().slice(-6).map(k=>({ mois:MOIS[parseInt(k.split('-')[1],10)], ca:byMonth[k] }));
-  return { ca_total, commandes, commandes_payees, en_attente, panier_moyen, taux_perso, ca_mois: ca_mois.length?ca_mois:[] };
+  // On renvoie TOUJOURS les 6 derniers mois, meme a zero. Sans cela, un seul
+  // mois de ventes produit une barre unique qui remplit tout le graphique :
+  // illisible, et impossible de voir une tendance.
+  const ca_mois = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const k = d.getFullYear() + '-' + ('0' + d.getMonth()).slice(-2);
+    ca_mois.push({ mois: MOIS[d.getMonth()], ca: Math.round((byMonth[k] || 0) * 100) / 100 });
+  }
+  return { ca_total, commandes, commandes_payees, en_attente, panier_moyen, taux_perso, ca_mois };
 }
 
 

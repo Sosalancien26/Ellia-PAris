@@ -455,6 +455,44 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Indicateurs du tableau de bord');
+
+{
+  const srcAdmin = lire('admin.js');
+  // Les sous-titres étaient écrits en dur : « +28% ce mois », « +12 cette
+  // semaine ». Des chiffres inventés sur un tableau de bord financier.
+  // On retire les commentaires : ils citent les anciennes valeurs en exemple.
+  const adminSansCom = srcAdmin
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').map(l => l.replace(/(^|[^:'"\\])\/\/.*$/, '$1')).join('\n');
+  verifier('aucun pourcentage de croissance inventé',
+           !/\+28% ce mois|\+12 cette semaine/.test(adminSansCom));
+  verifier('la variation est calculée depuis les vraies données',
+           srcAdmin.includes('ca_mois') && srcAdmin.includes('moisPrec'));
+
+  // Le CA ne compte que les commandes encaissées : il faut le dire, sinon
+  // 625 € pour 14 commandes donne un panier de 45 € et fait douter.
+  verifier('le nombre de commandes payées est affiché',
+           srcAdmin.includes('commandes_payees') && srcAdmin.includes('payée'));
+  verifier('le panier moyen précise sa base de calcul',
+           srcAdmin.includes('sur les commandes payées'));
+
+  // Le serveur doit fournir de quoi l'afficher.
+  verifier('le serveur renvoie le détail payées / en attente',
+           srcServeur.includes('commandes_payees') && srcServeur.includes('en_attente'));
+
+  // Un seul mois de ventes produisait une barre unique remplissant tout.
+  verifier('le graphique couvre toujours 6 mois, même à zéro',
+           srcServeur.includes('for (let i = 5; i >= 0; i--)'));
+
+  // Cohérence arithmétique vérifiée par le calcul
+  {
+    const ca = 625, payees = 3;
+    verifier('CA ÷ commandes payées = panier moyen affiché',
+             Math.round(ca / payees) === 208, Math.round(ca / payees) + ' €');
+  }
+}
+
 section('Bons à graver');
 
 {

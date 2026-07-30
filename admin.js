@@ -57,11 +57,41 @@
   }
 
   function renderKPIs(s){
+    // Les sous-titres etaient ECRITS EN DUR (« +28% ce mois », « +12 cette
+    // semaine ») : des chiffres inventes sur un tableau de bord financier.
+    // Ils sont desormais calcules, ou absents s'il n'y a pas de quoi comparer.
+    var mois = Array.isArray(s.ca_mois) ? s.ca_mois : [];
+    var variation = '';
+    if (mois.length >= 2) {
+      var moisCourant = mois[mois.length-1], moisPrec = mois[mois.length-2];
+      var courant = Number(moisCourant.ca) || 0;
+      var precedent = Number(moisPrec.ca) || 0;
+      if (courant === 0 && precedent > 0) {
+        // « -100 % » est exact mais brutal et peu clair : on dit les choses.
+        variation = 'aucune vente en ' + moisCourant.mois.toLowerCase();
+      } else if (precedent > 0) {
+        var pct = Math.round((courant - precedent) / precedent * 100);
+        variation = (pct >= 0 ? '+' : '') + pct + ' % vs ' + moisPrec.mois.toLowerCase();
+      } else if (courant > 0) {
+        variation = 'premier mois avec des ventes';
+      }
+    }
+
+    // Le CA ne compte QUE les commandes encaissees, alors que le compteur
+    // compte tout. Sans cette precision, 625 € pour 14 commandes donne un
+    // panier de 45 € — absurde pour un produit a 159 €.
+    var payees  = (s.commandes_payees != null) ? s.commandes_payees : null;
+    var attente = (s.en_attente != null) ? s.en_attente : null;
+    var sousCommandes = (payees != null)
+      ? (payees + ' payée' + (payees > 1 ? 's' : '') +
+         (attente ? (' · ' + attente + ' en attente') : ''))
+      : '';
+
     document.getElementById('kpis').innerHTML=
-      kpi('Chiffre d\'affaires',eur(s.ca_total),'+28% ce mois')+
-      kpi('Commandes',s.commandes,'+12 cette semaine')+
-      kpi('Panier moyen',eur(s.panier_moyen),'')+
-      kpi('Taux de personnalisation',s.taux_perso+'%','');
+      kpi('Chiffre d\'affaires', eur(s.ca_total), variation || 'encaissé')+
+      kpi('Commandes', s.commandes, sousCommandes)+
+      kpi('Panier moyen', eur(s.panier_moyen), payees ? 'sur les commandes payées' : '')+
+      kpi('Taux de personnalisation', s.taux_perso+'%', 'des commandes gravées');
   }
   function kpi(l,v,d){return '<div class="kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>';}
 
