@@ -313,6 +313,26 @@ document.addEventListener('DOMContentLoaded', function(){
     try{
       const r=await fetchT('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(r.status===409){ err.textContent='Désolé, La Pochette ELLIA est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
+      if(r.status===400){
+        const dd = await r.json().catch(function(){ return {}; });
+        if (dd && dd.error === 'montant_invalide') {
+          // Recharger ne sert a rien : le panier vit dans le navigateur.
+          // On propose l'action qui debloque reellement la situation.
+          err.innerHTML = (dd.message || 'Le montant de votre panier n\'est plus à jour.') +
+            ' <a href="#" id="viderPanier" style="color:var(--noir);text-decoration:underline">Vider mon panier et recommencer</a>';
+          const lien = document.getElementById('viderPanier');
+          if (lien) lien.addEventListener('click', function(ev){
+            ev.preventDefault();
+            try { Cart.clear(); } catch(_){}
+            location.href = 'personnalisation.html';
+          });
+          validateBtn.textContent = oldBtnText; validateBtn.disabled = false; return;
+        }
+        if (dd && dd.field) {
+          err.textContent = 'Le champ « ' + dd.field + ' » n\'est pas valide. Merci de le corriger.';
+          validateBtn.textContent = oldBtnText; validateBtn.disabled = false; return;
+        }
+      }
       if(r.ok){ const dd=await r.json(); if(dd&&dd.numero){ numero=dd.numero;
         try{ sessionStorage.setItem('ellia_pending_order', JSON.stringify({numero:numero, total:Cart.total(), ts:Date.now()})); }catch(_){} } }
       else { err.textContent='Erreur lors de la création de la commande. Réessayez.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }

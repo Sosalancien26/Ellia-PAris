@@ -298,9 +298,115 @@ verifier('le bouton de commande porte la mention légale obligatoire',
 
 // Les fichiers serveur ne doivent jamais être servis
 const proteges = (srcServeur.match(/SERVER_FILES = \[([^\]]+)\]/) || [,''])[1];
-for (const f of ['server.js','invoice.js','compta.js','promo.js','totp.js']) {
-  verifier('« ' + f + '  » est protégé du téléchargement', proteges.includes("'" + f + "'"));
+for (const f of ['server.js','invoice.js','compta.js','promo.js','totp.js','tests.js']) {
+  verifier('« ' + f + ' » est protégé du téléchargement', proteges.includes("'" + f + "'"));
 }
+// Fichiers de travail : sauvegardes, brouillons, pages orphelines
+const blocStatique = srcServeur.slice(srcServeur.indexOf('SERVER_FILES.includes(baseName)'),
+                                     srcServeur.indexOf('SERVER_FILES.includes(baseName)') + 800);
+for (const ext of ['.truncated-backup', '.old', '.orig', '.log']) {
+  verifier('les fichiers ' + ext + ' sont protégés', blocStatique.includes(ext));
+}
+verifier('la page orpheline studio-export.html est protégée', blocStatique.includes('studio-export.html'));
+
+/* ══════════════════════════════════════════════════════════════
+   7 bis. SÉCURITÉ DU CODE RÉCENT
+   Chacun de ces tests correspond à une faille réelle trouvée en
+   audit. Ils sont là pour qu'elle ne revienne jamais.
+   ══════════════════════════════════════════════════════════════ */
+section('Sécurité — failles déjà rencontrées');
+
+// L'aperçu envoyé par le client était injecté dans l'admin sans contrôle
+// de fin de chaîne : du code pouvait suivre le base64 légitime.
+const regexApercu = /\^data:image[^)]*\$/.test(srcServeur.replace(/\\\\/g,'\\'));
+verifier('la validation de l\'aperçu est ancrée à la fin (^…$)',
+         /\$\/\.test\(d\.preview\)/.test(srcServeur));
+verifier('l\'admin ne concatène plus l\'aperçu sans contrôle',
+         !/\+o\.preview\+/.test(lire('admin.js')));
+verifier('l\'admin passe l\'aperçu par un filtre',
+         lire('admin.js').includes('apercuSur(o.preview)'));
+
+// Un test exécuté sur la vraie expression du serveur
+const mApercu = srcServeur.match(/\/\^data:image[^\n]*?\/\.test\(d\.preview\)/);
+if (mApercu) {
+  const re = new RegExp(mApercu[0].slice(1, mApercu[0].lastIndexOf('/')));
+  verifier('un aperçu piégé est refusé', !re.test('data:image/png;base64,x" onerror="alert(1)'));
+  verifier('un aperçu légitime est accepté', re.test('data:image/png;base64,iVBORw0KGgo='));
+}
+
+// Une valeur libre recopiée dans un sélecteur CSS permettait de déclencher
+// un clic sur n'importe quel bouton via un lien partagé.
+verifier('le partage de configuration valide contre des listes fermées',
+         srcServeur.includes('const FINITIONS') && srcServeur.includes('const SYMBOLES') &&
+         srcServeur.includes('dansListe'));
+
+// Le message d'erreur de la base fuitait vers un visiteur anonyme.
+verifier('aucun message d\'erreur de base renvoyé au public',
+         !/error:'enregistrement', detail:e\.message/.test(srcServeur) &&
+         !/error:'lecture', detail:e\.message/.test(srcServeur));
+
+// Excel exécute toute cellule commençant par = + - @
+let versCSV = null;
+try {
+  const os2 = require('os');
+  const f = path.join(os2.tmpdir(), 'ellia-csv-' + process.pid + '.js');
+  fs.writeFileSync(f, srcServeur.match(/function versCSV\(lignes\)\{[\s\S]*?\n\}/)[0] + '\nmodule.exports = versCSV;');
+  versCSV = require(f); fs.unlinkSync(f);
+} catch(e){}
+if (versCSV) {
+  const csv = versCSV([{ a:"=cmd|'/c calc'!A1", b:'+33', c:'@SUM(1)', d:'Bonjour', e:'-12' }]);
+  verifier('une formule Excel est neutralisée dans la sauvegarde', csv.includes('"\'=cmd'));
+  verifier('un @ en début de cellule est neutralisé',              csv.includes('"\'@SUM'));
+  verifier('un texte normal reste intact',                         csv.includes('"Bonjour"'));
+  verifier('le fichier porte le marqueur Excel (BOM)',             csv.charCodeAt(0) === 0xFEFF);
+}
+
+// Une alerte étouffée par l'anti-spam doit malgré tout être journalisée.
+const blocAlerte = (srcServeur.match(/function alerte\([\s\S]*?\n\}/) || [''])[0];
+verifier('une alerte étouffée laisse quand même une trace dans les logs',
+         blocAlerte.indexOf('console.error') < blocAlerte.indexOf('ALERTE_DERNIERE.get'));
+
+// La réconciliation ne doit pas compter une commande qu'elle n'a pas touchée.
+verifier('la réconciliation vérifie que la commande a vraiment changé',
+         srcServeur.includes("prefer:'return=representation'") &&
+         /Array\.isArray\(modifiees\)/.test(srcServeur));
+
+// Pagination Stripe : sans elle, au-delà de 100 sessions on est aveugle.
+verifier('la réconciliation pagine les paiements Stripe',
+         srcServeur.includes('starting_after') && srcServeur.includes('has_more'));
+
+// Deux passages simultanés du même cron s'empilaient.
+verifier('la réconciliation a un verrou anti-chevauchement',
+         srcServeur.includes('_reconEnCours'));
+
+// La sauvegarde ne doit jamais charger les images en mémoire.
+verifier('la sauvegarde ne demande pas les colonnes d\'images',
+         srcServeur.includes('COLS_COMMANDES') && !/orders\?select=\*&order=created_at\.desc/.test(srcServeur));
+verifier('la sauvegarde lit par tranches',        srcServeur.includes('const PAGE = 500'));
+verifier('la sauvegarde plafonne la taille',      srcServeur.includes('TAILLE_MAX'));
+
+// Le journal ne doit pas recopier les données personnelles.
+verifier('le journal masque les données personnelles',
+         srcServeur.includes("const PERSO = ['client_nom'"));
+
+// La demande d'avis doit partir après la LIVRAISON.
+verifier('la demande d\'avis se base sur la date de livraison',
+         srcServeur.includes('delivered_at=lte.') && srcServeur.includes('delivered_at=not.is.null'));
+verifier('la date de livraison est enregistrée au changement de statut',
+         srcServeur.includes("upd.delivered_at = new Date().toISOString()"));
+verifier('la commande est marquée AVANT l\'envoi de la demande d\'avis',
+         srcServeur.indexOf('marquage impossible') < srcServeur.indexOf("un mot sur votre expérience"));
+
+// Les liens de partage expirés doivent être supprimés.
+verifier('les configurations partagées expirées sont purgées',
+         srcServeur.includes('purgerPartages'));
+
+// Le message cadeau doit garder et afficher ses retours à la ligne.
+verifier('les retours à la ligne du message cadeau sont conservés',
+         !/gift_message: d\.is_gift \? clean\(/.test(srcServeur));
+verifier('le message cadeau s\'affiche sur plusieurs lignes',
+         (srcServeur.match(/white-space:pre-wrap/g) || []).length >= 2 &&
+         (lire('admin.js').match(/white-space:pre-wrap/g) || []).length >= 2);
 
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.

@@ -254,6 +254,12 @@
     });
   })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
+  /* Un aperçu n'est affichable que s'il est une image encodée, rien d'autre.
+     Double barrière avec la validation serveur : si l'une cède, l'autre tient. */
+  function apercuSur(v){
+    v = String(v == null ? '' : v);
+    return /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v) ? v : '';
+  }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   /* Timeline visuelle du statut (style Shopify) */
@@ -300,7 +306,7 @@
         (o.gift_message
           ? ('<div style="margin-top:12px;padding:14px 16px;background:#faf8f4;border:1px dashed #999">'+
              '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#666;margin-bottom:8px">Texte à calligraphier</div>'+
-             '<div style="font-family:Georgia,serif;font-size:17px;line-height:1.8">« '+esc(o.gift_message)+' »</div>'+
+             '<div style="font-family:Georgia,serif;font-size:17px;line-height:1.8;white-space:pre-wrap">« '+esc(o.gift_message)+' »</div>'+
              (o.gift_from ? ('<div style="font-family:Georgia,serif;font-size:14px;margin-top:8px;text-align:right">— '+esc(o.gift_from)+'</div>') : '')+
              '</div>')
           : '<div style="margin-top:10px;font-size:13px;font-style:italic;color:#666">Carte vierge demandée.</div>')+
@@ -313,7 +319,7 @@
         '<tr><td>Adresse de livraison</td><td>'+esc(o.adresse||'')+'</td></tr>'+
         (o.notes_admin ? '<tr><td>Notes internes</td><td>'+esc(o.notes_admin)+'</td></tr>' : '')+
       '</table>'+
-      (o.preview && String(o.preview).indexOf('data:image/')===0 ? '<div><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em">Aperçu personnalisation client</div><img src="'+o.preview+'"></div>' : '')+
+      (apercuSur(o.preview) ? '<div><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em">Aperçu personnalisation client</div><img src="'+apercuSur(o.preview)+'"></div>' : '')+
       '<div class="foot">Document interne — ne contient aucune information de prix. À joindre au poste de gravure / préparation.</div>'+
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:12px 24px;background:#111;color:#fff;border:none;cursor:pointer;font-size:13px">🖨 Imprimer</button>'+
       '</body></html>';
@@ -376,7 +382,7 @@
       previewBlock =
         '<div style="margin:14px 0 18px;padding:14px;background:#f8f6f1;border:1px solid #e9e5da;border-radius:3px">'+
           '<div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gris2);margin-bottom:10px">Aperçu de la personnalisation choisie par le client</div>'+
-          '<a href="'+o.preview+'" target="_blank" title="Ouvrir en grand"><img src="'+o.preview+'" alt="Aperçu personnalisation" style="display:block;max-width:340px;width:100%;height:auto;border:1px solid #e0ddd6;border-radius:3px;cursor:zoom-in" /></a>'+
+          '<a href="'+apercuSur(o.preview)+'" target="_blank" title="Ouvrir en grand"><img src="'+apercuSur(o.preview)+'" alt="Aperçu personnalisation" style="display:block;max-width:340px;width:100%;height:auto;border:1px solid #e0ddd6;border-radius:3px;cursor:zoom-in" /></a>'+
         '</div>';
     }
     // Banniere d'avertissement specifique pour commandes pas encore payees
@@ -407,7 +413,7 @@
       omRow('Adresse de livraison',esc(o.adresse))+omRow('Adresse de facturation',esc(o.adresseFact||o.adresse))+
       omRow('Personnalisation',gravureFull(o))+
       (o.is_gift ? omRow('Cadeau', 'Bon de livraison sans prix'
-          + (o.gift_message ? ('<br><em style="font-family:var(--serif);font-size:15px">« '+esc(o.gift_message)+' »</em>'+(o.gift_from?('<br>— '+esc(o.gift_from)):'')) : '<br><em>Carte vierge</em>')
+          + (o.gift_message ? ('<br><em style="font-family:var(--serif);font-size:15px;white-space:pre-wrap;display:inline-block">« '+esc(o.gift_message)+' »</em>'+(o.gift_from?('<br>— '+esc(o.gift_from)):'')) : '<br><em>Carte vierge</em>')
           + (o.gift_date ? ('<br>Arrivée souhaitée : <b>'+esc(o.gift_date)+'</b>') : '')) : '')+
       previewBlock+
       // Role atelier : aucune ligne financiere (le serveur ne lui envoie de toute facon pas les montants)

@@ -352,7 +352,7 @@ function _notifyNewOrderInternal(d, numero){
         '<div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7363;font-family:Arial,sans-serif">Commande cadeau</div>' +
         '<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:14.5px;color:#3d3a35;line-height:1.7">' +
           'Aucun prix ne figurera dans le colis. Votre facture vous parvient uniquement par e-mail.' +
-          (d.gift_message ? ('<br><br><em style="color:#5c5852">« ' + escH(d.gift_message) + ' »</em>' + (d.gift_from ? ('<br><span style="font-size:13px">— ' + escH(d.gift_from) + '</span>') : '')) : '') +
+          (d.gift_message ? ('<br><br><em style="color:#5c5852;white-space:pre-wrap">« ' + escH(d.gift_message) + ' »</em>' + (d.gift_from ? ('<br><span style="font-size:13px">— ' + escH(d.gift_from) + '</span>') : '')) : '') +
           (d.gift_date ? ('<br><br><span style="font-size:13px;color:#5c5852">Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b></span>') : '') +
         '</p>' +
       '</div>'
@@ -384,7 +384,7 @@ function _notifyNewOrderInternal(d, numero){
     envoiClient = sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
   }
   if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier : « ' + escH(d.gift_message) + ' »' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
+    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier :<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;margin-top:6px;padding:10px 12px;background:#fff;border:1px dashed #c9bfa4">« ' + escH(d.gift_message) + ' »</div>' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
   return envoiClient;
 }
 const STATUT_MSG = {
@@ -698,7 +698,26 @@ async function journaliser(auteur, role, action, cible, details){
       role:    String(role    || '?').slice(0, 20),
       action:  String(action  || '').slice(0, 60),
       cible:   String(cible   || '').slice(0, 60),
-      details: details == null ? null : String(typeof details === 'object' ? JSON.stringify(details) : details).slice(0, 1000)
+      details: (() => {
+      if (details == null) return null;
+      if (typeof details !== 'object') return String(details).slice(0, 1000);
+      // On ne recopie PAS les donnees personnelles dans le journal : elles
+      // sont deja dans la commande, et une demande d'effacement RGPD ne
+      // penserait pas a nettoyer cette table. On garde le NOM des champs
+      // modifies et la valeur uniquement pour ce qui compte : montants,
+      // statuts, suivi.
+      const PERSO = ['client_nom','client_prenom','client_email','telephone',
+                     'adresse_livraison','cp_livraison','ville_livraison','pays_livraison',
+                     'adresse_facturation','cp_facturation','ville_facturation','pays_facturation',
+                     'preview','items_data','gift_message','gift_from'];
+      const resume = {};
+      for (const [k, v] of Object.entries(details)) {
+        resume[k] = PERSO.includes(k) ? '(modifié)' : v;
+      }
+      const t = JSON.stringify(resume);
+      // Troncature propre : jamais de JSON coupe au milieu.
+      return t.length <= 1000 ? t : JSON.stringify({ champs: Object.keys(resume).join(', ').slice(0, 900) });
+    })()
     }});
   } catch(e){
     // Un journal indisponible ne doit jamais bloquer une commande.
@@ -866,19 +885,33 @@ const server = http.createServer(async (req, res) => {
         const cfg = d && d.config;
         if (!cfg || typeof cfg !== 'object') return sendJSON(res,{ ok:false, error:'config_invalide' }, 400);
         // Bornage : on n'accepte que les champs attendus, jamais l'objet brut.
+        // LISTES FERMEES. Sans elles, une valeur comme  a"],[id=validate],[x="
+        // etait recopiee telle quelle dans un selecteur CSS cote navigateur et
+        // permettait de declencher un clic sur n'importe quel bouton de la page.
+        const FINITIONS   = ['or','orrose','argent','aveugle'];
+        const EMPLACEMENTS= ['hg','hd','centre','bg','bd'];
+        const SYMBOLES    = ['flame','hamsa','peace','ellia'];
+        const dansListe = (v, liste) => liste.includes(String(v || '')) ? String(v) : null;
+
         const propre = {
           v: 1,
-          initials: String(cfg.initials || '').slice(0, 18),
-          finish:    clean(cfg.finish, 20),
-          placement: clean(cfg.placement, 20)
+          initials: String(cfg.initials || '').replace(/[\x00-\x1f\x7f]/g, '').slice(0, 18),
+          finish:    dansListe(cfg.finish, FINITIONS),
+          placement: dansListe(cfg.placement, EMPLACEMENTS)
         };
         for (const k of ['s1','s2','s3','s4']) {
           const x = cfg[k];
-          propre[k] = (x && typeof x === 'object')
-            ? { sym: clean(x.sym, 20), fin: clean(x.fin, 20), pos: clean(x.pos, 20) }
+          const sym = (x && typeof x === 'object') ? dansListe(x.sym, SYMBOLES) : null;
+          // Symbole non reconnu (image importee par la cliente, ou valeur
+          // piegee) : on annule le bloc entier. Le garder a moitie activerait
+          // un symbole sans savoir lequel afficher.
+          propre[k] = sym
+            ? { sym, fin: dansListe(x.fin, FINITIONS), pos: dansListe(x.pos, EMPLACEMENTS) }
             : null;
         }
-        let apercu = (typeof d.preview === 'string' && d.preview.startsWith('data:image/') && d.preview.length < 140000)
+        // Meme ancrage strict que pour les commandes : rien apres le base64.
+        let apercu = (typeof d.preview === 'string' && d.preview.length < 140000
+                      && /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(d.preview))
           ? d.preview : null;
         // Code court sans caracteres ambigus (ni 0/O ni 1/l)
         const alpha = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
@@ -888,7 +921,9 @@ const server = http.createServer(async (req, res) => {
           await sb('shared_configs', { method:'POST', body:{ id: code, config: propre, preview: apercu } });
         } catch(e){
           console.warn('[Config] enregistrement KO :', e.message);
-          return sendJSON(res,{ ok:false, error:'enregistrement', detail:e.message }, 500);
+          // Ne jamais renvoyer e.message au public : il contient le nom des
+          // tables, des contraintes et le code d'erreur de la base.
+          return sendJSON(res,{ ok:false, error:'enregistrement' }, 500);
         }
         const base = process.env.SITE_URL || 'https://ellia-paris.fr';
         return sendJSON(res,{ ok:true, code, url: base.replace(/\/$/,'') + '/personnalisation.html?c=' + code });
@@ -906,7 +941,7 @@ const server = http.createServer(async (req, res) => {
           // Compteur de consultations (sans bloquer la reponse)
           sb('shared_configs?id=eq.'+encodeURIComponent(code), { method:'PATCH', body:{ views: Number(r0.views||0) + 1 } }).catch(()=>{});
           return sendJSON(res,{ ok:true, config: r0.config });
-        } catch(e){ return sendJSON(res,{ ok:false, error:'lecture', detail:e.message }, 500); }
+        } catch(e){ console.warn('[Config] lecture KO :', e.message); return sendJSON(res,{ ok:false, error:'lecture' }, 500); }
       }
 
       if (req.method==='POST' && pathname==='/api/newsletter'){
@@ -1094,8 +1129,8 @@ const server = http.createServer(async (req, res) => {
         if (totalBrut + 0.01 < plancherBrut) {
           console.warn('[SECURITE] Total client', totalBrut, '< attendu', plancherBrut,
                        '(catalogue', prixCatalogue, 'x', qte, '+ gravure', persoServeur, ') — commande refusee');
-          return sendJSON(res,{ ok:false, error:'montant_invalide',
-            message:'Le montant de votre panier n\'est plus à jour. Merci de recharger la page.' }, 400);
+          return sendJSON(res,{ ok:false, error:'montant_invalide', attendu: plancherBrut,
+            message:'Nos tarifs ont évolué depuis que vous avez composé votre panier. Videz-le et recomposez votre pochette : vos choix de gravure sont conservés à l\'écran.' }, 400);
         }
         let promoDiscount = 0, promoCode = '';
         if (d.promo_code && promoMod) {
@@ -1111,7 +1146,10 @@ const server = http.createServer(async (req, res) => {
         // Preview : on accepte seulement les data URL JPEG/PNG, taille max ~200 KB
         let preview = null;
         if (typeof d.preview === 'string' && d.preview.length > 0 && d.preview.length < 220000) {
-          if (/^data:image\/(jpeg|png|webp);base64,/i.test(d.preview)) preview = d.preview;
+          // Ancrage ^...$ OBLIGATOIRE : sans le $, un client pouvait glisser
+          // du code apres le base64 legitime, code ensuite injecte dans un
+          // attribut src de l'administration et execute avec la session admin.
+          if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(d.preview)) preview = d.preview;
         }
         // Items_data : on serialise tout le panier (incluant flame/extra/extra2/extra3) pour reconstruire la commande apres paiement
         let itemsData = null;
@@ -1157,7 +1195,11 @@ const server = http.createServer(async (req, res) => {
           promo_discount: promoDiscount || 0,
           // CADEAU : aucun prix dans le colis, mot calligraphie, date souhaitee
           is_gift:      !!d.is_gift,
-          gift_message: d.is_gift ? clean(d.gift_message, 300) : null,
+          // clean() supprime les retours a la ligne : on les preserve ici,
+          // le message est calligraphie a la main sur plusieurs lignes.
+          gift_message: d.is_gift
+            ? String(d.gift_message || '').replace(/\r/g, '').replace(/[\x00-\x09\x0b-\x1f\x7f]/g, '').slice(0, 300).trim() || null
+            : null,
           gift_from:    d.is_gift ? clean(d.gift_from, 60)     : null,
           gift_date:    (d.is_gift && /^\d{4}-\d{2}-\d{2}$/.test(String(d.gift_date||''))) ? d.gift_date : null,
           preview: preview,
@@ -1507,7 +1549,12 @@ const server = http.createServer(async (req, res) => {
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         const upd = {};
         // Statut + livraison
-        if(d.statut!==undefined) upd.statut = clean(d.statut, 40);
+        if(d.statut!==undefined) {
+          upd.statut = clean(d.statut, 40);
+          // Date de livraison : point de depart du delai avant la demande d'avis.
+          const sansAcc = upd.statut.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          if (sansAcc.startsWith('livr')) upd.delivered_at = new Date().toISOString();
+        }
         if(d.suivi!==undefined) upd.suivi = clean(d.suivi, 60);
         if(d.transporteur!==undefined) upd.transporteur = clean(d.transporteur, 40);
         // Client
@@ -2054,9 +2101,17 @@ const server = http.createServer(async (req, res) => {
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
   // Fichiers serveur / sensibles : JAMAIS servis publiquement
   const baseName = path.basename(file).toLowerCase();
-  const SERVER_FILES = ['server.js','invoice.js','compta.js','promo.js','totp.js','package.json','package-lock.json'];
+  const SERVER_FILES = ['server.js','invoice.js','compta.js','promo.js','totp.js',
+                        'package.json','package-lock.json',
+                        // tests.js decrit chaque faille deja rencontree : c'est une
+                        // feuille de route offerte a qui voudrait attaquer le site.
+                        'tests.js'];
   if (SERVER_FILES.includes(baseName) || baseName.startsWith('.env') || baseName.endsWith('.bak') ||
-      safe.includes('.git') || baseName.endsWith('.sql') || baseName.endsWith('.md')) {
+      safe.includes('.git') || baseName.endsWith('.sql') || baseName.endsWith('.md') ||
+      // Fichiers de travail : sauvegardes, brouillons, pages orphelines.
+      baseName.endsWith('.truncated-backup') || baseName.endsWith('~') ||
+      baseName.endsWith('.old') || baseName.endsWith('.orig') || baseName.endsWith('.log') ||
+      baseName === 'studio-export.html') {
     res.statusCode = 403; return res.end('Forbidden');
   }
   fs.readFile(file, (err, buf) => {
@@ -2137,12 +2192,16 @@ const ALERTE_SILENCE   = 60 * 60 * 1000;   // 1 h entre deux alertes du meme typ
 function alerte(type, titre, details, gravite){
   const cle = String(type);
   const now = Date.now();
-  if (ALERTE_DERNIERE.get(cle) && (now - ALERTE_DERNIERE.get(cle)) < ALERTE_SILENCE) return;
-  ALERTE_DERNIERE.set(cle, now);
-
-  const dest = process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
   const urgent = gravite === 'critique';
+  // LE JOURNAL D'ABORD, TOUJOURS. L'anti-spam ne doit museler que l'e-mail :
+  // une alerte etouffee sans trace, c'est un incident qui disparait.
   console.error('[ALERTE' + (urgent ? ' CRITIQUE' : '') + '] ' + titre + ' — ' + details);
+  if (ALERTE_DERNIERE.get(cle) && (now - ALERTE_DERNIERE.get(cle)) < ALERTE_SILENCE) {
+    console.error('        (e-mail non renvoye : meme alerte il y a moins d\'une heure)');
+    return;
+  }
+  ALERTE_DERNIERE.set(cle, now);
+  const dest = process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
   if (!dest || !transporter) return;
 
   const couleur = urgent ? '#b1432f' : '#a8791f';
@@ -2168,19 +2227,43 @@ function alerte(type, titre, details, gravite){
    Toutes les 15 min, on demande a Stripe la liste de ce qui a
    REELLEMENT ete paye et on rattrape ce qui manque.
    ============================================================ */
+let _reconEnCours = false;
 async function reconcilierStripe(manuel){
   if (!USE_DB || !stripe) return { rattrapees:0, anomalies:[], verifiees:0 };
+  // Verrou : sur une base lente, un passage peut durer plus que l'intervalle.
+  // Sans lui, les executions s'empilent et aggravent la lenteur.
+  if (_reconEnCours) {
+    if (manuel) throw new Error('Une verification est deja en cours, patientez quelques instants.');
+    console.warn('[Reconciliation] passage precedent encore en cours — ignore.');
+    return { rattrapees:0, anomalies:[], verifiees:0, ignore:true };
+  }
+  _reconEnCours = true;
+  try { return await _reconcilierStripe(manuel); }
+  finally { _reconEnCours = false; }
+}
+async function _reconcilierStripe(manuel){
   let rattrapees = 0, anomalies = [];
   try {
-    // Sessions de paiement des dernieres 24 h, les plus recentes d'abord
-    const depuis = Math.floor((Date.now() - 24*60*60*1000) / 1000);
-    const liste = await stripe.checkout.sessions.list({
-      limit: 100,
-      created: { gte: depuis }
-    });
+    // Fenetre de 7 jours (et non 24 h) : un webhook perdu pendant un week-end
+    // ou une panne prolongee doit rester rattrapable. Et PAGINATION : sans
+    // elle, au-dela de 100 sessions les plus anciennes etaient invisibles.
+    const depuis = Math.floor((Date.now() - 7*24*60*60*1000) / 1000);
+    const sessions = [];
+    let apres = null, pages = 0;
+    while (pages < 20) {            // 20 x 100 = 2000 sessions au maximum
+      const page = await stripe.checkout.sessions.list(Object.assign(
+        { limit: 100, created: { gte: depuis } },
+        apres ? { starting_after: apres } : {}
+      ));
+      sessions.push(...(page.data || []));
+      pages++;
+      if (!page.has_more || !page.data.length) break;
+      apres = page.data[page.data.length - 1].id;
+    }
+    if (pages >= 20) anomalies.push('Plus de 2000 sessions Stripe sur 7 jours : verification partielle.');
 
     let verifiees = 0;
-    for (const sess of (liste.data || [])) {
+    for (const sess of sessions) {
       if (sess.payment_status !== 'paid') continue;
       verifiees++;
       const numero = (sess.metadata && sess.metadata.numero) || null;
@@ -2203,13 +2286,23 @@ async function reconcilierStripe(manuel){
       // Webhook perdu : on rattrape exactement ce qu'il aurait fait.
       console.warn('[Reconciliation] Webhook manquant pour ' + numero + ' — rattrapage.');
       try {
-        await sb('orders?numero=eq.' + encodeURIComponent(numero) + '&statut=eq.En attente paiement', { method:'PATCH', body:{
-          statut: 'Nouvelle',
-          payment_status: 'Payee',
-          payment_method: 'Stripe',
-          payment_date: new Date((sess.created || Math.floor(Date.now()/1000)) * 1000).toISOString()
-        }});
-        rattrapees++;
+        // return=representation : on veut savoir si une ligne a REELLEMENT
+        // change. Sans cela le compteur montait meme quand rien ne bougeait
+        // (commande annulee a la main), et l'alerte criait au loup a chaque
+        // passage, toutes les 15 minutes.
+        const modifiees = await sb('orders?numero=eq.' + encodeURIComponent(numero) + '&statut=eq.En attente paiement',
+          { method:'PATCH', prefer:'return=representation', body:{
+            statut: 'Nouvelle',
+            payment_status: 'Payee',
+            payment_method: 'Stripe',
+            payment_date: new Date((sess.created || Math.floor(Date.now()/1000)) * 1000).toISOString()
+          }});
+        if (Array.isArray(modifiees) && modifiees.length > 0) {
+          rattrapees++;
+        } else {
+          anomalies.push('Paiement encaisse pour ' + numero + ' mais la commande n\'est pas en attente de paiement (statut « ' + (o.statut || '?') + ' ») — verification manuelle necessaire.');
+          continue;
+        }
       } catch(e){ anomalies.push('Rattrapage impossible pour ' + numero + ' : ' + e.message); continue; }
 
       // Ecart de montant : le signaler sans rien modifier.
@@ -2289,6 +2382,11 @@ function versCSV(lignes){
   const ech = (v) => {
     if (v == null) return '""';
     let t = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+    // Excel et LibreOffice executent toute cellule commencant par = + - @
+    // ou une tabulation, meme entre guillemets. Un message cadeau contenant
+    // =HYPERLINK(...) ou =cmd|'/c calc'!A1 s'executerait a l'ouverture du
+    // fichier. On neutralise en prefixant d'une apostrophe.
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
     return '"' + t.replace(/"/g, '""') + '"';
   };
   return '﻿' + colonnes.join(';') + '\n' +
@@ -2308,8 +2406,21 @@ async function sauvegardeQuotidienne(){
 
   // preview et items_data contiennent des images base64 : on les exclut du CSV
   // (des dizaines de Mo) mais on les garde dans l'export JSON complet.
+  // On NE demande JAMAIS les colonnes qui contiennent des images encodees
+  // (preview, items_data) : sur 1500 commandes elles representent des
+  // centaines de Mo, saturent la memoire du serveur et font rejeter l'e-mail.
+  // Les donnees de gravure utiles sont deja dans initiales / finition.
+  const COLS_COMMANDES = 'numero,invoice_number,created_at,statut,payment_status,payment_method,payment_date,' +
+    'client_prenom,client_nom,client_email,telephone,' +
+    'adresse_livraison,cp_livraison,ville_livraison,pays_livraison,' +
+    'adresse_facturation,cp_facturation,ville_facturation,pays_facturation,' +
+    'quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,' +
+    'montant_ht,montant_tva,montant_total,promo_code,promo_discount,' +
+    'initiales,finition,emplacement,suivi,transporteur,' +
+    'is_gift,gift_message,gift_from,gift_date,notes_admin';
+
   const tables = [
-    { nom:'commandes', req:'orders?select=*&order=created_at.desc' },
+    { nom:'commandes', req:'orders?select=' + COLS_COMMANDES + '&order=created_at.desc' },
     { nom:'clients',   req:'profiles?select=*' },
     { nom:'avis',      req:'reviews?select=*' },
     { nom:'newsletter',req:'newsletters?select=*' },
@@ -2317,20 +2428,37 @@ async function sauvegardeQuotidienne(){
     { nom:'produits',  req:'products?select=*' }
   ];
 
+  const PAGE = 500;               // on lit par tranches, jamais tout d'un coup
+  const TAILLE_MAX = 15 * 1024 * 1024;   // au-dela, aucun serveur mail n'accepte
+  let poidsTotal = 0;
+
   for (const t of tables) {
     try {
-      const rows = await sb(t.req);
-      const n = (rows || []).length;
-      resume.push('· ' + t.nom + ' : ' + n + ' ligne' + (n > 1 ? 's' : ''));
-      if (!n) continue;
-      const allege = rows.map(r => {
-        const c = { ...r };
-        if (c.preview) c.preview = '[image retirée du CSV]';
-        return c;
-      });
+      let lignes = [], debut = 0;
+      while (true) {
+        const tranche = await sb(t.req + '&offset=' + debut + '&limit=' + PAGE);
+        if (!tranche || !tranche.length) break;
+        lignes.push(...tranche);
+        if (tranche.length < PAGE) break;
+        debut += PAGE;
+        if (debut >= 20000) { resume.push('· ' + t.nom + ' : tronqué à 20 000 lignes'); break; }
+      }
+      resume.push('· ' + t.nom + ' : ' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : ''));
+      if (!lignes.length) continue;
+
+      const contenu = Buffer.from(versCSV(lignes), 'utf8');
+      lignes = null;              // liberer avant la table suivante
+      poidsTotal += contenu.length;
+      if (poidsTotal > TAILLE_MAX) {
+        resume.push('· ' + t.nom + ' : NON JOINT — la sauvegarde dépasse 15 Mo');
+        alerte('sauvegarde_trop_grosse', 'Sauvegarde trop volumineuse pour un e-mail',
+          'L\'export dépasse 15 Mo : certaines tables ne sont pas jointes.\n' +
+          'Il faut passer à une sauvegarde vers un espace de stockage plutôt que par e-mail.', 'avertissement');
+        continue;
+      }
       pieces.push({
         filename: 'ellia-' + jour + '-' + t.nom + '.csv',
-        content: Buffer.from(versCSV(allege), 'utf8'),
+        content: contenu,
         contentType: 'text/csv; charset=utf-8'
       });
     } catch(e){
@@ -2362,13 +2490,31 @@ async function sauvegardeQuotidienne(){
     'L\'export a été généré mais l\'e-mail n\'est pas parti. Vérifiez la configuration SMTP.', 'critique');
 }
 
+/* Purge des configurations partagees expirees.
+   Sans elle, chaque lien cree (apercu JPEG de 120 Ko compris) restait en base
+   pour toujours, alors qu'il n'est plus consultable apres 90 jours. */
+async function purgerPartages(){
+  if (!USE_DB) return;
+  try {
+    const avant = new Date().toISOString();
+    await sb('shared_configs?expires_at=lt.' + encodeURIComponent(avant), { method:'DELETE' });
+    console.log('[Purge] Configurations partagees expirees supprimees.');
+  } catch(e){ console.warn('[Purge] KO :', e.message); }
+}
+
 /* Declenche la sauvegarde chaque nuit a 3 h, heure de Paris. */
 function planifierSauvegarde(){
+  // 3 h heure de PARIS : le serveur est souvent en UTC, ce qui decalait
+  // la sauvegarde a 5 h du matin en ete.
   const prochaine = () => {
-    const n = new Date(), c = new Date(n);
-    c.setHours(3, 0, 0, 0);
-    if (c <= n) c.setDate(c.getDate() + 1);
-    return c - n;
+    const maintenant = new Date();
+    const hParis = Number(new Intl.DateTimeFormat('fr-FR',
+      { timeZone:'Europe/Paris', hour:'2-digit', hour12:false }).format(maintenant));
+    const mParis = Number(new Intl.DateTimeFormat('fr-FR',
+      { timeZone:'Europe/Paris', minute:'2-digit' }).format(maintenant));
+    let minutesAvant = ((3 - hParis) * 60) - mParis;
+    if (minutesAvant <= 0) minutesAvant += 24 * 60;
+    return minutesAvant * 60 * 1000;
   };
   const armer = () => setTimeout(async () => {
     try { await sauvegardeQuotidienne(); } catch(e){ console.warn('[Sauvegarde] KO :', e.message); }
@@ -2411,13 +2557,16 @@ async function verifierEnvoiMail(){
 async function demanderAvis(){
   if (!USE_DB || !transporter) return;
   try {
-    const delai = new Date(Date.now() - 10*24*60*60*1000).toISOString();
-    // Livrees depuis 10 jours ou plus, jamais sollicitees, pas plus vieilles
-    // que 60 jours (au-dela la demande n'a plus de sens).
-    const limite = new Date(Date.now() - 60*24*60*60*1000).toISOString();
+    // Le delai court depuis la LIVRAISON, pas depuis la commande : une piece
+    // gravee met 5 a 7 jours a etre fabriquee, donc toute commande a deja
+    // plus de 10 jours quand elle arrive. Sans ce champ, l'e-mail partait
+    // dans l'heure suivant le passage en « Livrée ».
+    const delai  = new Date(Date.now() - 10*24*60*60*1000).toISOString();
+    const limite = new Date(Date.now() - 90*24*60*60*1000).toISOString();
     const rows = await sb('orders?statut=like.Livr*&review_asked_at=is.null' +
-                          '&created_at=lte.' + encodeURIComponent(delai) +
-                          '&created_at=gte.' + encodeURIComponent(limite) +
+                          '&delivered_at=not.is.null' +
+                          '&delivered_at=lte.' + encodeURIComponent(delai) +
+                          '&delivered_at=gte.' + encodeURIComponent(limite) +
                           '&select=numero,client_prenom,client_nom,client_email,initiales&limit=15');
     for (const o of (rows || [])) {
       if (!o.client_email) continue;
@@ -2438,16 +2587,31 @@ async function demanderAvis(){
         '<p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">' +
           'Message unique lié à votre commande ' + escH(o.numero) + '. Vous n\'en recevrez pas d\'autre.</p>';
 
-      const envoye = await sendMail(o.client_email,
-        'Votre Pochette ELLIA — un mot sur votre expérience ?', emailLayout(inner));
-      // On marque meme en cas d'echec : pas de relance en boucle.
+      // MARQUER D'ABORD, ENVOYER ENSUITE. Si l'ecriture echoue on n'envoie
+      // rien : mieux vaut une demande manquante qu'une cliente relancee
+      // toutes les 12 heures parce que le marquage ne passe pas.
       try {
         await sb('orders?numero=eq.' + encodeURIComponent(o.numero),
           { method:'PATCH', body:{ review_asked_at: new Date().toISOString() } });
-      } catch(_){}
+      } catch(e){
+        console.warn('[Avis] marquage impossible pour', o.numero, '— envoi annule :', e.message);
+        continue;
+      }
+      const envoye = await sendMail(o.client_email,
+        'Votre Pochette ELLIA — un mot sur votre expérience ?', emailLayout(inner));
       if (envoye) console.log('[Avis] Demande envoyee pour', o.numero);
+      else console.warn('[Avis] Envoi echoue pour', o.numero);
     }
-  } catch(e){ console.warn('[Avis] KO :', e.message); }
+  } catch(e){
+    console.warn('[Avis] KO :', e.message);
+    // Colonne absente = migration non passee : la fonctionnalite est morte
+    // sans que personne ne le sache.
+    if (/delivered_at|review_asked_at/.test(e.message)) {
+      alerte('avis_colonne_absente', 'Demande d\'avis inactive',
+        'La table des commandes n\'a pas les colonnes attendues :\n' + e.message +
+        '\n\nLa migration SQL n\'a probablement pas ete executee. Aucune demande d\'avis ne part.', 'avertissement');
+    }
+  }
 }
 
 /* ----- CRON INTERNE — relance panier abandonne (toutes les 10 min) ----- */
@@ -2515,10 +2679,12 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setTimeout(reconcilierStripe, 45*1000);   // premiere passe peu apres le demarrage
     setTimeout(surveillance,      70*1000);
     planifierSauvegarde();
+    setInterval(purgerPartages, 24*60*60*1000);
+    setTimeout(purgerPartages, 180*1000);
     setInterval(demanderAvis, 12*60*60*1000);
     setTimeout(demanderAvis, 120*1000);
   }
-  setTimeout(verifierEnvoiMail, 8*1000);
+  setTimeout(verifierEnvoiMail, 8*1000);   // une seule fois, dans le chef
 } else {
   if (USE_DB && WORKERS === 1) {
     setInterval(processAbandonedCarts, 10*60*1000);
@@ -2527,9 +2693,12 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setTimeout(reconcilierStripe, 45*1000);
     setTimeout(surveillance,      70*1000);
     planifierSauvegarde();
+    setInterval(purgerPartages, 24*60*60*1000);
+    setTimeout(purgerPartages, 180*1000);
     setInterval(demanderAvis, 12*60*60*1000);
     setTimeout(demanderAvis, 120*1000);
   }
-  setTimeout(verifierEnvoiMail, 8*1000);
+  // Un seul controle SMTP : sinon chaque processus ouvre sa propre connexion.
+  if (!cluster.worker || cluster.worker.id === 1) setTimeout(verifierEnvoiMail, 8*1000);
   startServer(cluster.worker ? '  [processus ' + cluster.worker.id + '/' + WORKERS + ']' : '');
 }

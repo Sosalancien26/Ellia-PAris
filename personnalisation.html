@@ -2137,6 +2137,13 @@ function initConfigurator(){
         var d = await r.json().catch(function(){ return {}; });
         if (!r.ok || !d.ok || !d.url) throw new Error(d.detail || d.error || 'indisponible');
 
+        // Une image importee par la cliente ne peut pas voyager dans un lien :
+        // on le lui dit plutot que de la laisser croire que tout est conserve.
+        var cfgAct = window.__exportConfig();
+        var aImage = ['s1','s2','s3','s4'].some(function(k){
+          return cfgAct[k] && cfgAct[k].sym === 'custom';
+        });
+
         out.innerHTML =
           '<div style="padding:14px 16px;background:#faf8f4;border-left:3px solid #0d0d0d">' +
             '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#7a7363;margin-bottom:9px">Votre lien</div>' +
@@ -2149,6 +2156,7 @@ function initConfigurator(){
                  'style="flex:1;padding:10px;border:1px solid rgba(0,0,0,.18);text-align:center;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#0d0d0d">Envoyer</a>' +
             '</div>' +
             '<div style="font-size:11.5px;color:#9a9286;margin-top:9px">Valable 90 jours</div>' +
+            (aImage ? '<div style="font-size:12px;color:#8a6d1f;margin-top:8px;padding:8px 10px;background:#fdf6e8;line-height:1.5">Votre image importée n\'est pas incluse dans le lien — il faudra la déposer à nouveau.</div>' : '') +
           '</div>';
 
         document.getElementById('shareCopy').addEventListener('click', function(){
