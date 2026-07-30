@@ -257,6 +257,33 @@ function addressBlock(d){
     escH(d.client_nom||'') + '<br/>' + escH(d.adresse_livraison) + '<br/>' + escH(d.cp_livraison||'') + ' ' + escH(d.ville_livraison||'') + '<br/>' + escH(d.pays_livraison||'France') +
     (d.telephone ? ('<br/>'+escH(d.telephone)) : '') + '</p>';
 }
+
+/* ============================================================
+   COUPE-CIRCUIT D'ENVOI
+   Quand un fournisseur bloque pour « trop de connexions », chaque
+   nouvelle tentative RALLONGE le blocage. On suspend les envois
+   30 minutes plutot que d'insister — sinon le service ne revient
+   jamais. Les envois vraiment importants sont reprogrammes par
+   les taches de fond (reconciliation, relance, avis).
+   ============================================================ */
+let _mailSuspenduJusqu = 0;
+function envoiSuspendu(){
+  if (Date.now() < _mailSuspenduJusqu) return true;
+  if (_mailSuspenduJusqu) { _mailSuspenduJusqu = 0; console.log('[E-MAIL] Reprise des envois.'); }
+  return false;
+}
+function noterEchecMail(e){
+  const msg = String(e && e.message || e);
+  if (/too many login attempts|454|rate limit|try again later/i.test(msg)) {
+    if (!_mailSuspenduJusqu) {
+      _mailSuspenduJusqu = Date.now() + 30 * 60 * 1000;
+      console.warn('[E-MAIL] Fournisseur saturé — envois suspendus 30 min pour ne pas aggraver le blocage.');
+    }
+    return true;
+  }
+  return false;
+}
+
 // Headers communs pour bonne deliverability (compat SpamAssassin + RFC 8058)
 function mailHeaders(marketing){
   const h = { 'X-Mailer': 'ELLIA PARIS Mailer', 'X-Entity-Ref-ID': String(Date.now()) };
@@ -272,6 +299,7 @@ function mailHeaders(marketing){
 }
 function sendMail(to, subject, html, marketing){
   if (!transporter || !to) return Promise.resolve(false);
+  if (envoiSuspendu()) return Promise.resolve(false);
   return transporter.sendMail({
     from: MAIL_FROM,
     // Le client peut repondre directement a l'email (invite a le faire dans certains messages)
@@ -281,10 +309,14 @@ function sendMail(to, subject, html, marketing){
     html,
     text: htmlToText(html),  // version text/plain (multipart alternative)
     headers: mailHeaders(marketing)
-  }).then(()=>true).catch(e=>{ console.warn('Mail KO :', e.message); return false; });
+  }).then(()=>true).catch(e=>{
+    if (!noterEchecMail(e)) console.warn('Mail KO :', e.message);
+    return false;
+  });
 }
 function sendMailWithAttachment(to, subject, html, attachments){
   if (!transporter || !to) return Promise.resolve(false);
+  if (envoiSuspendu()) return Promise.resolve(false);
   return transporter.sendMail({
     from: MAIL_FROM,
     replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
@@ -296,7 +328,10 @@ function sendMailWithAttachment(to, subject, html, attachments){
     headers: mailHeaders()
   })
     .then(()=>true)
-    .catch(e=>{ console.warn('Mail+PJ KO :', e.message); return false; });
+    .catch(e=>{
+      if (!noterEchecMail(e)) console.warn('Mail+PJ KO :', e.message);
+      return false;
+    });
 }
 function notifyNewOrder(d, numero){
   // Email client APRES paiement confirme — inclut preview pochette personnalisee
@@ -2577,7 +2612,19 @@ async function verifierEnvoiMail(){
     console.log('[E-MAIL] Serveur d\'envoi joignable et authentifie.');
     return true;
   } catch(e){
-    console.error('\n[E-MAIL] LE SERVEUR MAIL REFUSE LA CONNEXION : ' + e.message);
+    const msg = String(e && e.message || e);
+    // Gmail bloque temporairement apres trop de connexions. Dans ce cas
+    // PRECIS, chaque nouvelle tentative RALLONGE le blocage : il ne faut
+    // surtout pas reessayer, et le message doit dire quoi faire.
+    if (noterEchecMail(e)) {
+      console.warn('\n[E-MAIL] Blocage temporaire du fournisseur (trop de connexions recentes).');
+      console.warn('         Ce blocage se leve seul en quelques heures.');
+      console.warn('         N\'insistez pas : chaque tentative rallonge le delai.');
+      console.warn('         A terme, utilisez la boite de l\'hebergeur plutot que Gmail :');
+      console.warn('         SMTP_HOST=smtp.hostinger.com  SMTP_PORT=465  SMTP_SECURE=true\n');
+      return false;
+    }
+    console.error('\n[E-MAIL] LE SERVEUR MAIL REFUSE LA CONNEXION : ' + msg);
     console.error('         Vos clients ne recevront ni confirmation, ni facture.\n');
     return false;
   }
@@ -2720,7 +2767,7 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setInterval(demanderAvis, 12*60*60*1000);
     setTimeout(demanderAvis, 120*1000);
   }
-  setTimeout(verifierEnvoiMail, 8*1000);   // une seule fois, dans le chef
+  setTimeout(verifierEnvoiMail, 90*1000);   // une seule fois, et tard : un redemarrage en boucle ne doit pas marteler le serveur mail
 } else {
   if (USE_DB && WORKERS === 1) {
     setInterval(processAbandonedCarts, 10*60*1000);
@@ -2735,6 +2782,6 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setTimeout(demanderAvis, 120*1000);
   }
   // Un seul controle SMTP : sinon chaque processus ouvre sa propre connexion.
-  if (!cluster.worker || cluster.worker.id === 1) setTimeout(verifierEnvoiMail, 8*1000);
+  if (!cluster.worker || cluster.worker.id === 1) setTimeout(verifierEnvoiMail, 90*1000);
   startServer(cluster.worker ? '  [processus ' + cluster.worker.id + '/' + WORKERS + ']' : '');
 }

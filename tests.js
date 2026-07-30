@@ -455,6 +455,30 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Envoi des e-mails');
+
+// Quand le fournisseur bloque pour abus, chaque nouvelle tentative RALLONGE
+// le blocage. Sans coupe-circuit, le service ne revient jamais tout seul.
+verifier('un coupe-circuit suspend les envois en cas de saturation',
+         srcServeur.includes('_mailSuspenduJusqu') && srcServeur.includes('noterEchecMail'));
+verifier('les deux fonctions d\'envoi respectent le coupe-circuit',
+         (srcServeur.match(/if \(envoiSuspendu\(\)\) return Promise\.resolve\(false\);/g) || []).length >= 2);
+{
+  const delais = [...srcServeur.matchAll(/setTimeout\(verifierEnvoiMail,\s*(\d+)\s*\*\s*1000\)/g)]
+                   .map(m => Number(m[1]));
+  verifier('le contrôle de démarrage attend au moins une minute',
+           delais.length > 0 && delais.every(d => d >= 60), delais.join(' s, ') + ' s');
+}
+
+// Vérification exécutée de la détection
+{
+  const bloc = (srcServeur.match(/function noterEchecMail[\s\S]*?\n}/) || [''])[0];
+  const re = (bloc.match(/\/([^/]+)\/i\.test\(msg\)/) || [,''])[1];
+  let detecte = false;
+  try { detecte = new RegExp(re, 'i').test('Invalid login: 454-4.7.0 Too many login attempts, please try again later.'); } catch(_){}
+  verifier('le message de blocage réel de Gmail est bien reconnu', detecte, re);
+}
+
 section('Tâches planifiées');
 
 // Un délai invalide passé à setTimeout vaut 0 : la tâche se déclenche
