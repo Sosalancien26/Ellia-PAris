@@ -426,6 +426,23 @@ verifier('la politique autorise les modules three.js',    cspIndex.includes('unp
 verifier('la politique autorise Supabase',                cspIndex.includes('supabase.co'));
 verifier('la politique autorise les polices Google',      cspIndex.includes('fonts.gstatic.com'));
 verifier('la politique autorise les workers du décodeur', cspIndex.includes('worker-src') && cspIndex.includes('blob:'));
+// three.js charge les textures du modèle via fetch('blob:…'). Un fetch relève
+// de connect-src : sans blob: ici, la pochette s'affiche entièrement BLANCHE.
+{
+  const co = (cspIndex.match(/connect-src[^;]*/) || [''])[0];
+  verifier('la politique autorise les textures du modèle 3D (blob: dans connect-src)',
+           co.includes('blob:'), co.slice(0, 90));
+}
+// Sans crossorigin, le préchargement du modèle ne correspond pas à la requête
+// de three.js : les 2,3 Mo sont téléchargés DEUX fois.
+{
+  const pre = (srcPerso.match(/<link rel="preload"[^>]*pochette\.glb[^>]*>/) || [''])[0];
+  const url = (pre.match(/href="([^"]+)"/) || [,''])[1];
+  const chargee = (srcPerso.match(/loader\.load\('([^']+)'/) || [,''])[1];
+  verifier('le préchargement du modèle porte crossorigin', pre.includes('crossorigin'), pre.slice(0,110));
+  verifier('préchargement et chargement visent la même adresse', url === chargee,
+           url + '  contre  ' + chargee);
+}
 verifier('la politique interdit les objets embarqués',    cspIndex.includes("object-src 'none'"));
 // frame-ancestors et form-action sont ignorés dans une balise meta :
 // les y laisser donnerait une fausse impression de protection.

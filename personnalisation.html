@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; media-src 'self' https:; connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://region1.google-analytics.com; base-uri 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; media-src 'self' https:; connect-src 'self' blob: data: https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://region1.google-analytics.com; base-uri 'self'; object-src 'none'">
 <!-- Le CDN de l'hebergeur remplace l'en-tete HTTP correspondant :
      cette balise est le seul moyen que la politique atteigne le navigateur. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preload" as="fetch" href="assets/pochette-jpeg.glb?v=29" type="model/gltf-binary">
+<link rel="preload" as="fetch" href="assets/pochette.glb?v=30" type="model/gltf-binary" crossorigin="anonymous">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Marcellus&display=swap" rel="stylesheet">
@@ -609,7 +609,7 @@ function initConfigurator(){
   loader.setCrossOrigin('anonymous');
   
   console.log('[Ellia 3D] Demarrage du chargement de pochette.glb...');
-  loader.load('assets/pochette-jpeg.glb?v=29', (gltf)=>{
+  loader.load('assets/pochette.glb?v=30', (gltf)=>{
     console.log('[Ellia 3D] GLB charge avec succes. Meshes:', gltf.scene.children.length);
     const obj = gltf.scene;
     // === 1. Normalise échelle + centrage selon pattern threejs-skills ===

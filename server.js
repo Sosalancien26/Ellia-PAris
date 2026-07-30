@@ -141,7 +141,11 @@ function setSecurityHeaders(req, res){
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' https: data: blob:",
     "media-src 'self' https:",
-    "connect-src 'self' https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://region1.google-analytics.com",
+    // blob: est INDISPENSABLE : three.js charge les textures embarquees du
+    // modele 3D en creant une URL blob: puis en la recuperant avec fetch().
+    // Un fetch releve de connect-src. Sans blob: ici, la pochette s'affiche
+    // entierement BLANCHE, sans aucune texture.
+    "connect-src 'self' blob: data: https://wwzaqbpyojpzjacbjyqi.supabase.co wss://wwzaqbpyojpzjacbjyqi.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://region1.google-analytics.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
