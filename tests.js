@@ -455,6 +455,36 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Symbole « silhouette au chapeau »');
+
+{
+  const perso = lire('personnalisation.html');
+
+  // Le symbole doit exister dans les QUATRE selecteurs, sinon il n'est
+  // proposable que sur la premiere gravure.
+  const nbBoutons = (perso.match(/data-symbol="chapeau"/g) || []).length;
+  verifier('proposé dans les 4 sélecteurs de symbole', nbBoutons === 4, nbBoutons + ' trouvés');
+
+  verifier('source de l\'image déclarée', perso.includes("chapeau: 'assets/symbol-chapeau.png"));
+  verifier('nom lisible pour la commande et l\'atelier',
+           /chapeau\s*:\s*'Silhouette au chapeau'/.test(perso));
+
+  // Sans la liste blanche serveur, une commande portant ce symbole serait
+  // rejetee silencieusement au moment du paiement.
+  verifier('accepté par la liste blanche du serveur',
+           /SYMBOLES\s*=\s*\[[^\]]*'chapeau'/.test(srcServeur));
+
+  // Cinq colonnes fixes deviennent illisibles sur telephone.
+  verifier('la grille du sélecteur s\'adapte à 5 symboles',
+           perso.includes('repeat(auto-fit,minmax(64px,1fr))') &&
+           !perso.includes('grid-template-columns:repeat(4,1fr)'));
+
+  // Le fichier image doit accompagner le code.
+  const fs2 = require('fs'), path2 = require('path');
+  verifier('le fichier assets/symbol-chapeau.png est présent',
+           fs2.existsSync(path2.join(RACINE, 'assets', 'symbol-chapeau.png')));
+}
+
 section('Avis clients — loyauté commerciale');
 
 {

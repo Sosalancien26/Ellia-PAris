@@ -7,13 +7,13 @@
      cette balise est le seul moyen que la politique atteigne le navigateur. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Personnalisation — ELLIA PARIS</title>
-<meta name="description" content="Composez votre Pochette ELLIA : jusqu\'à 18 caractères gravés, 4 symboles, 4 finitions précieuses. Configurateur 3D en temps réel." />
+<meta name="description" content="Composez votre Pochette ELLIA : jusqu\'à 18 caractères gravés, 5 symboles, 4 finitions précieuses. Configurateur 3D en temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ELLIA PARIS">
 <meta property="og:title" content="Personnalisation — Gravez votre pochette ELLIA PARIS">
-<meta property="og:description" content="18 caractères, 4 symboles, 4 finitions précieuses. Visualisez votre pochette en 3D temps réel.">
+<meta property="og:description" content="18 caractères, 5 symboles, 4 finitions précieuses. Visualisez votre pochette en 3D temps réel.">
 <meta property="og:image" content="https://ellia-paris.fr/assets/social-share-wide.jpg?v=8">
 <meta property="og:url" content="https://ellia-paris.fr/personnalisation.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -44,7 +44,7 @@
       "@type": "Product",
       "@id": "https://ellia-paris.fr/personnalisation.html#product",
       "name": "La Pochette ELLIA personnalisée",
-      "description": "Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés au foil précieux (Or, Or rose, Argent, Aveugle), jusqu'à 4 symboles superposables (Aesh Sheli, Main de Fatma, Peace, picto ELLIA) avec finition et emplacement indépendants. Configurateur 3D temps réel.",
+      "description": "Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés au foil précieux (Or, Or rose, Argent, Aveugle), jusqu'à 4 symboles superposables au choix parmi cinq motifs (Aesh Sheli, Main de Fatma, Peace, picto ELLIA, silhouette au chapeau) avec finition et emplacement indépendants. Configurateur 3D temps réel.",
       "image": "https://ellia-paris.fr/assets/pochette-back.webp",
       "brand": { "@type": "Brand", "name": "ELLIA PARIS" },
       "offers": {
@@ -172,11 +172,12 @@
             </div>
             <div class="eng-card-body" id="flameOptions">
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-              <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <div id="symbolPicker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin-top:8px">
                 <button type="button" class="sym-btn active" data-symbol="flame" title="Aesh Sheli"><img loading="lazy" decoding="async" class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
                 <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-hamsa-bold.png?v=5" alt="" /><small>Hamsa</small></button>
                 <button type="button" class="sym-btn" data-symbol="peace" title="Symbole Peace"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
                 <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia Paris"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="chapeau" title="Silhouette au chapeau"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-chapeau.png?v=1" alt="" /><small>Chapeau</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="flameSwatches">
@@ -216,11 +217,12 @@
               <!-- Hidden checkbox compat : la logique JS existante surveille extraToggle -->
               <input type="checkbox" id="extraToggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-              <div id="extraPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <div id="extraPicker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin-top:8px">
                 <button type="button" class="sym-btn active" data-symbol="hamsa" title="Main de Fatma"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-hamsa-bold.png?v=5" alt="" /><small>Hamsa</small></button>
                 <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img loading="lazy" decoding="async" class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
                 <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
                 <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="chapeau" title="Silhouette au chapeau"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-chapeau.png?v=1" alt="" /><small>Chapeau</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extraSwatches">
@@ -260,11 +262,12 @@
             <div class="eng-card-body" id="extra2Options">
               <input type="checkbox" id="extra2Toggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-              <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <div id="extra2Picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin-top:8px">
                 <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-hamsa-bold.png?v=5" alt="" /><small>Hamsa</small></button>
                 <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img loading="lazy" decoding="async" class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
                 <button type="button" class="sym-btn active" data-symbol="peace" title="Peace"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
                 <button type="button" class="sym-btn" data-symbol="ellia" title="Logo Ellia"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="chapeau" title="Silhouette au chapeau"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-chapeau.png?v=1" alt="" /><small>Chapeau</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extra2Swatches">
@@ -304,11 +307,12 @@
             <div class="eng-card-body" id="extra3Options">
               <input type="checkbox" id="extra3Toggle" style="display:none" />
               <span class="field-label" style="color:#0d0d0d">Choisir le symbole</span>
-              <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+              <div id="extra3Picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin-top:8px">
                 <button type="button" class="sym-btn" data-symbol="hamsa" title="Main de Fatma"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-hamsa-bold.png?v=5" alt="" /><small>Hamsa</small></button>
                 <button type="button" class="sym-btn" data-symbol="flame" title="Aesh Sheli"><img loading="lazy" decoding="async" class="sym-ic" src="assets/flame-thumb-black.png?v=1" alt="" /><small>Aesh Sheli</small></button>
                 <button type="button" class="sym-btn" data-symbol="peace" title="Peace"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-peace.png?v=1" alt="" /><small>Peace</small></button>
                 <button type="button" class="sym-btn active" data-symbol="ellia" title="Logo Ellia"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-ellia.png?v=1" alt="" /><small>Ellia</small></button>
+                <button type="button" class="sym-btn" data-symbol="chapeau" title="Silhouette au chapeau"><img loading="lazy" decoding="async" class="sym-ic" src="assets/symbol-chapeau.png?v=1" alt="" /><small>Chapeau</small></button>
               </div>
               <span class="field-label" style="margin-top:14px;display:block">Finition</span>
               <div class="swatches" id="extra3Swatches">
@@ -589,9 +593,10 @@ function initConfigurator(){
     flame: 'assets/flame.png?v=2',
     hamsa: 'assets/symbol-hamsa-bold.png?v=5',
     peace: 'assets/symbol-peace.png?v=2',
-    ellia: 'assets/symbol-ellia.png?v=2'
+    ellia: 'assets/symbol-ellia.png?v=2',
+    chapeau: 'assets/symbol-chapeau.png?v=1'
   };
-  const SYMBOL_NAME = { flame:'Aesh Sheli', hamsa:'Main de Fatma', peace:'Peace', ellia:'Logo Ellia Paris', custom:'Image personnalisée' };
+  const SYMBOL_NAME = { flame:'Aesh Sheli', hamsa:'Main de Fatma', peace:'Peace', ellia:'Logo Ellia Paris', chapeau:'Silhouette au chapeau', custom:'Image personnalisée' };
 
   let pochetteMesh = null;
   
