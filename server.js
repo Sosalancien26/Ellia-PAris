@@ -940,7 +940,7 @@ const server = http.createServer(async (req, res) => {
         // permettait de declencher un clic sur n'importe quel bouton de la page.
         const FINITIONS   = ['or','orrose','argent','aveugle'];
         const EMPLACEMENTS= ['hg','hd','centre','bg','bd'];
-        const SYMBOLES    = ['flame','hamsa','peace','ellia','chapeau'];
+        const SYMBOLES    = ['flame','hamsa','peace','ellia','rabbi'];
         const dansListe = (v, liste) => liste.includes(String(v || '')) ? String(v) : null;
 
         const propre = {
