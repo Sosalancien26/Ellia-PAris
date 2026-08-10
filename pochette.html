@@ -182,17 +182,18 @@
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
-<section id="contenu" class="pad page-top" style="padding-bottom:90px">
+<main id="contenu">
+<section class="pad page-top" style="padding-bottom:90px">
   <div class="wrap">
     <div class="breadcrumb reveal" style="margin-bottom:40px"><a href="index.html">Accueil</a> · La Pochette ELLIA</div>
     <div class="product">
       <div class="reveal">
         <div class="pg-main"><img loading="eager" fetchpriority="high" decoding="async" id="pgMain" src="assets/pochette-back.webp" alt="La Pochette ELLIA PARIS — vue arrière" /></div>
         <div class="pg-thumbs">
-          <img loading="eager" decoding="async" class="active" src="assets/pochette-back.webp" data-full="assets/pochette-back.webp" alt="Vue arrière" />
-          <img loading="lazy" decoding="async" src="assets/pochette-fingerprint.jpg?v=8" data-full="assets/pochette-fingerprint.jpg?v=8" alt="Profil capteur biométrique" />
-          <img loading="lazy" decoding="async" src="assets/lookbook/pochette-ecrin.webp?v=1" data-full="assets/lookbook/pochette-ecrin.webp?v=1" alt="Écrin signature" />
-          <img loading="lazy" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_3Dl2I0XuBxcRZUFLXN8G3y38dBE/hf_20260528_155508_050d04cb-17e6-40f8-8851-e352f45a10d2_min.webp" data-full="https://d8j0ntlcm91z4.cloudfront.net/user_3Dl2I0XuBxcRZUFLXN8G3y38dBE/hf_20260528_155508_050d04cb-17e6-40f8-8851-e352f45a10d2_min.webp" alt="Atelier savoir-faire" />
+          <button type="button" class="pg-thumb active" aria-label="Afficher : Vue arrière"><img loading="eager" decoding="async" class="active" src="assets/pochette-back.webp" data-full="assets/pochette-back.webp" alt="Vue arrière" /></button>
+          <button type="button" class="pg-thumb" aria-label="Afficher : Profil capteur biométrique"><img loading="lazy" decoding="async" src="assets/pochette-fingerprint.jpg?v=8" data-full="assets/pochette-fingerprint.jpg?v=8" alt="Profil capteur biométrique" /></button>
+          <button type="button" class="pg-thumb" aria-label="Afficher : Écrin signature"><img loading="lazy" decoding="async" src="assets/lookbook/pochette-ecrin.webp?v=1" data-full="assets/lookbook/pochette-ecrin.webp?v=1" alt="Écrin signature" /></button>
+          <button type="button" class="pg-thumb" aria-label="Afficher : Atelier savoir-faire"><img loading="lazy" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_3Dl2I0XuBxcRZUFLXN8G3y38dBE/hf_20260528_155508_050d04cb-17e6-40f8-8851-e352f45a10d2_min.webp" data-full="https://d8j0ntlcm91z4.cloudfront.net/user_3Dl2I0XuBxcRZUFLXN8G3y38dBE/hf_20260528_155508_050d04cb-17e6-40f8-8851-e352f45a10d2_min.webp" alt="Atelier savoir-faire" /></button>
         </div>
       </div>
       <div class="pg-info reveal">
@@ -374,10 +375,18 @@
       <div class="reviews-loading">Chargement des avis…</div>
     </div>
 
-    <p class="reviews-mention" style="font-size:12.5px;color:var(--gris-clair);text-align:center;margin:26px auto 0;max-width:640px;line-height:1.6">
-      Tous les avis sont lus avant publication. La mention « Achat vérifié » n'apparaît que
-      lorsque l'adresse de son auteur correspond à une commande effectivement livrée. Aucun avis
-      n'est rémunéré, et nous ne supprimons pas un avis en raison de sa note.
+    <p class="reviews-mention" style="font-size:12.5px;color:var(--gris-clair);text-align:center;margin:26px auto 0;max-width:680px;line-height:1.65">
+      <strong>Contrôle des avis — article L.111-7-2 du Code de la consommation.</strong>
+      Les avis sont <strong>contrôlés avant publication</strong>. Le contrôle consiste à vérifier que
+      l'adresse de l'auteur correspond à une commande effectivement livrée — seuls ces avis portent
+      la mention « Achat vérifié » — et à écarter les contenus injurieux, diffamatoires, hors sujet
+      ou contenant les données personnelles d'un tiers. <strong>Un avis n'est jamais refusé ni
+      supprimé en raison de sa note</strong>, et son auteur est informé par e-mail de tout refus.
+      Aucune contrepartie, remise ni rémunération n'est offerte en échange d'un avis.<br>
+      Chaque avis est publié dans un délai maximal de <strong>sept jours</strong> et affiche sa date
+      de publication ainsi que la date de réception de la pochette. Les avis sont classés du plus
+      récent au plus ancien et conservés <strong>trois ans</strong>. Pour signaler un avis ou
+      contacter son auteur : contact@ellia-paris.fr.
     </p>
 
     <details class="reviews-form-wrap reveal" id="avis-form">
@@ -398,7 +407,8 @@
             <option value="1">★☆☆☆☆ — Décevant</option>
           </select>
         </label>
-        <label><span>Titre (optionnel)</span><input type="text" name="titre" maxlength="80" placeholder="Ex : Un objet d'exception" aria-label="Ex : Un objet d'exception" /></label>
+        <label><span>Date de réception de votre pochette *</span><input type="date" name="date_experience" required /></label>
+        <label><span>Titre (optionnel)</span><input type="text" name="titre" maxlength="80" placeholder="Ex : Un objet d'exception" /></label>
         <label><span>Votre avis *</span>
           <textarea name="commentaire" required minlength="20" maxlength="1000" rows="5" placeholder="Décrivez votre ressenti, l'usage au quotidien, la finition…"></textarea>
         </label>
@@ -412,13 +422,14 @@
   </div>
 </section>
 
+</main>
 <footer id="contact">
   <div class="wrap">
     <div class="foot-grid">
       <div><img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
-      <div><h4>La Maison</h4><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
-      <div><h4>Boutique</h4><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
-      <div><h4>Suivez-nous</h4><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
+      <div><h2 class="foot-h">La Maison</h2><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h2 class="foot-h">Boutique</h2><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h2 class="foot-h">Suivez-nous</h2><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
     </div>
     <div class="foot-bottom">
       <div>© 2026 ELLIA PARIS — Tous droits réservés.</div>

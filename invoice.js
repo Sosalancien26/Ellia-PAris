@@ -12,7 +12,7 @@ catch(e){ console.warn('pdfkit indisponible — installer via npm install pdfkit
 
 const NOIR  = '#0d0d0d';
 const GRIS  = '#5c5852';
-const GRIS2 = '#8a857d';
+const GRIS2 = '#6a655d';
 const LIGNE = '#e0ddd6';
 
 function eur(n){

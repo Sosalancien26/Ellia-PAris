@@ -84,7 +84,7 @@
       }
       box.innerHTML = items.map(function(it){
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:18px;background:#fff;border:1px solid rgba(0,0,0,.06);margin-bottom:10px">'+
-          '<div><b style="font-family:Cormorant Garamond,Georgia,serif;font-size:18px">La Pochette ELLIA</b><br><span style="font-size:12px;color:#8a857d">Ajout&eacute; le ' + new Date(it.added_at).toLocaleDateString('fr-FR') + '</span></div>'+
+          '<div><b style="font-family:Cormorant Garamond,Georgia,serif;font-size:18px">La Pochette ELLIA</b><br><span style="font-size:12px;color:#6a655d">Ajout&eacute; le ' + new Date(it.added_at).toLocaleDateString('fr-FR') + '</span></div>'+
           '<div style="display:flex;gap:8px"><a href="pochette.html" style="padding:9px 14px;background:#0d0d0d;color:#fff;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Voir</a>'+
           '<button data-rem="' + it.product_ref + '" style="padding:9px 14px;border:1px solid rgba(0,0,0,.12);background:#fff;color:#0d0d0d;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer">Retirer</button></div>'+
         '</div>';

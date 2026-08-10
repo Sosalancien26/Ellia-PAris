@@ -258,7 +258,7 @@
     el.innerHTML = '<div id="dashAlertBox" style="display:flex;align-items:center;gap:14px;background:#fdf3e7;border:1px solid #f3dcb6;border-left:4px solid #d18e3d;padding:16px 20px;margin-bottom:24px;cursor:pointer;border-radius:3px">'+
       '<span style="font-size:22px">📦</span>'+
       '<span style="font-size:14.5px;color:#7a5215">'+parts.join(' · ')+'</span>'+
-      '<span style="margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a8631e">Voir ›</span></div>';
+      '<span style="margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8a4f14">Voir ›</span></div>';
     document.getElementById('dashAlertBox').addEventListener('click', ()=>{
       const t = document.querySelector('.tab[data-tab="orders"]'); if(t) t.click();
       const f = document.querySelector('#ordFilters .of[data-f="nouvelle"]'); if (nNew && f) f.click();
@@ -545,7 +545,7 @@
     }
     // Banniere d'avertissement specifique pour commandes pas encore payees
     const waitingBanner = norm(o.statut).includes('attente paiement')
-      ? '<div style="margin:14px 0 18px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;border-radius:3px;font-size:13px;color:#a8631e;display:flex;align-items:flex-start;gap:10px"><span style="font-size:16px;line-height:1">⏳</span><span><b>Paiement Stripe en cours</b> — cette commande n\'a pas encore été confirmée. Aucun email client n\'a été envoyé, aucun stock n\'a été débité de manière définitive.</span></div>'
+      ? '<div style="margin:14px 0 18px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;border-radius:3px;font-size:13px;color:#8a4f14;display:flex;align-items:flex-start;gap:10px"><span style="font-size:16px;line-height:1">⏳</span><span><b>Paiement Stripe en cours</b> — cette commande n\'a pas encore été confirmée. Aucun email client n\'a été envoyé, aucun stock n\'a été débité de manière définitive.</span></div>'
       : '';
     document.getElementById('ordModalBox').innerHTML=
       '<button class="om-close" id="omClose">×</button>'+
@@ -1107,8 +1107,8 @@
       // Seuils
       const pctMicro = Math.min(100, d.pct_micro);
       const pctTVA = Math.min(100, d.pct_franchise_tva);
-      const colMicro = pctMicro >= 90 ? '#b1432f' : (pctMicro >= 70 ? '#9a6a14' : '#2f7d52');
-      const colTVA = pctTVA >= 90 ? '#b1432f' : (pctTVA >= 70 ? '#9a6a14' : '#2f7d52');
+      const colMicro = pctMicro >= 90 ? '#b1432f' : (pctMicro >= 70 ? '#7a5310' : '#1f6e3a');
+      const colTVA = pctTVA >= 90 ? '#b1432f' : (pctTVA >= 70 ? '#7a5310' : '#1f6e3a');
       document.getElementById('comptaSeuils').innerHTML =
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0 12px">'+
         '  <div style="background:#fff;border:1px solid var(--ligne);padding:20px">'+

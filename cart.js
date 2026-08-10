@@ -99,14 +99,14 @@
 /* ===== AVIS CLIENTS ===== */
 (function(){
   function star(n){var s='';for(var i=0;i<5;i++)s+=(i<n?'★':'☆');return s;}
-  function fmtDate(s){try{var d=new Date(s);return d.toLocaleDateString('fr-FR',{year:'numeric',month:'long'});}catch(_){return s||'';}}
+  function fmtDate(s){try{var d=new Date(s);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(_){return s||'';}}
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}
   function render(list){
     var box=document.getElementById('reviewsList');if(!box)return;
     if(!list||!list.length){box.innerHTML='<div class="reviews-empty">Soyez la première à partager votre expérience.</div>';return;}
     box.innerHTML=list.map(function(r){
       return '<div class="review-card">'+
-        '<div class="rv-head"><div class="rv-author">'+escapeHtml(r.prenom||'Anonyme')+'</div><div class="rv-date">'+fmtDate(r.created_at)+'</div></div>'+
+        '<div class="rv-head"><div class="rv-author">'+escapeHtml(r.prenom||'Anonyme')+'</div><div class="rv-date">Publié le '+fmtDate(r.created_at)+(r.date_experience?' · pochette reçue le '+fmtDate(r.date_experience):'')+'</div></div>'+
         '<div class="rv-rating">'+star(r.note||5)+'</div>'+
         (r.titre?'<div class="rv-title">« '+escapeHtml(r.titre)+' »</div>':'')+
         '<div class="rv-comment">'+escapeHtml(r.commentaire||'')+'</div>'+

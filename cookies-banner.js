@@ -9,8 +9,14 @@
 
   window.elliaCookies = {
     consent: function(c){ set(c); hide(); apply(c); },
-    has: function(){ return !!get(); },
-    choice: function(){ const g = get(); return g && g.choice; },
+    has: function(){ return !!this.choice(); },
+    // Six mois : duree recommandee par la CNIL avant de redemander.
+    choice: function(){
+      const g = get();
+      if (!g || !g.ts) return null;
+      if (Date.now() - g.ts > 15552000000) { try{ localStorage.removeItem(KEY); }catch(_){} return null; }
+      return g.choice;
+    },
     show: show
   };
 

@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root{--noir:#0d0d0d;--ivoire:#f3f1ec;--blanc:#fff;--gris:#5c5852;--gris2:#8a857d;--ligne:rgba(0,0,0,.1);--serif:"Cormorant Garamond",Georgia,serif;--sans:"Jost",Arial,sans-serif;
-    --vert:#2f7d52;--vert-bg:#e6f1ea;--ambre:#9a6a14;--ambre-bg:#f6edda;--bleu:#2b5d86;--bleu-bg:#e4eef6;--gris-bg:#ececec}
+  :root{--noir:#0d0d0d;--ivoire:#f3f1ec;--blanc:#fff;--gris:#5c5852;--gris2:#6a655d;--ligne:rgba(0,0,0,.1);--serif:"Cormorant Garamond",Georgia,serif;--sans:"Jost",Arial,sans-serif;
+    --vert:#1f6e3a;--vert-bg:#e6f1ea;--ambre:#7a5310;--ambre-bg:#f6edda;--bleu:#2b5d86;--bleu-bg:#e4eef6;--gris-bg:#ececec}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:var(--sans);font-weight:400;background:var(--ivoire);color:var(--noir);-webkit-font-smoothing:antialiased}
   h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.01em}
@@ -49,7 +49,7 @@
   tr:last-child td{border-bottom:none}
   .oid{font-family:var(--serif);font-size:16px}
   .badge{display:inline-block;font-size:11px;letter-spacing:.08em;padding:5px 11px;border-radius:2px;white-space:nowrap}
-  .b-wait{background:#fdf3e7;color:#a8631e;border:1px solid #f3dcb6}
+  .b-wait{background:#fdf3e7;color:#8a4f14;border:1px solid #f3dcb6}
   .b-nouvelle{background:var(--bleu-bg);color:var(--bleu)}
   .b-prep{background:var(--ambre-bg);color:var(--ambre)}
   .b-exp{background:var(--gris-bg);color:#555}
@@ -69,7 +69,7 @@
   .ord-row:hover{border-color:var(--noir);box-shadow:0 3px 14px rgba(0,0,0,.06)}
   /* Commande en attente paiement : visuel distinct (bordure dashee + opacite legere) */
   .ord-row.ord-waiting{border-style:dashed;border-color:#f3dcb6;background:#fffbf5}
-  .ord-row.ord-waiting .oid{color:#a8631e}
+  .ord-row.ord-waiting .oid{color:#8a4f14}
   .ord-row.ord-waiting:hover{border-color:#d18e3d;background:#fff6e9}
   .orow-l{display:flex;flex-direction:column;gap:7px;min-width:0}
   .orow-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -108,14 +108,14 @@
   .hist-filter:hover{border-color:var(--noir);color:var(--noir)}
   .hist-filter.active{background:var(--noir);color:#fff;border-color:var(--noir)}
   .reason-tag{display:inline-block;font-size:10.5px;letter-spacing:.04em;padding:5px 11px;border-radius:2px;font-weight:500}
-  .r-restock{background:#e6f1ea;color:#2f7d52}
+  .r-restock{background:#e6f1ea;color:#1f6e3a}
   .r-order_online{background:#e4eef6;color:#2b5d86}
   .r-order_manual{background:#dde6ef;color:#1e466a}
-  .r-return{background:#f6edda;color:#9a6a14}
+  .r-return{background:#f6edda;color:#7a5310}
   .r-loss{background:#fbe5e0;color:#b1432f}
   .r-inventory_correction{background:#ececec;color:#555}
   .r-manual_set{background:#f0e7f5;color:#6b3a8a}
-  .delta-pos{color:#2f7d52;font-weight:500}
+  .delta-pos{color:#1f6e3a;font-weight:500}
   .delta-neg{color:#b1432f;font-weight:500}
   @media (max-width:860px){
     .panel#stock .card[style*="grid-template-columns"]{grid-template-columns:1fr !important}
@@ -131,12 +131,12 @@
   .nc-grid.three{grid-template-columns:1fr 1fr 1fr}
   .nc-field{display:flex;flex-direction:column;gap:6px}
   .nc-field label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);font-weight:500}
-  .nc-field input,.nc-field select,.nc-field textarea{font-family:var(--sans);font-size:14px;padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;color:var(--noir);outline:none;transition:border-color .2s,background .2s}
+  .nc-field input,.nc-field select,.nc-field textarea{font-family:var(--sans);font-size:14px;padding:11px 13px;border:1px solid var(--ligne);background:#fafaf7;color:var(--noir);transition:border-color .2s,background .2s}
   .nc-field input:focus,.nc-field select:focus,.nc-field textarea:focus{border-color:var(--noir);background:#fff}
   .nc-field textarea{resize:vertical;min-height:80px;font-family:var(--sans)}
   .nc-field .hint{font-size:11px;color:var(--gris2);font-style:italic}
   .nc-recap{background:#0d0d0d;color:#fff;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px}
-  .nc-recap .l{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#8a857d;margin-bottom:6px}
+  .nc-recap .l{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#6a655d;margin-bottom:6px}
   .nc-recap .v{font-family:var(--serif);font-size:32px;line-height:1}
   .nc-recap .ht{font-size:12px;color:#bdb8af;margin-top:6px}
   .nc-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -232,7 +232,7 @@
   .ord-save:hover{background:#2a251e;color:var(--or-soft);transform:translateY(-1px);box-shadow:0 8px 20px -6px rgba(20,16,10,.4)}
   select.statut,.om-actions select,.om-actions input{border-radius:9px;transition:border-color .2s}
   input,select,textarea{border-radius:9px !important}
-  input:focus,select:focus,textarea:focus{border-color:var(--or) !important;outline:none;box-shadow:0 0 0 3px rgba(201,162,39,.12)}
+  input:focus,select:focus,textarea:focus{border-color:var(--or) !important;box-shadow:0 0 0 3px rgba(201,162,39,.12)}
 
   /* ── Modale : écrin ── */
   #ordModalBox{border-radius:18px !important;box-shadow:0 50px 120px rgba(10,8,5,.45) !important;border-top:3px solid var(--or) !important}
@@ -393,7 +393,7 @@
         <button class="of" data-f="livr">Livrées</button>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:-6px 0 18px">
-        <input id="ordSearch" type="search" placeholder="Rechercher (n° de commande, nom ou e-mail)…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:13px;background:#fff;color:var(--noir);outline:none">
+        <input id="ordSearch" type="search" placeholder="Rechercher (n° de commande, nom ou e-mail)…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--ligne);font-family:var(--sans);font-size:13px;background:#fff;color:var(--noir)">
         <button id="ordBonsGraver" title="Tous les bons en attente, classés par couleur de foil : un seul changement de presse par finition"
           style="padding:10px 18px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer">
           🖨 Bons à graver <span id="ordBonsCount" style="opacity:.7"></span></button>

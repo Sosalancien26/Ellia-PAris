@@ -33,14 +33,14 @@
   .ocard-meta{font-size:13px;color:var(--gris-txt)}
   .ocard-right{text-align:right;flex-shrink:0}
   .ocb{display:inline-block;font-size:11px;letter-spacing:.06em;padding:5px 11px;border-radius:2px;margin-bottom:8px}
-  .ocb-blue{background:#e4eef6;color:#2b5d86}.ocb-amber{background:#f6edda;color:#9a6a14}.ocb-grey{background:#ececec;color:#555}.ocb-green{background:#e6f1ea;color:#2f7d52}.ocb-red{background:#f6e9e6;color:#8a3b2c}
+  .ocb-blue{background:#e4eef6;color:#2b5d86}.ocb-amber{background:#f6edda;color:#7a5310}.ocb-grey{background:#ececec;color:#555}.ocb-green{background:#e6f1ea;color:#1f6e3a}.ocb-red{background:#f6e9e6;color:#8a3b2c}
   .ocard-total{font-family:var(--serif);font-size:18px}
   .ocard-link{font-size:12px;color:var(--noir);display:block;margin-top:6px}
   .empty{color:var(--gris-txt);padding:20px 0}
   .pform{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:640px}
   .pform .field{margin:0}.pform .full{grid-column:1/-1}
   .pform label{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt);margin-bottom:9px}
-  .pform input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);outline:none;transition:border-color .3s}
+  .pform input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);transition:border-color .3s}
   .pform input:focus{border-color:var(--noir)}
   @media(max-width:860px){.acct-layout{grid-template-columns:1fr;gap:22px}.acct-side{position:static}.acct-side nav{display:flex;flex-wrap:wrap;gap:6px}.acct-side .grp{width:100%}.pform{grid-template-columns:1fr}.ocard img{display:none}}
 </style>
@@ -230,7 +230,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{
     if(upErr){ msg.style.color='#b1432f'; msg.textContent='Erreur : '+upErr.message; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; return; }
     // Supabase envoie un lien à l'ANCIENNE et à la NOUVELLE adresse : les deux
     // doivent être cliqués, sinon le changement reste bloqué sans explication.
-    msg.style.color='#2f7d52';
+    msg.style.color='#1f6e3a';
     msg.innerHTML='Deux e-mails de confirmation ont été envoyés :<br>• à votre adresse actuelle<br>• à '+newEmail.replace(/[<>&]/g,'')+'<br><b>Cliquez sur les deux liens</b> pour valider le changement.';
     btn.textContent='Envoyé ✓'; setTimeout(()=>{ em.style.display='none'; btn.disabled=false; btn.textContent="Envoyer l'email de validation"; }, 4000);
   });

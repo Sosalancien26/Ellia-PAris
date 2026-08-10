@@ -55,11 +55,13 @@
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
-<section id="contenu" class="pad page-top"><div class="cmd">
+<main id="contenu">
+<section class="pad page-top"><div class="cmd">
   <a class="cmd-back" href="compte.html">← Mon compte</a>
   <div id="content"><p style="color:var(--gris-txt);margin-top:30px">Chargement…</p></div>
 </div></section>
 
+</main>
 <footer><div class="wrap"><div class="foot-bottom"><span>© 2026 ELLIA PARIS</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div></div></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -118,7 +120,7 @@
           (session ? 'Cette commande n’est pas rattachée à votre compte. Saisissez l’e-mail utilisé lors de l’achat pour l’afficher.' :
            'Commande <b>'+String(numero).replace(/[<>&]/g,'')+'</b>. Saisissez l’e-mail utilisé lors de l’achat pour afficher son suivi.')+'</p>'+
         '<form id="lookupForm">'+
-          '<input id="lkEmail" type="email" inputmode="email" autocomplete="email" placeholder="votre@email.com" style="width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;outline:none;border-radius:7px">'+
+          '<input id="lkEmail" type="email" inputmode="email" autocomplete="email" placeholder="votre@email.com" style="width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;border-radius:7px">'+
           '<button class="btn solid" type="submit" id="lkGo" style="width:100%;text-align:center;margin-top:12px">Afficher ma commande</button>'+
         '</form>'+
         '<div id="lkMsg" role="alert" aria-live="polite" style="font-size:13px;margin-top:12px;color:#b1432f"></div>'+

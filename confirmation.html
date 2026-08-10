@@ -20,7 +20,7 @@
   .conf-num{display:inline-block;margin-top:6px;padding:6px 14px;background:#fafaf7;border:1px solid #e9e5da;font-family:Marcellus,Cormorant Garamond,serif;font-size:18px;letter-spacing:.06em;color:#0d0d0d;border-radius:2px}
   .conf-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:38px 0 14px;text-align:left}
   .conf-step .num{font-family:Cormorant Garamond,serif;font-size:28px;color:#0d0d0d;line-height:1}
-  .conf-step .t{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:8px 0 4px}
+  .conf-step .t{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:8px 0 4px}
   .conf-step .d{font-size:13px;color:#5c5852;line-height:1.55}
   @media (max-width:640px){
     .conf-card{padding:34px 22px}
@@ -43,7 +43,8 @@
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
-<section id="contenu" class="pad page-top">
+<main id="contenu">
+<section class="pad page-top">
   <div class="wrap" style="max-width:720px">
 
     <!-- État : PAIEMENT RÉUSSI -->
@@ -53,7 +54,7 @@
       <h1 style="font-size:clamp(38px,5.4vw,64px);margin:6px 0 14px;font-weight:400">Merci.</h1>
       <p style="color:#5c5852;font-size:15.5px;line-height:1.65;margin:0 0 6px">Votre commande est confirmée. Un email de confirmation, avec l'aperçu de votre pochette personnalisée, vient de vous être envoyé.</p>
       <div class="conf-num" id="numSuccess">—</div>
-      <div id="payPending" style="display:none;margin:14px auto 0;max-width:460px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;color:#a8631e;font-size:13px;line-height:1.55;border-radius:4px">Votre paiement est en cours de validation par notre banque — votre commande est bien enregistrée. L’e-mail de confirmation arrivera dans quelques instants.</div>
+      <div id="payPending" style="display:none;margin:14px auto 0;max-width:460px;padding:12px 16px;background:#fdf3e7;border:1px solid #f3dcb6;color:#8a4f14;font-size:13px;line-height:1.55;border-radius:4px">Votre paiement est en cours de validation par notre banque — votre commande est bien enregistrée. L’e-mail de confirmation arrivera dans quelques instants.</div>
 
       <div class="conf-steps">
         <div class="conf-step">
@@ -77,7 +78,7 @@
         <a href="#" id="btnSuivi" class="btn solid">Suivre ma commande</a>
         <a href="index.html" class="btn">Retour à l'accueil</a>
       </div>
-      <p style="margin-top:24px;font-size:12.5px;color:#9a9286">Une question ? <a href="contact.html" style="color:#0d0d0d;text-decoration:underline">Écrivez-nous</a> — réponse sous 24h ouvrées.</p>
+      <p style="margin-top:24px;font-size:12.5px;color:#6a655d">Une question ? <a href="contact.html" style="color:#0d0d0d;text-decoration:underline">Écrivez-nous</a> — réponse sous 24h ouvrées.</p>
     </div>
 
     <!-- État : PAIEMENT ANNULÉ -->
@@ -107,6 +108,22 @@
 
   </div>
 </section>
+
+</main>
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
+      <div><h2 class="foot-h">La Maison</h2><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h2 class="foot-h">Boutique</h2><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h2 class="foot-h">Suivez-nous</h2><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 ELLIA PARIS — Tous droits réservés.</div>
+      <div><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></div>
+    </div>
+  </div>
+</footer>
 
 <script src="app.js?v=1785400000" defer></script>
 <script>

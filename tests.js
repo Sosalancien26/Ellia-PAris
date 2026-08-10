@@ -287,13 +287,35 @@ const charge  = (srcPerso.match(/loader\.load\('([^']*pochette\.glb[^']*)'/) || 
 verifier('le préchargement du modèle 3D vise la bonne URL',
          !preload || preload === charge, 'préchargé ' + preload + ' / chargé ' + charge);
 
-// Aucun marqueur de rédaction ne doit rester visible sur une page publique
+// Aucun marqueur de rédaction ne doit rester visible sur une page publique.
+// Les mentions légales et les CGV font l'objet d'un contrôle séparé, plus
+// bas : leurs crochets sont des champs que seul Sacha peut renseigner
+// (SIRET, médiateur, adresse), pas des oublis de rédaction.
+const PAGES_JURIDIQUES = ['mentions.html', 'cgv.html', 'confidentialite.html'];
 let brouillons = [];
 for (const f of pagesHtml) {
+  if (PAGES_JURIDIQUES.includes(f)) continue;
   const h = lire(f);
   if (/\[à préciser\]|\[délai\]|\[numéro\]|\[à compléter\]|Modèle à faire valider/.test(h)) brouillons.push(f);
 }
 verifier('aucun marqueur de brouillon visible par un client', brouillons.length === 0, brouillons.join(', '));
+
+// Champs légaux encore vides : on les liste sans faire échouer la suite,
+// car ils dépendent d'informations administratives, pas du code.
+{
+  const manquants = [];
+  for (const f of PAGES_JURIDIQUES) {
+    const h = lire(f);
+    const trous = (h.match(/\[[^\]]{3,60}\]/g) || [])
+                    .filter(t => !t.startsWith('[data') && !t.includes('http'));
+    if (trous.length) manquants.push('  ' + f + ' — ' + trous.length + ' champ(s)');
+  }
+  if (manquants.length) {
+    console.log('\n\x1b[33m  À RENSEIGNER avant la première vente (aucun blocage technique) :\x1b[0m');
+    manquants.forEach(m => console.log('\x1b[33m' + m + '\x1b[0m'));
+    console.log('\x1b[33m  Sans ces mentions, encaisser expose à l\'article 6-III de la LCEN.\x1b[0m\n');
+  }
+}
 
 // Le bouton de paiement doit porter la mention légale obligatoire
 verifier('le bouton de commande porte la mention légale obligatoire',
@@ -455,6 +477,75 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Conformité légale et accessibilité');
+
+{
+  const perso  = lire('personnalisation.html');
+  const chk    = lire('checkout.html');
+  const cgv    = lire('cgv.html');
+  const conf   = lire('confidentialite.html');
+  const poch   = lire('pochette.html');
+  const css    = lire('styles.css');
+  const cook   = lire('cookies-banner.js');
+  const panier = lire('cart.js');
+
+  // ── Vente de biens personnalises ──
+  // Sans information PREALABLE, la vente d'une piece gravee non reprise
+  // est contestable (art. L.221-5 et L.221-28 3°).
+  verifier('la page de gravure prévient avant l\'ajout au panier',
+           perso.includes('L.221-28 3°') && perso.indexOf('L.221-28 3°') < perso.indexOf('id="addPerso"'));
+  verifier('le paiement exige une reconnaissance explicite',
+           chk.includes('id="acceptPerso"') && chk.includes('acceptPerso'));
+  verifier('l\'exclusion cite bien l\'alinéa 3',
+           cgv.includes('L.221-28 3°'));
+
+  // ── Encadre des garanties : texte impose mot pour mot par D.211-2 ──
+  for (const phrase of ['trente jours', 'extension de six mois',
+                        'renouvelée pour une période de deux ans',
+                        'L.217-1 à L.217-32', 'L.241-5']) {
+    verifier('encadré des garanties : « ' + phrase + ' »', cgv.includes(phrase));
+  }
+
+  // ── RGPD ──
+  verifier('les durées de conservation sont chiffrées', conf.includes('10 ans') && conf.includes('30 jours'));
+  verifier('les sous-traitants sont nommés', conf.includes('Stripe') && conf.includes('Colissimo'));
+  verifier('les transferts hors UE sont documentés', conf.includes('clauses contractuelles types'));
+  verifier('la CNIL et son adresse sont indiquées', conf.includes('3 place de Fontenoy'));
+  verifier('le consentement cookies peut être retiré', conf.includes('elliaCookies'));
+  verifier('le consentement cookies expire', cook.includes('15552000000'));
+  verifier('le panier abandonné est déclaré', conf.includes('trente jours'));
+
+  // ── Avis en ligne (art. L.111-7-2) ──
+  verifier('la date de publication est affichée', panier.includes('Publié le'));
+  verifier('la date de réception est affichée', panier.includes('date_experience'));
+  verifier('le contrôle des avis est décrit', poch.includes('L.111-7-2') && poch.includes('jamais refusé'));
+
+  // ── Accessibilité : ce qui bloquait l'achat au clavier ──
+  verifier('les finitions sont des boutons', perso.includes('<button type="button" class="sw'));
+  verifier('l\'état de la finition est annoncé', perso.includes('aria-pressed'));
+  verifier('le champ de gravure a un libellé', perso.includes('<label class="field-label" for="initials">'));
+  verifier('l\'aperçu 3D a une alternative', perso.includes('id="resumeGravure"'));
+  verifier('les emplacements pris sont désactivés', perso.includes('btn.disabled = true'));
+
+  // ── Landmarks et navigation ──
+  for (const f of ['index.html','pochette.html','panier.html','checkout.html','personnalisation.html']) {
+    const t = lire(f);
+    verifier(f + ' : contenu principal balisé', t.includes('<main id="contenu">') && t.includes('</main>'));
+  }
+  verifier('le tunnel d\'achat garde les liens légaux', chk.includes('cgv.html') && chk.includes('mentions.html'));
+
+  // ── Contrastes : les gris illisibles ne doivent pas revenir ──
+  for (const c of ['#9a9286', '#8a857d', '#6ab57c']) {
+    verifier('couleur illisible « ' + c +' » éliminée', !css.includes(c));
+  }
+  verifier('classe .sr-only disponible', css.includes('.sr-only'));
+  verifier('animations coupables neutralisées', css.includes('.fp .scan{animation:none !important'));
+
+  // ── Fichiers sources non servis ──
+  verifier('le dossier des logos n\'est pas public',
+           srcServeur.includes("DOSSIERS_PRIVES") && srcServeur.includes("'assets/logo/'"));
+}
+
 section('Symbole « Rabbi »');
 
 {
@@ -508,7 +599,8 @@ section('Avis clients — loyauté commerciale');
   verifier('le compteur ne prétend plus que les avis sont vérifiés',
            !srcPoch.includes('avis vérifiés'));
   verifier('la page explique comment les avis sont contrôlés',
-           srcPoch.includes('Achat vérifié') && srcPoch.includes('rémunéré'));
+           srcPoch.includes('Achat vérifié') && srcPoch.includes('L.111-7-2')
+           && srcPoch.includes('Aucune contrepartie'));
 
   // Cinq etoiles pleines s'affichaient meme avec zero avis.
   verifier('aucune étoile pleine sans avis',

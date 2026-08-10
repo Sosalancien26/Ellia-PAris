@@ -18,7 +18,7 @@
   .co-form .frow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .co-field{margin-bottom:18px}
   .co-field label{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-txt);margin-bottom:8px}
-  .co-field input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);outline:none;transition:border-color .3s}
+  .co-field input{width:100%;background:#fff;border:1px solid var(--ligne);padding:13px 14px;font-family:var(--sans);font-size:15px;color:var(--noir);transition:border-color .3s}
   .co-field input:focus{border-color:var(--noir)}
   .co-sep{margin:30px 0 18px;padding-top:24px;border-top:1px solid var(--ligne)}
   .co-check{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--gris-clair);margin:6px 0 20px;cursor:pointer}
@@ -52,35 +52,37 @@
 <div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
       <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
 
-<section id="contenu" class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
+<main id="contenu">
+<section class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
 
 <section class="pad" style="padding-top:30px">
   <div class="co-grid">
     <form class="co-form" id="coForm" onsubmit="return false">
       <div class="acct-note" id="acctNote">Vous avez un compte ? <a href="connexion.html">Connectez-vous</a> pour retrouver vos commandes. (La commande fonctionne aussi sans compte.)</div>
 
-      <h3>Coordonnées</h3>
+      <h2>Coordonnées</h2>
+      <p style="font-size:12.5px;color:var(--gris-txt);margin:-4px 0 16px">Les champs suivis d'un astérisque <span aria-hidden="true">*</span> sont obligatoires.</p>
       <div class="frow">
-        <div class="co-field"><label for="prenom">Prénom</label><input id="prenom" autocomplete="given-name"></div>
-        <div class="co-field"><label for="nom">Nom</label><input id="nom" autocomplete="family-name"></div>
+        <div class="co-field"><label for="prenom">Prénom <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="prenom" required aria-required="true" autocomplete="given-name"></div>
+        <div class="co-field"><label for="nom">Nom <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="nom" required aria-required="true" autocomplete="family-name"></div>
       </div>
       <div class="frow">
-        <div class="co-field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email"></div>
-        <div class="co-field"><label for="telephone">Téléphone</label><input id="telephone" type="tel" autocomplete="tel"></div>
+        <div class="co-field"><label for="email">E-mail <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="email" required aria-required="true" type="email" autocomplete="email"></div>
+        <div class="co-field"><label for="telephone">Téléphone <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="telephone" required aria-required="true" type="tel" autocomplete="tel"></div>
       </div>
 
-      <div class="co-sep"><h3>Adresse de livraison</h3></div>
-      <div class="co-field"><label for="l_adresse">Adresse</label><input id="l_adresse" autocomplete="shipping street-address"></div>
+      <div class="co-sep"><h2>Adresse de livraison</h2></div>
+      <div class="co-field"><label for="l_adresse">Adresse <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_adresse" required aria-required="true" autocomplete="shipping street-address"></div>
       <div class="frow">
-        <div class="co-field"><label for="l_cp">Code postal</label><input id="l_cp"></div>
-        <div class="co-field"><label for="l_ville">Ville</label><input id="l_ville"></div>
+        <div class="co-field"><label for="l_cp">Code postal <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_cp" required aria-required="true"></div>
+        <div class="co-field"><label for="l_ville">Ville <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_ville" required aria-required="true"></div>
       </div>
       <div class="co-field"><label for="l_pays">Pays</label><input id="l_pays" value="France"></div>
 
-      <label class="co-check" for="f_adresse"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
+      <label class="co-check" for="sameAddr"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
 
       <div id="billing" style="display:none">
-        <div class="co-sep"><h3>Adresse de facturation</h3></div>
+        <div class="co-sep"><h2>Adresse de facturation</h2></div>
         <div class="co-field"><label for="f_adresse">Adresse</label><input id="f_adresse"></div>
         <div class="frow">
           <div class="co-field"><label for="f_cp">Code postal</label><input id="f_cp"></div>
@@ -100,7 +102,7 @@
         <div class="co-field" style="margin-bottom:16px">
           <label for="giftMessage">Votre message <span style="color:var(--gris-txt);font-weight:400;text-transform:none;letter-spacing:0">— calligraphié sur notre carte, à la main</span></label>
           <textarea id="giftMessage" rows="3" maxlength="300" placeholder="Pour toi, parce que…"
-            style="width:100%;padding:12px 14px;border:1px solid rgba(0,0,0,.12);background:#fafaf7;font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--noir);outline:none;resize:vertical"></textarea>
+            style="width:100%;padding:12px 14px;border:1px solid rgba(0,0,0,.12);background:#fafaf7;font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--noir);resize:vertical"></textarea>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gris-txt);margin-top:6px">
             <span>Laissez vide pour une carte vierge</span><span><span id="giftCount">0</span>/300</span>
           </div>
@@ -127,27 +129,54 @@
         <span>J'ai lu et j'accepte les <a href="cgv.html" target="_blank" style="color:var(--noir);text-decoration:underline">Conditions Générales de Vente</a> ainsi que la <a href="confidentialite.html" target="_blank" style="color:var(--noir);text-decoration:underline">Politique de confidentialité</a> d'ELLIA PARIS. <span style="color:#b1432f">*</span></span>
       </label>
 
+      <!-- Reconnaissance explicite pour les pieces gravees : l'information
+           doit precede l'engagement, pas le suivre. Affichee par le JS
+           uniquement si le panier contient une personnalisation. -->
+      <label class="co-check" id="persoAck" style="display:none;align-items:flex-start;gap:10px;margin:0 0 20px;padding:14px 16px;background:#fbf6e8;border:1px solid #ecdfbd;font-size:13.5px;line-height:1.5;cursor:pointer">
+        <input type="checkbox" id="acceptPerso" style="margin-top:3px;flex-shrink:0">
+        <span>Ma commande contient une pièce gravée. Je reconnais qu'elle est fabriquée à ma
+        demande et qu'elle n'est <strong>ni reprise ni remboursée</strong> au titre du droit de
+        rétractation (art. L.221-28 3° du Code de la consommation).
+        <span aria-hidden="true">*</span></span>
+      </label>
+
       <button class="btn solid" id="validate" style="width:100%;text-align:center">Commander avec obligation de paiement</button>
       <div class="err" id="err" role="alert" aria-live="polite"></div>
       <p style="font-size:12px;color:var(--gris-txt);margin-top:14px;text-align:center;line-height:1.5">En validant votre commande, vous reconnaissez avoir pris connaissance et accepté les <a href="cgv.html" target="_blank" style="color:inherit;text-decoration:underline">CGV</a>. <br>Droit de rétractation : 14 jours à compter de la réception, sauf produits personnalisés (art. L221-28 du Code de la consommation).</p>
     </form>
 
     <div class="co-summary">
-      <h3>Récapitulatif</h3>
+      <h2>Récapitulatif</h2>
       <div id="coItems"></div>
       <div id="coPromoBlock" style="margin:14px 0;padding:14px 0;border-top:1px dashed rgba(0,0,0,.08)">
         <div style="display:flex;gap:8px;align-items:stretch">
-          <input id="coPromoCode" type="text" placeholder="Code promo" autocomplete="off" style="flex:1;padding:11px 13px;border:1px solid rgba(0,0,0,.12);font-family:var(--sans);font-size:13.5px;text-transform:uppercase;letter-spacing:1px;background:#fafaf7;outline:none">
+          <input id="coPromoCode" type="text" placeholder="Code promo" autocomplete="off" style="flex:1;padding:11px 13px;border:1px solid rgba(0,0,0,.12);font-family:var(--sans);font-size:13.5px;text-transform:uppercase;letter-spacing:1px;background:#fafaf7">
           <button type="button" id="coPromoApply" style="font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 18px;border:1px solid var(--noir,#0d0d0d);background:#fff;cursor:pointer">Appliquer</button>
         </div>
-        <div id="coPromoMsg" style="font-size:12.5px;margin-top:8px;min-height:18px"></div>
+        <div id="coPromoMsg" role="status" aria-live="polite" style="font-size:12.5px;margin-top:8px;min-height:18px"></div>
       </div>
-      <div id="coDiscount" style="display:none;justify-content:space-between;padding:6px 0;font-size:13.5px;color:#2f7d52"><span>Réduction <span id="coDiscountCode"></span></span><span id="coDiscountAmount">-0 €</span></div>
+      <div id="coDiscount" style="display:none;justify-content:space-between;padding:6px 0;font-size:13.5px;color:#1f6e3a"><span>Réduction <span id="coDiscountCode"></span></span><span id="coDiscountAmount">-0 €</span></div>
       <div class="co-tot"><span class="eyebrow">Total</span><span class="v" id="coTotal">0 €</span></div>
       <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte · Rétractation 14 jours (hors pièces gravées)</p>
     </div>
   </div>
 </section>
+
+</main>
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><img loading="lazy" decoding="async" class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
+      <div><h2 class="foot-h">La Maison</h2><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
+      <div><h2 class="foot-h">Boutique</h2><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html">Livraison & retours</a></li><li><a href="entretien.html">Entretien du cuir</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+      <div><h2 class="foot-h">Suivez-nous</h2><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 ELLIA PARIS — Tous droits réservés.</div>
+      <div><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></div>
+    </div>
+  </div>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="app.js?v=1785400000" defer></script>
@@ -164,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Retour d'une annulation Stripe : le panier est conserve, on l'explique
   if(new URLSearchParams(location.search).has('cancelled')){
     const ci=document.getElementById('coItems');
-    if(ci) ci.insertAdjacentHTML('beforebegin','<div style="background:#fdf3e7;border:1px solid #f3dcb6;color:#a8631e;padding:14px 18px;margin-bottom:18px;font-size:13.5px;border-radius:3px">Paiement annulé — votre panier et votre personnalisation sont conservés. Vous pouvez réessayer quand vous voulez.</div>');
+    if(ci) ci.insertAdjacentHTML('beforebegin','<div style="background:#fdf3e7;border:1px solid #f3dcb6;color:#8a4f14;padding:14px 18px;margin-bottom:18px;font-size:13.5px;border-radius:3px">Paiement annulé — votre panier et votre personnalisation sont conservés. Vous pouvez réessayer quand vous voulez.</div>');
   }
   // Récapitulatif COMPLET : les symboles doivent rester visibles jusqu'au paiement
   const persoTxt=function(it){
@@ -253,7 +282,29 @@ document.addEventListener('DOMContentLoaded', function(){
   const RE_MAIL = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
   document.getElementById('validate').addEventListener('click', async ()=>{
     const err=document.getElementById('err'); err.textContent='';
-    function stop(msg, id){ err.textContent = msg; const el = id && document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); } return true; }
+    // La case n'apparait que si une piece du panier porte une gravure.
+    (function(){
+      var ack = document.getElementById('persoAck');
+      if (!ack) return;
+      var pano = (window.Cart && typeof Cart.items === 'function') ? Cart.items() : [];
+      var grave = Array.isArray(pano) && pano.some(function(i){
+        return (i.initiales && String(i.initiales).trim()) ||
+               (i.flame && i.flame.enabled) || (i.extra && i.extra.enabled) ||
+               (i.extra2 && i.extra2.enabled) || (i.extra3 && i.extra3.enabled);
+      });
+      ack.style.display = grave ? 'flex' : 'none';
+    })();
+
+    function stop(msg, id){ err.textContent = msg;
+      document.querySelectorAll('[aria-invalid="true"]').forEach(function(o){o.removeAttribute('aria-invalid');o.removeAttribute('aria-describedby');});
+      const el = id && document.getElementById(id);
+      if(el){ el.setAttribute('aria-invalid','true'); el.setAttribute('aria-describedby','err');
+        el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); } return true; }
+    var _ack = document.getElementById('acceptPerso');
+    var _ackBloc = document.getElementById('persoAck');
+    if (_ackBloc && _ackBloc.style.display !== 'none' && _ack && !_ack.checked) {
+      return void stop('Merci de confirmer qu\'une pièce gravée n\'est pas remboursable.', 'acceptPerso');
+    }
     if(v('prenom').length < 2) return void stop('Merci d\'indiquer votre prénom.', 'prenom');
     if(v('nom').length    < 2) return void stop('Merci d\'indiquer votre nom.', 'nom');
     if(!RE_MAIL.test(v('email'))) return void stop('Cette adresse e-mail semble incorrecte. Exemple : marie@exemple.fr', 'email');
@@ -420,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const j = await r.json();
       if(j.valid){
         appliedPromo = j;
-        $msg.style.color = '#2f7d52';
+        $msg.style.color = '#1f6e3a';
         $msg.textContent = '✓ Code appliqué — économie de ' + fmtEur(j.discount) + (j.description ? ' · ' + j.description : '');
       } else {
         appliedPromo = null;
@@ -461,5 +512,6 @@ document.addEventListener('DOMContentLoaded', function(){
 }); // end DOMContentLoaded
 </script>
 
+<script src="cookies-banner.js?v=1785400000" defer></script>
 </body>
 </html>

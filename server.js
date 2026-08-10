@@ -187,7 +187,7 @@ function emailLayout(inner, preheader){
   '<div>' +
     '<div style="text-align:center;padding:36px 0 14px">' +
       '<img src="' + LOGO + '" alt="ELLIA PARIS" style="height:46px;width:auto" />' +
-      '<div style="margin-top:14px;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#8a857d">Maison de maroquinerie · Paris</div>' +
+      '<div style="margin-top:14px;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#6a655d">Maison de maroquinerie · Paris</div>' +
     '</div>' +
     '<div style="height:1px;background:#efece6;margin:0 40px"></div>' +
     '<div style="padding:36px 44px 40px;font-family:Georgia,\'Times New Roman\',serif;color:#0d0d0d;font-size:16px;line-height:1.65">' + inner + '</div>' +
@@ -239,7 +239,7 @@ function engravingLines(it){
   if (it.extra2 && it.extra2.enabled) parts.push(escH(it.extra2.symbol_name||'Symbole') + ' : ' + escH(it.extra2.finish||'') + ' · ' + escH(it.extra2.placement||''));
   if (it.extra3 && it.extra3.enabled) parts.push(escH(it.extra3.symbol_name||'Symbole') + ' : ' + escH(it.extra3.finish||'') + ' · ' + escH(it.extra3.placement||''));
   if (!parts.length) return '';
-  return '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#8a857d;line-height:1.7">Gravure :<br/>· ' + parts.join('<br/>· ') + '</span>';
+  return '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#6a655d;line-height:1.7">Gravure :<br/>· ' + parts.join('<br/>· ') + '</span>';
 }
 function lineItems(items){
   if(!items || !items.length) return '';
@@ -353,24 +353,24 @@ function _notifyNewOrderInternal(d, numero){
     ? '<img src="cid:' + previewCid + '" alt="Votre pochette personnalisée" style="width:100%;max-width:480px;height:auto;display:inline-block;border:1px solid #e6e3dc;border-radius:3px"/>'
     : '<img src="https://ellia-paris.fr/assets/product-1.jpg" alt="La Pochette ELLIA" style="width:100%;max-width:460px;height:auto;display:inline-block;border:1px solid #e6e3dc"/>';
   const previewLabel = hasPreview
-    ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a857d;margin-top:10px">Aperçu de votre personnalisation</div>'
+    ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#6a655d;margin-top:10px">Aperçu de votre personnalisation</div>'
     : '';
   // Bloc "Étapes de votre commande" — cohérent avec la page confirmation.html
   const stepsBlock = '<table style="width:100%;border-collapse:collapse;margin:26px 0 8px;font-family:Arial,Helvetica,sans-serif">' +
     '<tr>' +
     '<td style="width:33%;padding:14px 10px 14px 0;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">01</div>' +
-      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">Aujourd\'hui</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">Aujourd\'hui</div>' +
       '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Votre dossier de gravure est transmis aux artisans.</div>' +
     '</td>' +
     '<td style="width:33%;padding:14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">02</div>' +
-      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">5 à 7 jours</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">5 à 7 jours</div>' +
       '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Pressage manuel au foil chaud dans le cuir grainé.</div>' +
     '</td>' +
     '<td style="width:33%;padding:14px 0 14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">03</div>' +
-      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7a7363;margin:7px 0 4px">Expédition</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">Expédition</div>' +
       '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Suivi Colissimo envoyé dès le départ de l\'atelier.</div>' +
     '</td>' +
     '</tr></table>';
@@ -390,7 +390,7 @@ function _notifyNewOrderInternal(d, numero){
     addressBlock(d) +
     (d.is_gift ? (
       '<div style="margin:24px 0 0;padding:18px 20px;border:1px solid #e0dbd0;background:#faf8f4">' +
-        '<div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#7a7363;font-family:Arial,sans-serif">Commande cadeau</div>' +
+        '<div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#6a655d;font-family:Arial,sans-serif">Commande cadeau</div>' +
         '<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:14.5px;color:#3d3a35;line-height:1.7">' +
           'Aucun prix ne figurera dans le colis. Votre facture vous parvient uniquement par e-mail.' +
           (d.gift_message ? ('<br><br><em style="color:#5c5852;white-space:pre-wrap">« ' + escH(d.gift_message) + ' »</em>' + (d.gift_from ? ('<br><span style="font-size:13px">— ' + escH(d.gift_from) + '</span>') : '')) : '') +
@@ -401,7 +401,7 @@ function _notifyNewOrderInternal(d, numero){
     stepsBlock +
     '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(numero) + '" style="color:#0d0d0d">voir le suivi</a> (votre e-mail suffit, aucun compte requis).<br/><br/>Avec soin,<br/>ELLIA PARIS</p>' +
     // Mention legale obligatoire : article personnalise = pas de droit de retractation (art. L221-28 3° C. conso.)
-    '<div style="margin:26px 0 0;padding:14px 16px;background:#faf8f4;border-left:2px solid #e0dbd0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#8a857d;line-height:1.6">' +
+    '<div style="margin:26px 0 0;padding:14px 16px;background:#faf8f4;border-left:2px solid #e0dbd0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#6a655d;line-height:1.6">' +
       'Votre pochette étant personnalisée à votre demande, elle est exclue du droit de rétractation de 14 jours (article L221-28 3° du Code de la consommation). ' +
       'Nos <a href="https://ellia-paris.fr/cgv.html" style="color:#56524c">conditions générales de vente</a> restent consultables à tout moment. En cas de défaut, écrivez-nous : notre garantie légale s\'applique pleinement.' +
     '</div>';
@@ -500,7 +500,7 @@ async function sendInvoiceForOrder(order){
           '<tr><td style="padding:6px 0;color:#666">Statut paiement</td><td style="padding:6px 0;color:#0d0d0d">' + (order.payment_status||'—') + '</td></tr>' +
           '<tr><td style="padding:6px 0;color:#666">Total TTC</td><td style="padding:6px 0"><b style="font-family:Georgia,serif;font-size:16px">' + euro(order.montant_total) + '</b></td></tr>' +
         '</table>' +
-        '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#8a857d">PDF en pièce jointe — archivé automatiquement par le filtre Gmail "Factures Ellia".</p>';
+        '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#6a655d">PDF en pièce jointe — archivé automatiquement par le filtre Gmail "Factures Ellia".</p>';
       archiveSent = await sendMailWithAttachment(
         archiveTo,
         '[Facture Ellia] ' + order.invoice_number + ' — ' + escH(fullName) + ' — ' + euro(order.montant_total),
@@ -519,7 +519,7 @@ function notifyStatus(order, numero, statut){
   // Normalise + retire les diacritiques (à → a) avant lookup
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
-  const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#8a857d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+escH(order.initiales)):'') + '</p>' : '';
+  const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#6a655d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+escH(order.initiales)):'') + '</p>' : '';
   const url = trackUrl(order.transporteur, order.suivi);
   const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
   const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
@@ -1062,7 +1062,7 @@ const server = http.createServer(async (req, res) => {
               '<p style="margin:0 0 14px">Bonjour,</p>' +
               '<p style="margin:0 0 14px">Vous avez demandé à réinitialiser le mot de passe de votre compte ELLIA PARIS. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>' +
               '<p style="margin:26px 0"><a href="' + link + '" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p>' +
-              '<p style="margin:0 0 8px;font-size:13px;color:#8a857d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p>' +
+              '<p style="margin:0 0 8px;font-size:13px;color:#6a655d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p>' +
               '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
             sendMail(email, 'Réinitialisation de votre mot de passe — ELLIA PARIS', emailLayout(inner));
           }
@@ -1112,7 +1112,7 @@ const server = http.createServer(async (req, res) => {
         // on n'affiche rien.
         if(!USE_DB) return sendJSON(res,{ reviews:[] });
         try{
-          const rows = await sb('reviews?validated=eq.true&order=created_at.desc&limit=50',{ method:'GET' });
+          const rows = await sb('reviews?select=prenom,note,titre,commentaire,created_at,achat_verifie,date_experience&validated=eq.true&order=created_at.desc&limit=50',{ method:'GET' });
           return sendJSON(res,{ reviews: rows||[] });
         }catch(e){ return sendJSON(res,{ reviews:[] }); }
       }
@@ -1126,6 +1126,10 @@ const server = http.createServer(async (req, res) => {
         const titre      = clean(String(d.titre||'').trim()).slice(0,80);
         const commentaire= clean(String(d.commentaire||'').trim()).slice(0,1000);
         const rgpd       = !!d.rgpd;
+        // Date de reception : l'article L.111-7-2 impose d'afficher la date
+        // de l'experience de consommation, pas seulement celle de l'avis.
+        const dExp = String(d.date_experience || '').slice(0,10);
+        const date_experience = /^\d{4}-\d{2}-\d{2}$/.test(dExp) ? dExp : null;
         if(!prenom || !isEmail(rEmail) || !note || commentaire.length<20 || !rgpd){
           return sendJSON(res,{ ok:false, error:'invalid' }, 400);
         }
@@ -1141,7 +1145,7 @@ const server = http.createServer(async (req, res) => {
             achat_verifie = Array.isArray(found) && found.length > 0;
           } catch(e){ console.warn('[AVIS] verification achat impossible :', e.message); }
         }
-        const row = { prenom, email:rEmail, note, titre, commentaire, validated:false, achat_verifie, ref_produit:'ELLIA-NOIR', created_at:new Date().toISOString() };
+        const row = { prenom, email:rEmail, note, titre, commentaire, validated:false, achat_verifie, date_experience, ref_produit:'ELLIA-NOIR', created_at:new Date().toISOString() };
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         try{
           await sb('reviews',{ method:'POST', body:row });
@@ -2158,6 +2162,18 @@ const server = http.createServer(async (req, res) => {
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
   // Fichiers serveur / sensibles : JAMAIS servis publiquement
   const baseName = path.basename(file).toLowerCase();
+  // Chemin normalise en barres obliques : la comparaison de dossier doit
+  // fonctionner que le serveur tourne sous Linux ou sous Windows.
+  const chemin = safe.replace(/\\/g, '/').replace(/^\//, '').toLowerCase();
+  // DOSSIERS DE PRODUCTION, jamais servis.
+  // assets/logo contient les fichiers vectoriels imprimables de la marque.
+  // Le site n'en a aucun besoin : il n'utilise que les PNG de assets/.
+  // Les laisser accessibles reviendrait a offrir a quiconque de quoi
+  // fabriquer un packaging identique.
+  const DOSSIERS_PRIVES = ['assets/logo/'];
+  if (DOSSIERS_PRIVES.some(d => chemin.startsWith(d))) {
+    res.statusCode = 403; return res.end('Forbidden');
+  }
   const SERVER_FILES = ['server.js','invoice.js','compta.js','promo.js','totp.js',
                         'package.json','package-lock.json',
                         // tests.js decrit chaque faille deja rencontree : c'est une
@@ -2269,7 +2285,7 @@ function alerte(type, titre, details, gravite){
       '<h2 style="font-family:Georgia,serif;font-weight:normal;font-size:21px;margin:8px 0 12px;color:#0d0d0d">' + escH(titre) + '</h2>' +
       '<pre style="white-space:pre-wrap;font-family:Consolas,Menlo,monospace;font-size:12.5px;color:#4a4640;margin:0;line-height:1.65">' + escH(details) + '</pre>' +
     '</div>' +
-    '<p style="margin:18px 0 0;font-size:12.5px;color:#8a857d;font-family:Arial,sans-serif">' +
+    '<p style="margin:18px 0 0;font-size:12.5px;color:#6a655d;font-family:Arial,sans-serif">' +
       new Date().toLocaleString('fr-FR', { dateStyle:'full', timeStyle:'short' }) +
       ' · <a href="https://ellia-paris.fr/admin" style="color:#0d0d0d">Ouvrir l\'administration</a>' +
     '</p>';
@@ -2544,7 +2560,7 @@ async function sauvegardeQuotidienne(forcee){
       new Date().toLocaleDateString('fr-FR', { dateStyle:'long' }) + '</h2>' +
     '<pre style="font-family:Consolas,Menlo,monospace;font-size:13px;color:#4a4640;line-height:1.8;margin:0">' +
       escH(resume.join('\n')) + '</pre>' +
-    '<p style="margin:20px 0 0;font-size:12.5px;color:#8a857d;font-family:Arial,sans-serif;line-height:1.7">' +
+    '<p style="margin:20px 0 0;font-size:12.5px;color:#6a655d;font-family:Arial,sans-serif;line-height:1.7">' +
       'Fichiers CSV en pièce jointe, ouvrables dans Excel. Conservez ce message : ' +
       'c\'est votre filet de sécurité si la base venait à être perdue.<br>' +
       'Les aperçus d\'images sont retirés des CSV pour ne pas les alourdir.' +

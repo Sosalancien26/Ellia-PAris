@@ -17,7 +17,7 @@
   .box img{height:46px;margin-bottom:30px}
   h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:30px;margin-bottom:8px}
   p{color:#7c7872;font-size:13px;letter-spacing:.04em;margin-bottom:30px}
-  input{width:100%;background:#fff;border:1px solid rgba(0,0,0,.15);padding:15px 16px;font-family:inherit;font-size:15px;outline:none;margin-bottom:14px;transition:border-color .3s}
+  input{width:100%;background:#fff;border:1px solid rgba(0,0,0,.15);padding:15px 16px;font-family:inherit;font-size:15px;margin-bottom:14px;transition:border-color .3s}
   input:focus{border-color:#0d0d0d}
   button{width:100%;background:#0d0d0d;color:#fff;border:none;padding:15px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:.3s}
   button:hover{opacity:.85}
@@ -73,13 +73,13 @@
       else if(j.need_2fa){
         if(!document.getElementById('twofa')){
           const div = document.createElement('div');
-          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8a857d;margin-top:14px;margin-bottom:6px" for="twofa">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;font-size:20px;text-align:center;letter-spacing:8px">';
+          div.innerHTML = '<label style="display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin-top:14px;margin-bottom:6px" for="twofa">Code 2FA (6 chiffres)</label><input id="twofa" type="text" inputmode="numeric" maxlength="6" autofocus style="width:100%;font-size:20px;text-align:center;letter-spacing:8px">';
           // Le champ 2FA doit etre insere DANS le formulaire, juste avant le bouton
           const form = document.getElementById('f');
           const btn2 = form.querySelector('button');
           form.insertBefore(div, btn2);
           const tf=document.getElementById('twofa'); if(tf) tf.focus();
-          err.textContent = ''; err.style.color = '#8a857d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
+          err.textContent = ''; err.style.color = '#6a655d'; err.textContent = 'Saisis le code à 6 chiffres de ton application authenticator.';
         } else { err.style.color = '#b1432f'; err.textContent = j.error || 'Code incorrect.'; }
       }
       else { err.style.color='#b1432f'; err.textContent = j.error || 'Mot de passe incorrect.'; }
