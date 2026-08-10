@@ -104,7 +104,7 @@
   var input=document.getElementById('initials'),engrave=document.getElementById('engrave');
   if(input&&engrave){
     var monoFinish=document.getElementById('monoFinish');
-    var colors={or:'linear-gradient(135deg,#f7e3a1,#8a6a1d 55%,#8a6a1d)',orrose:'linear-gradient(135deg,#f3d9cf,#c98e86 55%,#8f5147)',argent:'linear-gradient(135deg,#f4f4f4,#9a9a9a 55%,#dcdcdc)',noir:'#3a352d',blanc:'#ffffff'};
+    var colors={or:'linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#8a6a1d)',orrose:'linear-gradient(135deg,#f3d9cf,#c98e86 55%,#a96b62)',argent:'linear-gradient(135deg,#f4f4f4,#9a9a9a 55%,#dcdcdc)',noir:'#3a352d',blanc:'#ffffff'};
     // DOIT couvrir toutes les finitions du configurateur (data-color) : sinon
     // la finition part vide dans la commande et l'atelier ne sait pas quoi graver.
     var names={or:'Or',orrose:'Or rose',argent:'Argent',aveugle:'Aveugle',noir:'Noir',blanc:'Blanc'};

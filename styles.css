@@ -247,8 +247,8 @@ section{position:relative}
 .sw.active .dot{transform:scale(1.12);box-shadow:0 0 0 2px var(--blanc),0 0 0 3px var(--noir)}
 .sw small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris-txt);transition:color .3s}
 .sw.active small{color:var(--noir)}
-.dot.or{background:linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#c79a3a)}
-.dot.orrose{background:linear-gradient(135deg,#f3d9cf,#c98e86 55%,#8f5147)}
+.dot.or{background:linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#8a6a1d)}
+.dot.orrose{background:linear-gradient(135deg,#f3d9cf,#c98e86 55%,#a96b62)}
 .dot.argent{background:linear-gradient(135deg,#f0f0f0,#9a9a9a 55%,#cfcfcf)}
 .dot.noir{background:linear-gradient(135deg,#2a2a2a,#000)}
 .dot.blanc{background:linear-gradient(135deg,#fff,#dcdcdc)}
@@ -288,8 +288,8 @@ section{position:relative}
 .eng-card-title{font-family:var(--serif);font-size:15.5px;color:var(--noir);line-height:1.2;margin:0}
 .eng-card-meta{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris-txt);margin-top:3px;display:flex;align-items:center;gap:8px}
 .eng-card-meta .dot-mini{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.08);flex-shrink:0}
-.eng-card-meta .dot-mini.or{background:linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#c79a3a)}
-.eng-card-meta .dot-mini.orrose{background:linear-gradient(135deg,#f3d9cf,#c98e86 55%,#8f5147)}
+.eng-card-meta .dot-mini.or{background:linear-gradient(135deg,#f7e3a1,#c79a3a 55%,#8a6a1d)}
+.eng-card-meta .dot-mini.orrose{background:linear-gradient(135deg,#f3d9cf,#c98e86 55%,#a96b62)}
 .eng-card-meta .dot-mini.argent{background:linear-gradient(135deg,#f0f0f0,#9a9a9a 55%,#cfcfcf)}
 .eng-card-meta .dot-mini.aveugle{background:linear-gradient(135deg,#1a1a1a,#3a3a3a)}
 .eng-card-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
