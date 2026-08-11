@@ -366,6 +366,17 @@ document.addEventListener('DOMContentLoaded', function(){
     else
     try{
       const r=await fetchT('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(r.status===429){
+        // Refus par le garde-fou anti-abus : elle n'y est pour rien, son
+        // reseau est partage. Un message honnete evite qu'elle abandonne.
+        var dr = await r.json().catch(function(){ return {}; });
+        err.innerHTML = (dr && dr.message ? dr.message
+              : 'Trop de commandes ont été passées depuis votre réseau.')
+          + ' Votre panier est conservé. Si cela persiste, écrivez-nous à '
+          + '<a href="mailto:contact@ellia-paris.fr" style="color:inherit;text-decoration:underline">contact@ellia-paris.fr</a>, '
+          + 'nous finaliserons votre commande à la main.';
+        validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return;
+      }
       if(r.status===409){ err.textContent='Désolé, La Pochette ELLIA est actuellement en rupture de stock.'; validateBtn.textContent=oldBtnText; validateBtn.disabled=false; return; }
       if(r.status===400){
         const dd = await r.json().catch(function(){ return {}; });

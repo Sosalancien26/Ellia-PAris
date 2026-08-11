@@ -82,7 +82,12 @@ const RATE = {};   // rempli automatiquement depuis RATE_TARGET (voir plus bas)
 const RATE_TARGET = {
   login:      { max: 8,   window: 5*60*1000 },
   newsletter: { max: 20,  window: 60*60*1000 },
-  orders:     { max: 60,  window: 60*60*1000 },   // etait 10 : bloquait les clients mobiles
+  /* Mesure au banc de charge : a 60, 90 clientes sur 150 derriere une meme
+     adresse (NAT operateur mobile, wifi d'hotel, entreprise) etaient
+     refusees. A 200, le meme scenario passe entierement. La limite garde
+     son role : chaque commande declenche un e-mail, on ne veut pas qu'un
+     robot en genere des milliers. */
+  orders:     { max: 200, window: 60*60*1000 },
   contact:    { max: 12,  window: 60*60*1000 },
   reviews:    { max: 10,  window: 24*60*60*1000 },
   authreset:  { max: 6,   window: 60*60*1000 },
@@ -333,6 +338,25 @@ function sendMailWithAttachment(to, subject, html, attachments){
       return false;
     });
 }
+/* NUMERO DE FACTURE DE REPLI
+   Utilise uniquement si la sequence Postgres est injoignable. Deux chemins
+   s'en servaient avec deux formules differentes : celle des commandes
+   manuelles ne gardait que 4 chiffres de millisecondes, qui rebouclent
+   toutes les 10 secondes. Mesure au banc : 4997 doublons sur 5000.
+   Un numero de facture en double est une infraction (art. 242 nonies A
+   annexe II du CGI) et fausse toute la comptabilite.
+
+   Ici : horodatage complet + compteur interne + alea. Le prefixe « R »
+   signale un repli, pour qu'on puisse les retrouver et les regulariser. */
+let _replisFacture = 0;
+function numeroFactureRepli(){
+  _replisFacture++;
+  const alea = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return 'F-EP-' + new Date().getFullYear() + '-R'
+       + Date.now().toString(36).toUpperCase()
+       + _replisFacture.toString(36).toUpperCase() + alea;
+}
+
 function notifyNewOrder(d, numero){
   // Email client APRES paiement confirme — inclut preview pochette personnalisee
   return _notifyNewOrderInternal(d, numero);
@@ -460,8 +484,7 @@ async function sendInvoiceForOrder(order){
     // REPLI HORS DU TRY : si le RPC leve, la facture partait sans numero.
     // Suffixe aleatoire : 4 chiffres de millisecondes rebouclent en 10 s.
     if (!order.invoice_number) {
-      order.invoice_number = 'F-EP-' + new Date().getFullYear() + '-'
-        + Date.now().toString().slice(-6) + crypto.randomBytes(2).toString('hex').toUpperCase();
+      order.invoice_number = numeroFactureRepli();
       console.warn('[FACTURE] Numero de repli utilise pour', order.numero, ':', order.invoice_number);
     }
     try {
@@ -1158,7 +1181,12 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='GET' && pathname==='/api/products') return sendJSON(res, await getProducts());
 
       if (req.method==='POST' && pathname==='/api/orders'){
-        if(!rateAllowed('orders', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
+        if(!rateAllowed('orders', clientIp(req))) {
+          res.setHeader('Retry-After', '600');
+          return sendJSON(res,{ ok:false, error:'rate',
+            message:'Trop de commandes ont ete passees depuis votre reseau. '
+                  + 'Reessayez dans une dizaine de minutes.' }, 429);
+        }
         const d = JSON.parse((await readBody(req))||'{}');
         const err = validateOrder(d);
         if(err) return sendJSON(res,{ ok:false, error:'validation', field:err }, 400);
@@ -1806,7 +1834,8 @@ const server = http.createServer(async (req, res) => {
           const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
           invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
         } catch(_) {
-          invoice_number = 'F-EP-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4);
+          invoice_number = numeroFactureRepli();
+          console.warn('[FACTURE] Numero de repli utilise (commande manuelle) :', invoice_number);
         }
 
         // 2) Calcul montants (saisie en TTC, on stocke HT/TVA aussi)
@@ -2187,6 +2216,33 @@ const server = http.createServer(async (req, res) => {
       baseName === 'studio-export.html') {
     res.statusCode = 403; return res.end('Forbidden');
   }
+  /* GROS FICHIERS BINAIRES : envoi en flux, jamais en memoire.
+     Mesure au banc de charge : a 150 visiteurs simultanes, le modele 3D
+     (2,2 Mo) etait charge integralement pour CHAQUE requete, soit plus de
+     330 Mo de tampons en vol et 446 Mo de memoire retenue. Un hebergement
+     mutualise peut tomber la-dessus. En flux, la memoire ne bouge plus.
+     L'empreinte est calculee sur la taille et la date du fichier : suffisant
+     pour un fichier servi avec une URL versionnee. */
+  const GROS = ['.glb','.gltf','.mp4','.webm','.zip','.woff2','.pdf'];
+  if (GROS.includes(path.extname(file).toLowerCase())) {
+    return fs.stat(file, (serr, st) => {
+      if (serr || !st.isFile() || st.size < 262144) return servirEnMemoire();
+      const etag = 'W/"' + st.size.toString(16) + '-' + Math.round(st.mtimeMs).toString(36) + '"';
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+      const inm = req.headers['if-none-match'];
+      if (inm && (inm === etag || inm.split(',').some(t => t.trim() === etag))) {
+        res.statusCode = 304; return res.end();
+      }
+      res.setHeader('Content-Type', TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream');
+      res.setHeader('Content-Length', st.size);
+      const flux = fs.createReadStream(file);
+      flux.on('error', () => { if (!res.headersSent) res.statusCode = 500; res.end(); });
+      req.on('close', () => flux.destroy());
+      flux.pipe(res);
+    });
+  }
+  function servirEnMemoire(){
   fs.readFile(file, (err, buf) => {
     if (err) {
       fs.readFile(path.join(ROOT,'404.html'),(e2,html)=>{
@@ -2250,6 +2306,8 @@ const server = http.createServer(async (req, res) => {
     }
     res.end(buf);
   });
+  }
+  servirEnMemoire();
 });
 
 

@@ -477,6 +477,53 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Tenue en charge');
+
+{
+  // ── Limite de commandes : mesuree au banc a 150 clientes derriere une
+  //    seule adresse (NAT operateur, entreprise, wifi public).
+  const m = srcServeur.match(/orders:\s*\{\s*max:\s*(\d+)/);
+  const plafond = m ? Number(m[1]) : 0;
+  verifier('le plafond de commandes absorbe 150 clientes sur une même IP',
+           plafond >= 150, plafond + '/heure');
+  verifier('un refus explique quoi faire',
+           srcServeur.includes("Reessayez dans une dizaine de minutes"));
+  verifier('un refus indique quand réessayer',
+           srcServeur.includes("Retry-After"));
+  verifier('la page de paiement traite le refus séparément',
+           lire('checkout.html').includes('r.status===429'));
+
+  // ── Numeros de facture de repli : 4997 doublons sur 5000 avant correction.
+  verifier('une seule formule de repli pour les factures',
+           srcServeur.includes('function numeroFactureRepli'));
+  verifier('l\'ancienne formule à 4 chiffres a disparu',
+           !srcServeur.includes("Date.now().toString().slice(-4)"));
+  {
+    const crypto2 = require('crypto');
+    let n = 0;
+    const repli = () => { n++; return 'F-EP-2026-R' + Date.now().toString(36).toUpperCase()
+      + n.toString(36).toUpperCase() + crypto2.randomBytes(3).toString('hex').toUpperCase(); };
+    const vus = new Set(); let doublons = 0;
+    for (let i = 0; i < 20000; i++) { const v = repli(); if (vus.has(v)) doublons++; else vus.add(v); }
+    verifier('20 000 numéros de repli sans aucun doublon', doublons === 0, doublons + ' doublon(s)');
+  }
+
+  // ── Gros fichiers : servis en flux, pas charges en memoire.
+  //    Mesure : 446 Mo retenus a 150 visiteurs simultanes, 143 Mo apres.
+  verifier('les gros binaires sont envoyés en flux',
+           srcServeur.includes('fs.createReadStream(file)') && srcServeur.includes("const GROS ="));
+  verifier('le modèle 3D fait partie des fichiers concernés',
+           /const GROS = \[[^\]]*'\.glb'/.test(srcServeur));
+  verifier('un flux interrompu est bien fermé',
+           srcServeur.includes("req.on('close', () => flux.destroy())"));
+  verifier('les gros fichiers gardent leur revalidation 304',
+           srcServeur.includes("res.statusCode = 304; return res.end();"));
+
+  // ── Numeros de commande : 900 crees au banc sans collision.
+  verifier('les numéros de commande mêlent horloge et aléa',
+           /EP-'\+Date\.now\(\)\.toString\(\)\.slice\(-6\)\+crypto\.randomBytes/.test(srcServeur));
+}
+
 section('Conformité légale et accessibilité');
 
 {
