@@ -232,6 +232,82 @@ verifier('l\'atelier PEUT marquer « En préparation »',                !bloque
 /* ══════════════════════════════════════════════════════════════
    6. SESSIONS — un cookie doit expirer et ne pas être falsifiable.
    ══════════════════════════════════════════════════════════════ */
+section('Administration — matrice des accès');
+
+{
+  // Les predicats sont EXTRAITS du serveur, jamais reecrits : si la regle
+  // change dans le code, ce test la suit au lieu de mentir.
+  function extraire(depuis){
+    const i = srcServeur.indexOf(depuis);
+    if (i < 0) return null;
+    return srcServeur.slice(i, srcServeur.indexOf('if (!ok', i));
+  }
+  const codeC = extraire('const okComptable ='), codeA = extraire('const okAtelier =');
+  verifier('les règles d\'accès par rôle sont bien présentes', !!codeC && !!codeA);
+
+  if (codeC && codeA) {
+    const evalue = (code, methode, chemin) =>
+      !!(new Function('req','pathname', code +
+        '\n return typeof okComptable!=="undefined"?okComptable:okAtelier;'))({ method: methode }, chemin);
+
+    // route, methode, attendu comptable, attendu atelier
+    const MATRICE = [
+      ['/api/stats',                       'GET',   true,  true ],
+      ['/api/orders',                      'GET',   true,  true ],
+      ['/api/admin/orders/EP-1',           'GET',   true,  true ],
+      ['/api/admin/orders/EP-1/invoice',   'GET',   true,  false],
+      ['/api/admin/compta',                'GET',   true,  false],
+      ['/api/admin/export/recettes.csv',   'GET',   true,  false],
+      ['/api/orders/EP-1',                 'PATCH', false, true ],
+      ['/api/admin/users',                 'GET',   false, false],
+      ['/api/admin/users',                 'POST',  false, false],
+      ['/api/admin/logs',                  'GET',   false, false],
+      ['/api/admin/stock/adjust',          'POST',  false, false],
+      ['/api/admin/reconcilier',           'POST',  false, false],
+      ['/api/admin/promo',                 'POST',  false, false],
+      ['/api/admin/newsletter',            'GET',   false, false],
+      ['/api/admin/reviews',               'GET',   false, false],
+      ['/api/admin/2fa/disable',           'POST',  false, false],
+    ];
+    let ecarts = [];
+    for (const [chemin, methode, attC, attA] of MATRICE) {
+      if (evalue(codeC, methode, chemin) !== attC) ecarts.push('comptable ' + methode + ' ' + chemin);
+      if (evalue(codeA, methode, chemin) !== attA) ecarts.push('atelier '   + methode + ' ' + chemin);
+    }
+    verifier(MATRICE.length * 2 + ' combinaisons route × rôle conformes',
+             ecarts.length === 0, ecarts.slice(0,4).join(' · '));
+
+    // Deux garde-fous qui ne doivent jamais s'assouplir
+    verifier('le comptable ne peut modifier aucune commande',
+             !evalue(codeC, 'PATCH', '/api/orders/EP-1'));
+    verifier('l\'atelier n\'accède jamais à une facture',
+             !evalue(codeA, 'GET', '/api/admin/orders/EP-1/invoice'));
+    verifier('l\'atelier ne voit pas la comptabilité',
+             !evalue(codeA, 'GET', '/api/admin/compta'));
+    verifier('la gestion des comptes reste à l\'administrateur',
+             !evalue(codeC,'POST','/api/admin/users') && !evalue(codeA,'POST','/api/admin/users'));
+  }
+
+  // Le cookie de session ne doit etre ni lisible en JavaScript ni envoye
+  // vers un autre site.
+  // La chaine est assemblee par concatenation : on cherche les fragments
+  // dans la meme instruction Set-Cookie, pas dans un litteral d'un seul tenant.
+  const posesCookie = srcServeur.split('\n')
+    .filter(l => l.includes("Set-Cookie") && l.includes('ellia_session='))
+    .filter(l => !/Max-Age=0/.test(l));          // la ligne de deconnexion
+  verifier('au moins une pose de cookie de session trouvée', posesCookie.length > 0);
+  verifier('le cookie de session est HttpOnly',
+           posesCookie.length > 0 && posesCookie.every(l => /HttpOnly/i.test(l)));
+  verifier('le cookie de session est SameSite',
+           posesCookie.length > 0 && posesCookie.every(l => /SameSite/i.test(l)));
+  verifier('le cookie de session expire',
+           posesCookie.length > 0 && posesCookie.every(l => /Max-Age=\d+/.test(l)));
+  verifier('la connexion est protégée contre la force brute',
+           /rateAllowed\('login'/.test(srcServeur));
+  verifier('le rôle est validé contre une liste fermée',
+           srcServeur.includes("['admin','comptable','atelier'].includes(role)"));
+}
+
 section('Sessions administrateur');
 
 const SECRET_TEST = 'secret-de-test';
