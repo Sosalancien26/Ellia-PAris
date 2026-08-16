@@ -567,10 +567,17 @@ section('Rendu mobile');
   verifier('les champs de paiement font 16px sur mobile (pas de zoom iOS)',
            /font-size:16px/.test(chk) && chk.includes('co-field input'));
 
-  // Le panier : 4 colonnes ne tiennent pas sur un ecran de telephone.
+  // Le panier : la ligne doit rester lisible avec OU SANS apercu.
+  // Bug rencontre : sans image, le nom tombait dans la colonne etroite.
   const pan = inl('panier.html');
-  verifier('les lignes du panier se replient',
-           /@media[^{]*max-width[^{]*\{[\s\S]*cart-line[\s\S]*grid-template-columns/.test(pan));
+  const panHtml = lire('panier.html');
+  verifier('la ligne de panier est en flex (robuste sans aperçu)',
+           /\.cart-line\{display:flex/.test(pan.replace(/\s+/g,'')));
+  verifier('le nom du produit prend l\'espace libre',
+           pan.replace(/\s+/g,'').includes('.ci-info{flex:1') &&
+           panHtml.includes('class="ci-info"'));
+  verifier('la ligne se réorganise sur mobile',
+           /@media[^{]*max-width:640px[^{]*\{[\s\S]*cart-line[\s\S]*flex-wrap/.test(pan));
 
   // Regle globale : plus aucun champ ne declenche le zoom force d'iOS.
   verifier('aucun champ sous 16px sur mobile (règle globale)',

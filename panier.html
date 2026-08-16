@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="styles.css?v=1785400000">
 <style>
   .cart-wrap{max-width:980px;margin:0 auto;padding:0 40px}
-  .cart-line{display:grid;grid-template-columns:auto 1fr auto auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--ligne)}
+  .cart-line{display:flex;align-items:center;gap:20px;padding:26px 0;border-bottom:1px solid var(--ligne)}
+  .cart-line .ci-info{flex:1;min-width:0}
   .cart-line .nm{font-family:var(--serif);font-size:22px}
   .cart-line .meta{font-size:13px;color:var(--gris-txt);margin-top:6px;letter-spacing:.02em}
   .cart-line .pr{font-family:var(--serif);font-size:20px}
@@ -25,13 +26,16 @@
   .empty{text-align:center;padding:40px 0}
   .empty p{color:var(--gris-txt);margin:14px 0 28px}
 
-  /* ── MOBILE : 4 colonnes ne tiennent pas sur 390 px ── */
+  /* ── MOBILE : la ligne passe en deux niveaux, le nom garde toute
+     la largeur, le prix et « Retirer » se rangent dessous. ── */
   @media (max-width:640px){
     .cart-wrap{padding:0 20px}
-    .cart-line{grid-template-columns:52px 1fr auto;gap:8px 14px}
-    .cart-line .rm{grid-column:2 / 4;justify-self:end;margin-top:2px}
+    .cart-line{flex-wrap:wrap;gap:4px 14px;padding:20px 0}
+    .cart-line .ci-info{flex:1 1 auto}
     .cart-line .nm{font-size:18px}
-    .cart-line .pr{font-size:17px}
+    .cart-line .pr{font-size:18px;margin-left:auto}
+    /* Retirer sur sa propre ligne, aligne a droite, sans deformer le reste */
+    .cart-line .rm{flex:1 1 100%;text-align:right;padding-top:6px}
     .cart-sum .v{font-size:30px}
     .cta-row{flex-direction:column;align-items:stretch !important}
     .cta-row .btn{text-align:center}
@@ -117,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function previewImg(it){
     if(!it.preview) return '';
-    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:90px;height:90px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;margin-right:18px;flex-shrink:0" />';
+    return '<img src="'+it.preview+'" alt="Aperçu personnalisation" style="width:76px;height:76px;object-fit:cover;border:1px solid #e0ddd6;border-radius:3px;flex-shrink:0" />';
   }
   function render(){
     const items=Cart.items();
@@ -126,8 +130,8 @@ document.addEventListener('DOMContentLoaded', function(){
       foot.innerHTML=''; return;
     }
     list.innerHTML=items.map((it,i)=>
-      '<div class="cart-line" style="align-items:center">'+previewImg(it)+
-      '<div style="flex:1"><div class="nm">'+esc(it.nom||'La Pochette ELLIA')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
+      '<div class="cart-line">'+previewImg(it)+
+      '<div class="ci-info"><div class="nm">'+esc(it.nom||'La Pochette ELLIA')+'</div><div class="meta">'+persoTxt(it)+'</div></div>'+
       '<div class="pr">'+eur(it.prix)+'</div>'+
       '<button class="rm" data-i="'+i+'">Retirer</button></div>').join('');
     foot.innerHTML='<div class="cart-sum"><span class="l">Total</span><span class="v">'+eur(Cart.total())+'</span></div>'+
