@@ -24,6 +24,18 @@
   .cart-sum .v{font-family:var(--serif);font-size:40px}
   .empty{text-align:center;padding:40px 0}
   .empty p{color:var(--gris-txt);margin:14px 0 28px}
+
+  /* ── MOBILE : 4 colonnes ne tiennent pas sur 390 px ── */
+  @media (max-width:640px){
+    .cart-wrap{padding:0 20px}
+    .cart-line{grid-template-columns:52px 1fr auto;gap:8px 14px}
+    .cart-line .rm{grid-column:2 / 4;justify-self:end;margin-top:2px}
+    .cart-line .nm{font-size:18px}
+    .cart-line .pr{font-size:17px}
+    .cart-sum .v{font-size:30px}
+    .cta-row{flex-direction:column;align-items:stretch !important}
+    .cta-row .btn{text-align:center}
+  }
 </style>
 <meta name="description" content="Votre panier ELLIA PARIS — finalisez votre commande." />
 <meta name="robots" content="noindex,nofollow" />

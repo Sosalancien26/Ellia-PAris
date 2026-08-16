@@ -553,6 +553,40 @@ verifier('la protection contre l\'iframe passe par un en-tête, lui non filtré'
 verifier('la politique du serveur autorise aussi WebAssembly',
          srcServeur.includes("'wasm-unsafe-eval'"));
 
+section('Rendu mobile');
+
+{
+  const css = lire('styles.css');
+  const inl = f => (lire(f).match(/<style[^>]*>([\s\S]*?)<\/style>/g) || []).join('\n');
+
+  // Le tunnel de paiement n'a JAMAIS eu de regles mobiles : sur telephone
+  // ses deux colonnes se partageaient 390 px et chaque mot passait a la ligne.
+  const chk = inl('checkout.html');
+  verifier('le paiement a des règles mobiles',
+           /@media[^{]*max-width[^{]*\{[^}]*co-grid[^}]*1fr/.test(chk.replace(/\s+/g,' ')));
+  verifier('les champs de paiement font 16px sur mobile (pas de zoom iOS)',
+           /font-size:16px/.test(chk) && chk.includes('co-field input'));
+
+  // Le panier : 4 colonnes ne tiennent pas sur un ecran de telephone.
+  const pan = inl('panier.html');
+  verifier('les lignes du panier se replient',
+           /@media[^{]*max-width[^{]*\{[\s\S]*cart-line[\s\S]*grid-template-columns/.test(pan));
+
+  // Regle globale : plus aucun champ ne declenche le zoom force d'iOS.
+  verifier('aucun champ sous 16px sur mobile (règle globale)',
+           /@media[^{]*max-width:768px[^{]*\{[^}]*input[^}]*font-size:16px/.test(css.replace(/\s+/g,' ')));
+
+  // Les avis : deux colonnes illisibles sur telephone.
+  verifier('les avis passent en une colonne',
+           /@media[^{]*max-width:640px[^{]*\{[^}]*reviews-list[^}]*1fr/.test(css.replace(/\s+/g,' ')));
+
+  // Toutes les pages doivent declarer le viewport, sinon rien ne s'adapte.
+  const fs2 = require('fs'), path2 = require('path');
+  const pages = fs2.readdirSync(RACINE).filter(f => f.endsWith('.html'));
+  const sansViewport = pages.filter(f => !/name=["']viewport["']/.test(lire(f)));
+  verifier('toutes les pages déclarent le viewport', sansViewport.length === 0, sansViewport.join(', '));
+}
+
 section('Tenue en charge');
 
 {
