@@ -48,9 +48,13 @@ try { totpMod = require('./totp'); }
 catch(e){ console.warn('Module totp.js indisponible :', e.message); }
 let stripe = null;
 try {
-  if (process.env.STRIPE_SECRET_KEY) {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    console.log('[Stripe] Mode', process.env.STRIPE_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST', 'initialise');
+  // La cle est nettoyee (espaces, guillemets colles par un copier-coller) :
+  // une cle « sk_live_… » entouree de guillemets etait prise pour du test.
+  const cleStripe = String(process.env.STRIPE_SECRET_KEY || '').trim().replace(/^["']|["']$/g, '');
+  if (cleStripe) {
+    stripe = require('stripe')(cleStripe);
+    const live = /^(sk|rk)_live_/.test(cleStripe);
+    console.log('[Stripe] Mode', live ? 'LIVE' : 'TEST', 'initialise —', 'cle', cleStripe.slice(0, 8) + '…', '(' + cleStripe.length + ' car.)');
   }
 } catch(e){ console.warn('Module stripe indisponible :', e.message); }
 
@@ -883,10 +887,18 @@ function makeSession(login, role){
   const sig = crypto.createHmac('sha256', SECRET).update('ellia-v2.' + payload).digest('hex');
   return 'v2.' + payload + '.' + sig;
 }
+/* REVOCATION DE SESSION
+   Les sessions sont signees (sans etat serveur) : la deconnexion ne faisait
+   qu'effacer le cookie chez le navigateur, un cookie copie restait valable
+   24 h. On memorise l'instant de revocation par identifiant : toute session
+   emise avant est refusee. (En memoire : un redemarrage revoque tout de
+   toute facon, le secret de signature etant regenere.) */
+const SESSIONS_REVOQUEES = new Map();
+function revoquerSessions(login){ if (login) SESSIONS_REVOQUEES.set(String(login), Date.now()); }
 function getAuth(req){
   const c = cookies(req)['ellia_session'] || '';
-  if (c.length === TOKEN.length && crypto.timingSafeEqual(Buffer.from(c), Buffer.from(TOKEN)))
-    return { login:'principal', role:'admin' };
+  // (Ancien cookie constant « TOKEN » : plus accepte. Sans horodatage il ne
+  //  pouvait ni expirer ni etre revoque a la deconnexion.)
   if (c.startsWith('v2.')){
     const parts = c.split('.');
     if (parts.length !== 3) return null;
@@ -900,6 +912,8 @@ function getAuth(req){
       const t = Number(emis);
       if (!t || !isFinite(t)) return null;
       if (Date.now() - t > SESSION_MAX_AGE) return null;   // expiree
+      const rev = SESSIONS_REVOQUEES.get(login);
+      if (rev && t <= rev) return null;                     // revoquee (deconnexion, compte modifie)
       return { login, role };
     } catch(_) { return null; }
   }
@@ -1023,10 +1037,11 @@ const server = http.createServer(async (req, res) => {
           if (!d.code) return sendJSON(res,{ ok:false, need_2fa:true });
           if (!totpMod.verify(totpSecret, d.code, 1)) return sendJSON(res,{ ok:false, error:'Code à 6 chiffres invalide', need_2fa:true }, 401);
         }
-        res.setHeader('Set-Cookie','ellia_session='+TOKEN+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
+        res.setHeader('Set-Cookie','ellia_session='+makeSession('principal','admin')+'; HttpOnly;'+cookieSec+' Path=/; SameSite=Lax; Max-Age=86400');
         return sendJSON(res,{ ok:true, role:'admin' });
       }
       if (req.method==='POST' && pathname==='/api/logout'){
+        const a = getAuth(req); if (a) revoquerSessions(a.login);
         res.setHeader('Set-Cookie','ellia_session=; HttpOnly;'+cookieSec+' Path=/; Max-Age=0');
         return sendJSON(res,{ ok:true });
       }
@@ -1319,8 +1334,11 @@ const server = http.createServer(async (req, res) => {
         };
         const normItem = (it) => {
           const o = (it && typeof it === 'object') ? it : {};
+          // Initiales : seuls les caracteres que l'atelier sait graver (lettres,
+          // chiffres, espace, . & ' - ) ; tout le reste est retire.
+          const initialesPropres = clean(o.initiales, 40).replace(/[^\p{L}\p{N} .&'’\-]/gu, '').slice(0, 18);
           const n = { ref:'ELLIA-NOIR', nom:'La Pochette ELLIA — Noir',
-                      initiales: clean(o.initiales, 18),   // 18 = maximum du configurateur
+                      initiales: initialesPropres,   // 18 = maximum du configurateur
                       finition: clean(o.finition, 30), emplacement: clean(o.emplacement, 30) };
           for (const k of SYMB_OK) { const v = normSymb(o[k]); if (v) n[k] = v; }
           // Taille de gravure choisie (50-200 %) : l'atelier en a besoin.
@@ -1561,8 +1579,12 @@ const server = http.createServer(async (req, res) => {
                   // Eviter double envoi : si deja envoye, on skip
                   if (!o.email_sent_at) {
                     const orderForEmail = {
+                      client_prenom: o.client_prenom,
                       client_nom: o.client_nom,
                       client_email: o.client_email,
+                      // Sans ces champs, le bloc « Commande cadeau » (mot, expediteur,
+                      // date souhaitee) n'apparaissait jamais dans la confirmation.
+                      is_gift: !!o.is_gift, gift_message: o.gift_message || '', gift_from: o.gift_from || '', gift_date: o.gift_date || null,
                       telephone: o.telephone,
                       adresse_livraison: o.adresse_livraison,
                       cp_livraison: o.cp_livraison,
@@ -1769,6 +1791,14 @@ const server = http.createServer(async (req, res) => {
       if (req.method==='PATCH' && pathname.startsWith('/api/orders/')){
         const numero = pathname.split('/').pop();
         let d = JSON.parse((await readBody(req))||'{}');
+        // Quel que soit le role : une commande payee ne redevient jamais
+        // « En attente paiement » (statut reserve au tunnel de paiement et
+        // surveille par la tache de liberation du stock).
+        if (d.statut !== undefined && String(d.statut).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().startsWith('en attente') && USE_DB) {
+          let payeeDeja = false;
+          try { const cur = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=payment_status'); payeeDeja = !!(cur && cur[0] && /^pay/i.test(String(cur[0].payment_status || ''))); } catch(_){}
+          if (payeeDeja) return sendJSON(res,{ ok:false, error:'statut_invalide', detail:'Une commande payée ne peut pas repasser « En attente paiement ».' }, 400);
+        }
         // Atelier : seuls le statut, le suivi colis et les notes sont modifiables
         if (ROLE === 'atelier') {
           const allowed = {};
@@ -1987,13 +2017,20 @@ const server = http.createServer(async (req, res) => {
 
         // 1) Numero commande + numero facture
         const numero = 'EP-'+Date.now().toString().slice(-6)+crypto.randomBytes(2).toString('hex').toUpperCase();
+        // Le numero de facture n'est tire QUE si la vente est reglee (vente
+        // boutique encaissee). Une commande manuelle « en attente » recevra son
+        // numero au passage « Expediee », comme une commande web : sinon un
+        // numero etait consomme pour une vente qui pouvait ne jamais avoir lieu
+        // (trou dans la sequence, art. 242 nonies A ann. II CGI).
         let invoice_number = null;
-        try {
-          const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
-          invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
-        } catch(_) {
-          invoice_number = numeroFactureRepli();
-          console.warn('[FACTURE] Numero de repli utilise (commande manuelle) :', invoice_number);
+        if (/^pay/i.test(String(d.payment_status || ''))) {
+          try {
+            const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
+            invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
+          } catch(_) {
+            invoice_number = numeroFactureRepli();
+            console.warn('[FACTURE] Numero de repli utilise (commande manuelle) :', invoice_number);
+          }
         }
 
         // 2) Calcul montants (saisie en TTC, on stocke HT/TVA aussi)
@@ -2148,6 +2185,9 @@ const server = http.createServer(async (req, res) => {
         }
         if (!Object.keys(upd).length) return sendJSON(res,{ error:'rien_a_modifier' }, 400);
         try{
+          // Identifiant du compte modifie : ses sessions ouvertes sont revoquees
+          // (desactivation, changement de role ou de mot de passe).
+          try { const r0 = await sb('admin_users?id=eq.'+uid+'&select=login'); if (r0 && r0[0]) revoquerSessions(r0[0].login); } catch(_){}
           await sb('admin_users?id=eq.'+uid, { method:'PATCH', body:upd });
           global.__userCache = {}; // revocation immediate (pas d'attente des 60 s de cache)
           return sendJSON(res,{ ok:true });
@@ -2383,6 +2423,7 @@ const server = http.createServer(async (req, res) => {
       const msg = String(e.message||e);
       console.error('[API error]', req.method, pathname, '—', msg);
       if(msg === 'body_too_large') return sendJSON(res,{ error:'payload_trop_volumineux' }, 413);
+      if(e instanceof SyntaxError) return sendJSON(res,{ error:'json_invalide' }, 400);
       return sendJSON(res,{ error:'erreur_serveur' }, 500);
     }
   }
@@ -2419,7 +2460,7 @@ const server = http.createServer(async (req, res) => {
   // Le site n'en a aucun besoin : il n'utilise que les PNG de assets/.
   // Les laisser accessibles reviendrait a offrir a quiconque de quoi
   // fabriquer un packaging identique.
-  const DOSSIERS_PRIVES = ['assets/logo/', 'design/'];   // design/ : reserve aux fichiers de fabrication, s'il en revient
+  const DOSSIERS_PRIVES = ['assets/logo/', 'design/', 'tests-e2e/'];   // design/ : reserve aux fichiers de fabrication, s'il en revient
   if (DOSSIERS_PRIVES.some(d => chemin.startsWith(d))) {
     res.statusCode = 403; return res.end('Forbidden');
   }

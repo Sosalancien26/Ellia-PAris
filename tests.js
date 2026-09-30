@@ -1018,8 +1018,8 @@ verifier('le numéro de facture est posé par écriture conditionnelle (invoice_
          srcServeur.includes('invoice_number=is.null'));
 verifier('un repli existe si la séquence de facture est injoignable',
          srcServeur.includes('numeroFactureRepli') && srcServeur.includes('facture_repli'));
-verifier('la comparaison du jeton maître est à temps constant',
-         srcServeur.includes('timingSafeEqual'));
+verifier('le compte principal reçoit une session horodatée (plus de jeton constant)',
+         srcServeur.includes("makeSession('principal','admin')") && !srcServeur.includes("'ellia_session='+TOKEN"));
 verifier('un octet nul dans l\'URL est refusé',
          srcServeur.includes("includes('\\0')"));
 verifier('user_id n\'est stocké que s\'il ressemble à un UUID',
@@ -1179,6 +1179,21 @@ verifier('pochette.html : le bouton principal ajoute la pochette sans gravure',
          lire('pochette.html').includes('<button class="btn solid" data-add data-ref="ELLIA-NOIR"') && !lire('pochette.html').includes('Personnaliser & ajouter'));
 verifier('index.html : plus d\'appel à personnaliser en bouton principal', !lire('index.html').includes('Personnaliser la mienne'));
 verifier('checkout affiche le message dédié et propose de vider le panier', lire('checkout.html').includes("dd.error === 'perso_indisponible'"));
+
+section('Corrections issues du banc d\'essai de bout en bout (01/10/2026)');
+verifier('la confirmation de paiement transmet prénom et champs cadeau (bloc « Commande cadeau »)',
+         /client_prenom: o\.client_prenom,[\s\S]{0,400}is_gift: !!o\.is_gift, gift_message: o\.gift_message/.test(srcServeur));
+verifier('une commande payée ne peut pas repasser « En attente paiement »',
+         srcServeur.includes("detail:'Une commande payée ne peut pas repasser « En attente paiement »."));
+verifier('commande manuelle : numéro de facture seulement si réglée',
+         /let invoice_number = null;\s*\n\s*if \(\/\^pay\/i\.test\(String\(d\.payment_status/.test(srcServeur));
+verifier('déconnexion et modification de compte révoquent les sessions',
+         srcServeur.includes('const SESSIONS_REVOQUEES = new Map()') && srcServeur.includes("if (a) revoquerSessions(a.login)") && srcServeur.includes("revoquerSessions(r0[0].login)"));
+verifier('JSON invalide → 400 (pas 500)', srcServeur.includes("if(e instanceof SyntaxError) return sendJSON(res,{ error:'json_invalide' }, 400);"));
+verifier('les initiales ne gardent que des caractères gravables', srcServeur.includes("replace(/[^\\p{L}\\p{N} .&'’\\-]/gu, '')"));
+verifier('le banc d\'essai n\'est jamais servi publiquement', srcServeur.includes("'tests-e2e/'"));
+verifier('le banc d\'essai existe (mock base, préchargement, scénarios)',
+         ['mock-supabase.js','preload.js','run.js','LISEZ-MOI.md'].every(f => fs.existsSync(path.join(RACINE,'tests-e2e',f))));
 
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.

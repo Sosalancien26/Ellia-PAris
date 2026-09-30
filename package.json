@@ -5,7 +5,9 @@
   "description": "Site e-commerce ELLIA PARIS — serveur Node",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests.js",
+    "test:e2e": "node tests-e2e/run.js"
   },
   "dependencies": {
     "nodemailer": "^10.0.13",
