@@ -1162,6 +1162,24 @@ verifier('l\'administration propose le bouton du jeu d\'essai', lire('admin.html
 verifier('facture PDF : date en heure de Paris et mention « acquittée » conditionnelle',
          lire('invoice.js').includes("timeZone:'Europe/Paris'") && lire('invoice.js').includes('Facture en attente de règlement'));
 
+section('Personnalisation fermée au lancement');
+verifier('l\'interrupteur PERSO_OUVERTE existe (variable d\'environnement, sans redéploiement)',
+         srcServeur.includes("const PERSO_OUVERTE = process.env.PERSO_OUVERTE === '1'"));
+verifier('/personnalisation.html sert la page « momentanément indisponible » quand l\'atelier est fermé',
+         srcServeur.includes("pathname === '/personnalisation.html') pathname = '/personnalisation-indisponible.html'"));
+verifier('la page indisponible existe, propre, noindex, avec le formulaire « être prévenu »',
+         fs.existsSync(path.join(RACINE,'personnalisation-indisponible.html'))
+         && lire('personnalisation-indisponible.html').includes('noindex,follow')
+         && lire('personnalisation-indisponible.html').includes('id="persoNotif"')
+         && lire('personnalisation-indisponible.html').includes('Momentanément<br>indisponible'));
+verifier('une commande gravée est refusée AVANT toute écriture (y compris en mode démo)',
+         srcServeur.indexOf("error:'perso_indisponible'") < srcServeur.indexOf("if(!USE_DB){ notifyNewOrder(d, numero)"));
+verifier('le partage de configuration 3D est fermé aussi', /api\/config'\)\{\s*\n\s*if\(!PERSO_OUVERTE\)/.test(srcServeur));
+verifier('pochette.html : le bouton principal ajoute la pochette sans gravure',
+         lire('pochette.html').includes('<button class="btn solid" data-add data-ref="ELLIA-NOIR"') && !lire('pochette.html').includes('Personnaliser & ajouter'));
+verifier('index.html : plus d\'appel à personnaliser en bouton principal', !lire('index.html').includes('Personnaliser la mienne'));
+verifier('checkout affiche le message dédié et propose de vider le panier', lire('checkout.html').includes("dd.error === 'perso_indisponible'"));
+
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.
    ══════════════════════════════════════════════════════════════ */

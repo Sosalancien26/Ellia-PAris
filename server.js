@@ -55,6 +55,10 @@ try {
 } catch(e){ console.warn('Module stripe indisponible :', e.message); }
 
 const PORT = process.env.PORT || 3000;
+// PERSONNALISATION : fermee au lancement. Pour rouvrir, poser la variable
+// d'environnement PERSO_OUVERTE=1 sur l'hebergeur et redemarrer : aucune
+// modification de code n'est necessaire.
+const PERSO_OUVERTE = process.env.PERSO_OUVERTE === '1';
 const ROOT = __dirname;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://wwzaqbpyojpzjacbjyqi.supabase.co';
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
@@ -1031,6 +1035,7 @@ const server = http.createServer(async (req, res) => {
          revient plus tard, ou l'envoie a la personne qui l'offrira.
          Sauve les configurateurs abandonnes. */
       if (req.method==='POST' && pathname==='/api/config'){
+        if(!PERSO_OUVERTE) return sendJSON(res,{ ok:false, error:'perso_indisponible' }, 503);
         if(!USE_DB) return sendJSON(res,{ ok:false, error:'indisponible', detail:'Base de données non configurée.' }, 503);
         if(!rateAllowed('config', clientIp(req))) return sendJSON(res,{ ok:false, error:'rate' }, 429);
         const d = JSON.parse((await readBody(req))||'{}');
@@ -1282,6 +1287,12 @@ const server = http.createServer(async (req, res) => {
         const PAYS_LIVRES = ['France', 'Monaco'];
         if (d.pays_livraison && !PAYS_LIVRES.includes(clean(d.pays_livraison, 60)))
           return sendJSON(res,{ ok:false, error:'pays_non_livre', message:'Nous ne livrons pour l\'instant qu\'en France et à Monaco. Écrivez-nous à contact@ellia-paris.fr pour une autre destination.' }, 400);
+        // Atelier de gravure ferme : aucune piece gravee ne passe, quel que
+        // soit le chemin (panier ancien, appel direct de l'API).
+        if (!PERSO_OUVERTE && Array.isArray(d.items) && d.items.some(it => it && typeof it === 'object' &&
+              ((it.initiales && String(it.initiales).trim()) || ['flame','extra','extra2','extra3'].some(k => it[k] && it[k].enabled))))
+          return sendJSON(res,{ ok:false, error:'perso_indisponible',
+            message:'La personnalisation est momentanément indisponible : votre panier contient une pochette gravée. Videz-le et ajoutez la pochette sans gravure.' }, 400);
         if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
         let prixCatalogue = 159; // repli
         try{
@@ -2393,6 +2404,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/') pathname = '/index.html';
   else if (pathname.endsWith('/')) pathname += 'index.html';
+  if (!PERSO_OUVERTE && pathname === '/personnalisation.html') pathname = '/personnalisation-indisponible.html';
+  else if (pathname === '/personnalisation-indisponible.html') { res.statusCode = 301; res.setHeader('Location', '/personnalisation.html'); return res.end(); }
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
