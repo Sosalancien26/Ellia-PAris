@@ -19,6 +19,7 @@ const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
 const zlib   = require('zlib');
+const net    = require('net');
 const cluster = require('cluster');
 const os      = require('os');
 /* Cache des fichiers deja compresses (evite de recompresser a chaque visite) */
@@ -59,6 +60,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://wwzaqbpyojpzjacbjyqi.s
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
 const USE_DB = !!SERVICE_KEY;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ellia2026';
+// En production (base branchee), un mot de passe absent = arret immediat.
+// Le mot de passe de repli est public dans le depot : le laisser actif
+// reviendrait a donner l'administration a quiconque lit ce fichier.
+if (USE_DB && !process.env.ADMIN_PASSWORD) {
+  console.error('[SECURITE] ADMIN_PASSWORD manquant dans les variables d\'environnement : demarrage refuse.');
+  process.exit(1);
+}
 // Sans ADMIN_SECRET, le secret derivait du mot de passe : avec la valeur par
 // defaut ("ellia$ellia2026", publique dans le depot) n'importe qui pouvait
 // fabriquer un cookie administrateur. On tire un secret aleatoire a la place.
@@ -115,14 +123,39 @@ setInterval(() => {
     }
   }
 }, 10*60*1000);
+const RATE_MAX_CLES = 20000;   // au-dela, on evince la cle la plus ancienne
 function rateAllowed(bucket, ip){
   const cfg = RATE_LIMITS[bucket]; if(!cfg) return true;
   const now = Date.now();
-  const arr = (RATE[bucket].get(ip)||[]).filter(t => now - t < cfg.window);
-  arr.push(now); RATE[bucket].set(ip, arr);
-  return arr.length <= cfg.max;
+  const m = RATE[bucket];
+  const arr = (m.get(ip)||[]).filter(t => now - t < cfg.window);
+  // Une fois la limite atteinte, on n'accumule plus : avant, chaque tentative
+  // refusee allongeait le tableau et allongeait le temps de traitement de la
+  // suivante (deni de service par simple insistance).
+  if (arr.length >= cfg.max) { m.set(ip, arr); return false; }
+  arr.push(now);
+  if (!m.has(ip) && m.size >= RATE_MAX_CLES) m.delete(m.keys().next().value);
+  m.set(ip, arr);
+  return true;
 }
-function clientIp(req){ return (req.headers['x-forwarded-for']||'').split(',')[0].trim() || req.socket.remoteAddress || 'unknown'; }
+/* ADRESSE DU CLIENT
+   x-forwarded-for est pose par le proxy de l'hebergeur, mais le CLIENT peut
+   aussi envoyer cet en-tete : le proxy ajoute alors la vraie adresse A LA FIN.
+   On lit donc le DERNIER element, on le valide comme une vraie IP et on le
+   tronque — une valeur forgee de 8 Ko ne devient plus une cle de la Map. */
+let _releveXff = 0;
+function clientIp(req){
+  const brut = String(req.headers['x-forwarded-for'] || '');
+  // Releve des 3 premieres requetes : permet de verifier dans le journal de
+  // l'hebergeur que le proxy pose bien l'en-tete (sinon toutes les clientes
+  // partageraient une seule cle de limitation).
+  if (_releveXff < 3) { _releveXff++;
+    console.log('[Reseau] x-forwarded-for =', JSON.stringify(brut).slice(0,120), '| socket =', req.socket.remoteAddress); }
+  const liste = brut.split(',').map(x => x.trim()).filter(Boolean);
+  const candidat = liste.length ? liste[liste.length - 1] : (req.socket.remoteAddress || '');
+  const ip = candidat.replace(/^::ffff:/, '').slice(0, 45);
+  return net.isIP(ip) ? ip : 'invalide';
+}
 
 function isHttps(req){
   if((req.headers['x-forwarded-proto']||'').toLowerCase()==='https') return true;
@@ -164,14 +197,19 @@ try {
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     const nodemailer = require('nodemailer');
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
       port: Number(process.env.SMTP_PORT || 587),
-      secure: false,
+      secure: String(process.env.SMTP_SECURE) === 'true' || Number(process.env.SMTP_PORT) === 465,
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
     });
   }
 } catch (e) { console.warn('Nodemailer indisponible :', e.message); }
-const MAIL_FROM = process.env.MAIL_FROM || ('ELLIA PARIS <' + (process.env.SMTP_USER || 'no-reply@ellia-paris.fr') + '>');
+// Depuis Brevo, SMTP_USER est un identifiant technique (xxx@smtp-brevo.com) :
+// il ne doit JAMAIS servir d'expediteur ni de destinataire.
+const MAIL_FROM = process.env.MAIL_FROM || 'ELLIA PARIS <contact@ellia-paris.fr>';
+// Boite interne (commandes, contacts, avis, alertes, sauvegardes) :
+// CONTACT_TO en priorite, sinon la boite de la maison.
+const MAIL_INTERNE = process.env.CONTACT_TO || 'contact@ellia-paris.fr';
 function euro(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner, preheader){
@@ -199,7 +237,7 @@ function emailLayout(inner, preheader){
     '<div style="background:#0d0d0d;padding:28px 44px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.18em;color:#bdb8af">' +
       '<div style="margin-bottom:10px;color:#ffffff;letter-spacing:.4em">ELLIA &nbsp; PARIS</div>' +
       '<div style="margin-bottom:14px"><a href="https://ellia-paris.fr" style="color:#bdb8af;text-decoration:none">ellia-paris.fr</a> · <a href="https://ellia-paris.fr/contact.html" style="color:#bdb8af;text-decoration:none">Contact</a> · <a href="https://ellia-paris.fr/entretien.html" style="color:#bdb8af;text-decoration:none">Entretien</a></div>' +
-      '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© 2026 ELLIA PARIS — Maison de maroquinerie française · Tous droits réservés.</div>' +
+      '<div style="font-size:10px;letter-spacing:.1em;color:#6e6960;text-transform:none">© ' + new Date().getFullYear() + ' ELLIA PARIS — Maison de maroquinerie française · Tous droits réservés.<br/>ELLIA PARIS, SAS — 2 rue Suchet, 94700 Maisons-Alfort — RCS Créteil 877 702 985</div>' +
     '</div>' +
   '</div></td></tr></table></div>' +
   '</body></html>';
@@ -238,11 +276,12 @@ function htmlToText(html){
 function engravingLines(it){
   // Affiche TOUS les details de gravure : initiales + jusqu'a 4 symboles
   const parts = [];
-  if (it.initiales) parts.push('Initiales « ' + escH(it.initiales) + ' » · ' + escH(it.finition||'') + ' · ' + escH(it.emplacement||''));
-  if (it.flame && it.flame.enabled) parts.push(escH(it.flame.symbol_name||'Symbole') + ' : ' + escH(it.flame.finish||'') + ' · ' + escH(it.flame.placement||''));
-  if (it.extra && it.extra.enabled) parts.push(escH(it.extra.symbol_name||'Symbole') + ' : ' + escH(it.extra.finish||'') + ' · ' + escH(it.extra.placement||''));
-  if (it.extra2 && it.extra2.enabled) parts.push(escH(it.extra2.symbol_name||'Symbole') + ' : ' + escH(it.extra2.finish||'') + ' · ' + escH(it.extra2.placement||''));
-  if (it.extra3 && it.extra3.enabled) parts.push(escH(it.extra3.symbol_name||'Symbole') + ' : ' + escH(it.extra3.finish||'') + ' · ' + escH(it.extra3.placement||''));
+  const j = (arr) => arr.filter(Boolean).map(escH).join(' · ');
+  if (it.initiales) parts.push(j(['Initiales « ' + it.initiales + ' »' + (it.fontScale && it.fontScale !== 100 ? ' (' + it.fontScale + ' %)' : ''), it.finition, it.emplacement]));
+  for (const k of ['flame','extra','extra2','extra3']) {
+    const sy = it[k];
+    if (sy && sy.enabled) parts.push(escH(sy.symbol_name||'Symbole') + (sy.finish || sy.placement ? ' : ' + j([sy.finish, sy.placement]) : ''));
+  }
   if (!parts.length) return '';
   return '<br/><span style="font-family:Arial,sans-serif;font-size:12px;color:#6a655d;line-height:1.7">Gravure :<br/>· ' + parts.join('<br/>· ') + '</span>';
 }
@@ -380,17 +419,20 @@ function _notifyNewOrderInternal(d, numero){
     ? '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#6a655d;margin-top:10px">Aperçu de votre personnalisation</div>'
     : '';
   // Bloc "Étapes de votre commande" — cohérent avec la page confirmation.html
+  const _its = Array.isArray(d.items) ? d.items : [];
+  const estGravee = _its.some(it => it && ((it.initiales && String(it.initiales).trim())
+    || (it.flame && it.flame.enabled) || (it.extra && it.extra.enabled) || (it.extra2 && it.extra2.enabled) || (it.extra3 && it.extra3.enabled)));
   const stepsBlock = '<table style="width:100%;border-collapse:collapse;margin:26px 0 8px;font-family:Arial,Helvetica,sans-serif">' +
     '<tr>' +
     '<td style="width:33%;padding:14px 10px 14px 0;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">01</div>' +
       '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">Aujourd\'hui</div>' +
-      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Votre dossier de gravure est transmis aux artisans.</div>' +
+      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">' + (estGravee ? 'Votre dossier de gravure est transmis aux artisans.' : 'Votre pochette est préparée dans notre atelier.') + '</div>' +
     '</td>' +
     '<td style="width:33%;padding:14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">02</div>' +
-      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">5 à 7 jours</div>' +
-      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">Pressage manuel au foil chaud dans le cuir grainé.</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6a655d;margin:7px 0 4px">' + (estGravee ? '5 à 7 jours ouvrés' : '2 à 3 jours ouvrés') + '</div>' +
+      '<div style="font-size:12.5px;color:#5c5852;line-height:1.5">' + (estGravee ? 'Pressage manuel au foil chaud dans le cuir grainé.' : 'Contrôle, écrin et préparation du colis.') + '</div>' +
     '</td>' +
     '<td style="width:33%;padding:14px 0 14px 10px;vertical-align:top;border-top:1px solid #efece6;border-bottom:1px solid #efece6">' +
       '<div style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;line-height:1">03</div>' +
@@ -400,7 +442,7 @@ function _notifyNewOrderInternal(d, numero){
     '</tr></table>';
   const inner = '<div style="text-align:center;margin:-10px -10px 22px;background:#f3f1ec;padding:22px 18px">' + headerImg + previewLabel + '</div>' +
     '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px;letter-spacing:.01em">Paiement reçu — merci !</h1>' +
-    '<p style="margin:0 0 8px">Bonjour ' + escH(d.client_nom||'') + ',</p>' +
+    '<p style="margin:0 0 8px">' + bonjour(d.client_prenom || d.client_nom) + '</p>' +
     '<p style="margin:0 0 4px">Votre paiement a bien été reçu et votre commande <b>' + numero + '</b> est confirmée. En voici le détail :</p>' +
     lineItems(d.items) +
     '<table style="width:100%;font-family:Arial,sans-serif;font-size:15px">' +
@@ -418,17 +460,23 @@ function _notifyNewOrderInternal(d, numero){
         '<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:14.5px;color:#3d3a35;line-height:1.7">' +
           'Aucun prix ne figurera dans le colis. Votre facture vous parvient uniquement par e-mail.' +
           (d.gift_message ? ('<br><br><em style="color:#5c5852;white-space:pre-wrap">« ' + escH(d.gift_message) + ' »</em>' + (d.gift_from ? ('<br><span style="font-size:13px">— ' + escH(d.gift_from) + '</span>') : '')) : '') +
-          (d.gift_date ? ('<br><br><span style="font-size:13px;color:#5c5852">Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b></span>') : '') +
+          (d.gift_date ? ('<br><br><span style="font-size:13px;color:#5c5852">Arrivée souhaitée : <b>' + dateFrLongue(d.gift_date) + '</b></span>') : '') +
         '</p>' +
       '</div>'
     ) : '') +
     stepsBlock +
     '<p style="margin:18px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif;line-height:1.6">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(numero) + '" style="color:#0d0d0d">voir le suivi</a> (votre e-mail suffit, aucun compte requis).<br/><br/>Avec soin,<br/>ELLIA PARIS</p>' +
-    // Mention legale obligatoire : article personnalise = pas de droit de retractation (art. L221-28 3° C. conso.)
+    // Mention legale : piece gravee = pas de droit de retractation (art. L221-28 3°) ;
+    // piece NON gravee = droit de retractation de 14 jours (art. L221-18).
+    // Envoyer la premiere phrase a une cliente sans gravure lui nierait un droit.
     '<div style="margin:26px 0 0;padding:14px 16px;background:#faf8f4;border-left:2px solid #e0dbd0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#6a655d;line-height:1.6">' +
-      'Votre pochette étant personnalisée à votre demande, elle est exclue du droit de rétractation de 14 jours (article L221-28 3° du Code de la consommation). ' +
-      'Nos <a href="https://ellia-paris.fr/cgv.html" style="color:#56524c">conditions générales de vente</a> restent consultables à tout moment. En cas de défaut, écrivez-nous : notre garantie légale s\'applique pleinement.' +
-    '</div>';
+      (estGravee
+        ? 'Votre pochette étant personnalisée à votre demande, elle est exclue du droit de rétractation de 14 jours (article L221-28 3° du Code de la consommation). '
+        : 'Vous disposez d\'un délai de 14 jours à compter de la réception pour vous rétracter (article L221-18 du Code de la consommation), frais de retour à votre charge ; le formulaire type figure dans nos CGV. ') +
+      'Nos <a href="https://ellia-paris.fr/cgv.html" style="color:#56524c">conditions générales de vente</a> restent consultables à tout moment. En cas de défaut, écrivez-nous : notre garantie légale de conformité de deux ans s\'applique pleinement.' +
+    '</div>' +
+    // L.221-13 : la confirmation doit rappeler l'identite et l'adresse du vendeur
+    '<p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#8a857d;line-height:1.5">ELLIA PARIS, SAS au capital de 1 000 € — 2 rue Suchet, 94700 Maisons-Alfort — RCS Créteil 877 702 985 — contact@ellia-paris.fr</p>';
   const clientHtml = emailLayout(inner, 'Commande ' + numero + ' confirmée — votre pochette est en préparation');
   // On remonte le resultat de l'envoi : sans lui, impossible de savoir si le
   // client a vraiment recu sa confirmation (le webhook marquait "envoye"
@@ -448,13 +496,13 @@ function _notifyNewOrderInternal(d, numero){
     // sendMail resout deja a false en cas d'echec : ne PAS ecraser avec .then(()=>true)
     envoiClient = sendMail(d.client_email, 'Commande confirmée — '+numero, clientHtml);
   }
-  if (process.env.SMTP_USER) sendMail(process.env.SMTP_USER, 'Nouvelle commande '+numero,
-    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier :<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;margin-top:6px;padding:10px 12px;background:#fff;border:1px dashed #c9bfa4">« ' + escH(d.gift_message) + ' »</div>' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + escH(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
+  sendMail(MAIL_INTERNE, '[ELLIA PARIS] Nouvelle commande ' + numero + ' — ' + euro(d.montant_total),
+    emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier :<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;margin-top:6px;padding:10px 12px;background:#fff;border:1px dashed #c9bfa4">« ' + escH(d.gift_message) + ' »</div>' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + dateFrLongue(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
   return envoiClient;
 }
 const STATUT_MSG = {
   'nouvelle':'a bien été reçue et est en cours de traitement.',
-  'en preparation':'est en cours de préparation dans nos ateliers.',
+  'en preparation':'est en cours de préparation dans notre atelier.',
   'expediee':'a été expédiée — elle est en route vers vous.',
   'livree':'a été livrée. Nous espérons qu\'elle vous comble.',
   'annulee':'a été annulée. Pour toute question, répondez à cet e-mail.'
@@ -477,57 +525,78 @@ async function sendInvoiceForOrder(order){
   if (!invoiceMod || !transporter) return { client:false, archive:false };
   // 1) S'assurer qu'on a un numero de facture (creation web : pas encore)
   if (!order.invoice_number) {
+    // Relire d'abord : un double clic sur « Expediee » ou deux administrateurs
+    // en meme temps tiraient DEUX numeros pour une meme commande, et la
+    // cliente recevait deux factures differentes.
+    try {
+      const deja = await sb('orders?numero=eq.'+encodeURIComponent(order.numero)+'&select=invoice_number');
+      if (deja && deja[0] && deja[0].invoice_number) order.invoice_number = deja[0].invoice_number;
+    } catch(_){}
+  }
+  if (!order.invoice_number) {
+    let candidat = null;
     try {
       const rpc = await sb('rpc/next_invoice_number',{ method:'POST', body:{} });
-      order.invoice_number = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
+      candidat = (typeof rpc === 'string') ? rpc : (rpc && rpc.result) || null;
     } catch(e){ console.warn('next_invoice_number KO :', e.message); }
-    // REPLI HORS DU TRY : si le RPC leve, la facture partait sans numero.
-    // Suffixe aleatoire : 4 chiffres de millisecondes rebouclent en 10 s.
-    if (!order.invoice_number) {
-      order.invoice_number = numeroFactureRepli();
-      console.warn('[FACTURE] Numero de repli utilise pour', order.numero, ':', order.invoice_number);
+    if (!candidat) {
+      candidat = numeroFactureRepli();
+      console.warn('[FACTURE] Numero de repli utilise pour', order.numero, ':', candidat);
+      try { alerte('facture_repli', 'Numéro de facture de repli — '+order.numero,
+        'La séquence Postgres était injoignable. Numéro attribué : '+candidat+'. À régulariser en comptabilité.', 'haute'); } catch(_){}
     }
+    // PATCH atomique : n'ecrit que si la case est encore vide. Si une autre
+    // execution a gagne la course, on relit son numero et on l'utilise.
     try {
-      await sb('orders?numero=eq.'+encodeURIComponent(order.numero),{ method:'PATCH', body:{ invoice_number: order.invoice_number } });
-    } catch(e){ console.warn('[FACTURE] enregistrement du numero KO :', e.message); }
+      const ecrit = await sb('orders?numero=eq.'+encodeURIComponent(order.numero)+'&invoice_number=is.null',
+        { method:'PATCH', prefer:'return=representation', body:{ invoice_number: candidat } });
+      if (Array.isArray(ecrit) && ecrit.length) order.invoice_number = candidat;
+      else {
+        const rel = await sb('orders?numero=eq.'+encodeURIComponent(order.numero)+'&select=invoice_number');
+        order.invoice_number = (rel && rel[0] && rel[0].invoice_number) || candidat;
+      }
+    } catch(e){ console.warn('[FACTURE] enregistrement du numero KO :', e.message); order.invoice_number = candidat; }
   }
   let mailSent = false, archiveSent = false;
   try {
-    const pdfBuf = await invoiceMod.generateInvoicePDF({ ...order, invoice_date: order.created_at || new Date() });
-    const archiveTo = process.env.INVOICE_ARCHIVE_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+    // Date d'emission = aujourd'hui (le numero est tire a l'expedition : la
+    // sequence reste chronologique, art. 242 nonies A ann. II CGI).
+    const pdfBuf = await invoiceMod.generateInvoicePDF({ ...order, invoice_date: new Date() });
+    const archiveTo = process.env.INVOICE_ARCHIVE_TO || MAIL_INTERNE;
     const fname = (order.invoice_number || order.numero) + '.pdf';
     const fullName = ((order.client_prenom||'')+' '+(order.client_nom||'')).trim() || (order.client_nom||'');
     const url = trackUrl(order.transporteur, order.suivi);
-    const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+    const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi' + (order.transporteur ? ' ' + escH(order.transporteur) : '') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
 
     if (order.client_email) {
       const innerCli = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande est en route</h1>' +
-        '<p style="margin:0 0 8px">Bonjour ' + escH(order.client_prenom || order.client_nom || '') + ',</p>' +
+        '<p style="margin:0 0 8px">' + bonjour(order.client_prenom || order.client_nom) + '</p>' +
         '<p style="margin:0 0 4px">Votre commande <b>' + escH(order.numero) + '</b> a été expédiée. Vous trouverez ci-joint la facture <b>' + escH(order.invoice_number) + '</b> correspondante.</p>' +
         track +
         '<p style="margin:16px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant total : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(order.montant_total) + '</b></p>' +
+        '<p style="margin:14px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(order.numero) + '" style="color:#0d0d0d">voir le suivi</a>.</p>' +
         '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
       mailSent = await sendMailWithAttachment(
         order.client_email,
-        'Votre commande ELLIA PARIS — expédiée · facture ' + order.invoice_number,
-        emailLayout(innerCli),
+        'Votre commande ' + order.numero + ' est en route — facture ' + order.invoice_number,
+        emailLayout(innerCli, 'Commande ' + order.numero + ' expédiée — suivi et facture ci-joints'),
         [{ filename: fname, content: pdfBuf, contentType:'application/pdf' }]
       );
     }
     if (archiveTo) {
       const innerArch = '<h2 style="font-weight:normal;font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Facture émise — ' + order.invoice_number + '</h2>' +
         '<table style="width:100%;font-family:Arial,sans-serif;font-size:14px;border-collapse:collapse">' +
-          '<tr><td style="padding:6px 0;color:#666;width:160px">Client</td><td style="padding:6px 0;color:#0d0d0d"><b>' + fullName + '</b>' + (order.client_email?(' &lt;' + order.client_email + '&gt;'):'') + '</td></tr>' +
-          '<tr><td style="padding:6px 0;color:#666">N° commande</td><td style="padding:6px 0;color:#0d0d0d">' + order.numero + '</td></tr>' +
-          '<tr><td style="padding:6px 0;color:#666">Mode paiement</td><td style="padding:6px 0;color:#0d0d0d">' + (order.payment_method||'—') + '</td></tr>' +
-          '<tr><td style="padding:6px 0;color:#666">Statut paiement</td><td style="padding:6px 0;color:#0d0d0d">' + (order.payment_status||'—') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666;width:160px">Client</td><td style="padding:6px 0;color:#0d0d0d"><b>' + escH(fullName) + '</b>' + (order.client_email?(' &lt;' + escH(order.client_email) + '&gt;'):'') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">N° commande</td><td style="padding:6px 0;color:#0d0d0d">' + escH(order.numero) + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">Mode paiement</td><td style="padding:6px 0;color:#0d0d0d">' + escH(order.payment_method||'—') + '</td></tr>' +
+          '<tr><td style="padding:6px 0;color:#666">Statut paiement</td><td style="padding:6px 0;color:#0d0d0d">' + escH(order.payment_status||'—') + '</td></tr>' +
           '<tr><td style="padding:6px 0;color:#666">Total TTC</td><td style="padding:6px 0"><b style="font-family:Georgia,serif;font-size:16px">' + euro(order.montant_total) + '</b></td></tr>' +
         '</table>' +
-        '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#6a655d">PDF en pièce jointe — archivé automatiquement par le filtre Gmail "Factures Ellia".</p>';
+        '<p style="margin:24px 0 4px;font-family:Arial,sans-serif;font-size:12px;color:#6a655d">PDF en pièce jointe — à archiver dans le dossier « Factures Ellia ».</p>';
       archiveSent = await sendMailWithAttachment(
         archiveTo,
-        '[Facture Ellia] ' + order.invoice_number + ' — ' + escH(fullName) + ' — ' + euro(order.montant_total),
-        emailLayout(innerArch),
+        '[Facture Ellia] ' + order.invoice_number + ' — ' + fullName + ' — ' + euro(order.montant_total),
+        emailLayout(innerArch, 'Facture ' + order.invoice_number + ' émise'),
         [{ filename: fname, content: pdfBuf, contentType:'application/pdf' }]
       );
     }
@@ -541,17 +610,18 @@ async function sendInvoiceForOrder(order){
 function notifyStatus(order, numero, statut){
   // Normalise + retire les diacritiques (à → a) avant lookup
   const key = (statut||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-  const msg = STATUT_MSG[key] || ('est désormais : '+statut+'.');
+  const msg = STATUT_MSG[key] || ('est désormais : '+escH(statut)+'.');
   const recap = (order.montant_total!=null) ? '<p style="font-family:Arial,sans-serif;font-size:13px;color:#6a655d;margin-top:16px">Montant : ' + euro(order.montant_total) + (order.initiales?(' · Gravure '+escH(order.initiales)):'') + '</p>' : '';
   const url = trackUrl(order.transporteur, order.suivi);
-  const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi ' + (order.transporteur||'') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
-  const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + numero + '</h1>' +
-    '<p style="margin:0 0 8px">Bonjour ' + escH(order.client_nom||'') + ',</p>' +
+  const track = order.suivi ? '<p style="font-family:Arial,sans-serif;font-size:14px;margin-top:14px">Suivi' + (order.transporteur ? ' ' + escH(order.transporteur) : '') + ' : <b>' + escH(order.suivi) + '</b>' + (url?' &nbsp;—&nbsp; <a href="'+url+'" style="color:#0d0d0d;font-weight:bold">Suivre mon colis →</a>':'') + '</p>' : '';
+  const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre commande ' + escH(numero) + '</h1>' +
+    '<p style="margin:0 0 8px">' + bonjour(order.client_prenom || order.client_nom) + '</p>' +
     '<p style="margin:0 0 4px">Votre commande <b>' + numero + '</b> ' + msg + '</p>' +
     '<p style="margin:16px 0 0"><span style="display:inline-block;background:#0d0d0d;color:#ffffff;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px">' + escH(statut) + '</span></p>' +
     track + recap +
+    '<p style="margin:14px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Suivez votre commande à tout moment : <a href="https://ellia-paris.fr/commande.html?n=' + encodeURIComponent(numero) + '" style="color:#0d0d0d">voir le suivi</a>.</p>' +
     '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
-  sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner));
+  return sendMail(order.client_email, 'Commande '+numero+' — '+statut, emailLayout(inner, 'Commande ' + numero + ' : ' + statut));
 }
 
 const TYPES = {
@@ -811,7 +881,8 @@ function makeSession(login, role){
 }
 function getAuth(req){
   const c = cookies(req)['ellia_session'] || '';
-  if (c === TOKEN) return { login:'principal', role:'admin' };
+  if (c.length === TOKEN.length && crypto.timingSafeEqual(Buffer.from(c), Buffer.from(TOKEN)))
+    return { login:'principal', role:'admin' };
   if (c.startsWith('v2.')){
     const parts = c.split('.');
     if (parts.length !== 3) return null;
@@ -854,6 +925,13 @@ function stripFinance(o){
 }
 /* Echappement HTML pour les templates email (les donnees client sont libres) */
 function escH(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function bonjour(nom){ const n = String(nom||'').trim(); return 'Bonjour' + (n ? ' ' + escH(n) : '') + ','; }
+// « 2026-10-15 » -> « 15 octobre 2026 » ; toute autre valeur est renvoyee echappee.
+function dateFrLongue(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||''));
+  if (!m) return escH(v);
+  return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], 12)).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Paris' });
+}
 
 function clean(v, maxLen){
   if(maxLen==null) maxLen = 200;
@@ -889,6 +967,7 @@ const server = http.createServer(async (req, res) => {
   try {
     url = new URL(req.url, 'http://localhost');
     pathname = decodeURIComponent(url.pathname);
+    if (pathname.includes('\0')) { res.statusCode = 400; return res.end('Bad Request'); }
   } catch(_) {
     // URL malformee (ex: /%) : reponse propre au lieu d'un crash du processus
     res.statusCode = 400;
@@ -1084,10 +1163,10 @@ const server = http.createServer(async (req, res) => {
             const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Réinitialiser votre mot de passe</h1>' +
               '<p style="margin:0 0 14px">Bonjour,</p>' +
               '<p style="margin:0 0 14px">Vous avez demandé à réinitialiser le mot de passe de votre compte ELLIA PARIS. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>' +
-              '<p style="margin:26px 0"><a href="' + link + '" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p>' +
+              '<p style="margin:26px 0"><a href="' + escH(link) + '" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p>' +
               '<p style="margin:0 0 8px;font-size:13px;color:#6a655d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p>' +
               '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
-            sendMail(email, 'Réinitialisation de votre mot de passe — ELLIA PARIS', emailLayout(inner));
+            sendMail(email, 'Réinitialisation de votre mot de passe — ELLIA PARIS', emailLayout(inner, 'Choisissez un nouveau mot de passe — lien valable 1 heure'));
           }
         }catch(e){ console.warn('Reset password KO :', e.message); }
         return sendJSON(res,{ ok:true });
@@ -1108,19 +1187,19 @@ const server = http.createServer(async (req, res) => {
         const subjects = {commande:'Question sur une commande',personnalisation:'Personnalisation',livraison:'Livraison & retours',entretien:'Entretien & SAV',presse:'Presse & partenariats',autre:'Autre demande'};
         const sujLabel = subjects[sujet] || sujet;
         const escapeMsg = String(message).replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])).replace(/\n/g,'<br>');
-        const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
-        const innerAdmin = '<h2 style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;margin:0 0 18px">Nouveau message — ' + sujLabel + '</h2>' +
+        const adminMail = MAIL_INTERNE;
+        const innerAdmin = '<h2 style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;margin:0 0 18px">Nouveau message — ' + escH(sujLabel) + '</h2>' +
           '<table style="width:100%;border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif">' +
             '<tr><td style="padding:8px 0;color:#666;width:140px">Nom</td><td style="padding:8px 0;color:#0d0d0d"><b>' + escH(nom) + '</b></td></tr>' +
             '<tr><td style="padding:8px 0;color:#666">E-mail</td><td style="padding:8px 0"><a href="mailto:' + escH(cEmail) + '" style="color:#0d0d0d">' + escH(cEmail) + '</a></td></tr>' +
-            '<tr><td style="padding:8px 0;color:#666">Sujet</td><td style="padding:8px 0;color:#0d0d0d">' + sujLabel + '</td></tr>' +
+            '<tr><td style="padding:8px 0;color:#666">Sujet</td><td style="padding:8px 0;color:#0d0d0d">' + escH(sujLabel) + '</td></tr>' +
             (cmd ? '<tr><td style="padding:8px 0;color:#666">Commande</td><td style="padding:8px 0;color:#0d0d0d">' + escH(cmd) + '</td></tr>' : '') +
           '</table>' +
           '<div style="margin-top:24px;padding:20px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14.5px;line-height:1.6;color:#333">' + escapeMsg + '</div>' +
           '<p style="margin-top:24px;font-size:12px;color:#999;font-family:Arial,sans-serif">Pour répondre : cliquer sur l\'adresse e-mail ci-dessus.</p>';
         if (adminMail) sendMail(adminMail, '[ELLIA PARIS] ' + sujLabel + ' — ' + nom, emailLayout(innerAdmin));
         const innerClient = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre message est bien reçu</h1>' +
-          '<p style="margin:0 0 14px">Bonjour ' + escH(nom) + ',</p>' +
+          '<p style="margin:0 0 14px">' + bonjour(nom) + '</p>' +
           '<p style="margin:0 0 14px">Nous avons bien reçu votre demande et nos conseillers vous répondront sous <b>24 heures ouvrées</b>.</p>' +
           '<p style="margin:0 0 8px;font-size:14px;font-family:Arial,sans-serif;color:#56524c">Rappel de votre message :</p>' +
           '<div style="margin-top:8px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-size:14px;line-height:1.6;color:#555;font-style:italic;font-family:Georgia,serif">' + escapeMsg + '</div>' +
@@ -1172,8 +1251,8 @@ const server = http.createServer(async (req, res) => {
         if(!USE_DB) return sendJSON(res,{ ok:true, demo:true });
         try{
           await sb('reviews',{ method:'POST', body:row });
-          const adminMail = process.env.CONTACT_TO || process.env.SMTP_USER;
-          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom + (achat_verifie ? ' (achat confirme)' : ' (ACHAT NON RETROUVE)'), emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + escH(prenom) + '</b> (' + escH(rEmail) + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
+          const adminMail = MAIL_INTERNE;
+          if (adminMail) sendMail(adminMail, '[ELLIA PARIS] Nouvel avis — ' + note + '★ ' + prenom + (achat_verifie ? ' (achat confirmé)' : ' (ACHAT NON RETROUVÉ)'), emailLayout('<h2 style="font-family:Georgia,serif;font-size:22px;margin:0 0 14px">Nouvel avis à modérer</h2><p><b>' + escH(prenom) + '</b> (' + escH(rEmail) + ') — ' + note + '/5</p>' + (titre?'<p><i>« ' + escH(titre) + ' »</i></p>':'') + '<div style="margin-top:14px;padding:18px;background:#f8f6f1;border-left:3px solid #0d0d0d;font-family:Georgia,serif;font-style:italic">' + commentaire.replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])) + '</div><p style="margin-top:18px;font-size:13px;color:#999;font-family:Arial,sans-serif">Validez l\'avis depuis votre admin pour le publier sur le site.</p>'));
         }catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         return sendJSON(res,{ ok:true });
       }
@@ -1192,8 +1271,17 @@ const server = http.createServer(async (req, res) => {
         if(err) return sendJSON(res,{ ok:false, error:'validation', field:err }, 400);
         // Numero unique : timestamp + 4 hex aleatoires (l'ancien format se repetait toutes les ~16 min)
         const numero = 'EP-'+Date.now().toString().slice(-6)+crypto.randomBytes(2).toString('hex').toUpperCase();
+        // Plafond : 5 pochettes par commande. Sans lui, deux requetes anonymes de
+        // 20 articles vides bloquaient tout le stock sans payer un centime.
+        if (Array.isArray(d.items) && d.items.length > 5)
+          return sendJSON(res,{ ok:false, error:'trop_articles', message:'5 pochettes maximum par commande. Contactez-nous pour une commande groupée.' }, 400);
         const qte = (Array.isArray(d.items) && d.items.length) ? d.items.length : 1;
         // MODE DEMO uniquement : envoi mail immediat (pas de Stripe pour valider)
+        // Lancement : livraison France et Monaco seulement (port offert, TVA 20 %).
+        // Toute autre valeur est refusee avant de toucher au stock.
+        const PAYS_LIVRES = ['France', 'Monaco'];
+        if (d.pays_livraison && !PAYS_LIVRES.includes(clean(d.pays_livraison, 60)))
+          return sendJSON(res,{ ok:false, error:'pays_non_livre', message:'Nous ne livrons pour l\'instant qu\'en France et à Monaco. Écrivez-nous à contact@ellia-paris.fr pour une autre destination.' }, 400);
         if(!USE_DB){ notifyNewOrder(d, numero); return sendJSON(res,{ ok:true, numero, demo:true }); }
         let prixCatalogue = 159; // repli
         try{
@@ -1211,7 +1299,27 @@ const server = http.createServer(async (req, res) => {
         const totalBrut = Math.min(100000, Math.max(0, Number(d.montant_total)||0));
         // PLANCHER REEL : prix catalogue + gravure recalculee article par article.
         // Le navigateur ne peut plus annoncer 159 € pour une pochette gravee.
-        const lignes = Array.isArray(d.items) && d.items.length ? d.items : [{}];
+        // Liste blanche des champs d'un article : rien d'autre n'entre en base.
+        const SYMB_OK = ['flame','extra','extra2','extra3'];
+        const normSymb = (x) => {
+          if (!x || typeof x !== 'object' || !x.enabled) return null;
+          return { enabled:true, symbol:clean(x.symbol,20), symbol_name:clean(x.symbol_name,40),
+                   finish:clean(x.finish,30), placement:clean(x.placement,30) };
+        };
+        const normItem = (it) => {
+          const o = (it && typeof it === 'object') ? it : {};
+          const n = { ref:'ELLIA-NOIR', nom:'La Pochette ELLIA — Noir',
+                      initiales: clean(o.initiales, 18),   // 18 = maximum du configurateur
+                      finition: clean(o.finition, 30), emplacement: clean(o.emplacement, 30) };
+          for (const k of SYMB_OK) { const v = normSymb(o[k]); if (v) n[k] = v; }
+          // Taille de gravure choisie (50-200 %) : l'atelier en a besoin.
+          const fs_ = Number(o.fontScale); if (Number.isFinite(fs_) && fs_ !== 100) n.fontScale = Math.max(50, Math.min(200, Math.round(fs_)));
+          // Prix de la ligne recalcule ici, jamais repris du navigateur :
+          // c'est lui que l'e-mail de confirmation et la facture affichent.
+          n.prix = Math.round((prixCatalogue + prixPersoItem(n)) * 100) / 100;
+          return n;
+        };
+        const lignes = (Array.isArray(d.items) && d.items.length ? d.items : [{}]).map(normItem);
         let persoServeur = 0;
         for (const it of lignes) persoServeur += prixPersoItem(it);
         const plancherBrut = Math.round((prixCatalogue * qte + persoServeur) * 100) / 100;
@@ -1241,35 +1349,28 @@ const server = http.createServer(async (req, res) => {
           if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(d.preview)) preview = d.preview;
         }
         // Items_data : on serialise tout le panier (incluant flame/extra/extra2/extra3) pour reconstruire la commande apres paiement
-        let itemsData = null;
-        try {
-          if (Array.isArray(d.items)) {
-            // Nettoyage : on supprime le preview de chaque item (deja stocke separement) pour limiter la taille
-            const lite = d.items.map(it => {
-              const c = Object.assign({}, it);
-              delete c.preview; // evite le double stockage du PNG
-              return c;
-            });
-            const s = JSON.stringify(lite);
-            if (s.length < 60000) itemsData = lite;
-          }
-        } catch(_){}
+        // items_data = exactement ce qui a ete tarife (lignes normalisees),
+        // jamais le payload brut du navigateur.
+        const itemsData = lignes;
+        // Les champs de premier niveau sont DERIVES du premier article facture :
+        // le navigateur ne peut plus annoncer une gravure gratuite a l'atelier.
+        const premier = lignes[0] || {};
         const row = { numero,
           client_nom: clean(d.client_nom, 120),
           client_email: clean(String(d.client_email||'').toLowerCase(), 254),
           telephone: clean(d.telephone, 30),
-          initiales: clean(d.initiales, 50),
-          finition: clean(d.finition, 40),
-          emplacement: clean(d.emplacement, 40),
+          initiales: premier.initiales || '',
+          finition: premier.finition || '',
+          emplacement: premier.emplacement || '',
           adresse_livraison: clean(d.adresse_livraison, 200),
           cp_livraison: clean(d.cp_livraison, 20),
           ville_livraison: clean(d.ville_livraison, 80),
-          pays_livraison: clean(d.pays_livraison, 60) || 'France',
+          pays_livraison: PAYS_LIVRES.includes(clean(d.pays_livraison, 60)) ? clean(d.pays_livraison, 60) : 'France',
           adresse_facturation: clean(d.adresse_facturation, 200),
           cp_facturation: clean(d.cp_facturation, 20),
           ville_facturation: clean(d.ville_facturation, 80),
           pays_facturation: clean(d.pays_facturation, 60) || 'France',
-          user_id: d.user_id || null,
+          user_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(d.user_id||'')) ? d.user_id : null,
           // Total NET : remise promo (validee serveur) deduite → c'est ce montant que Stripe facturera
           montant_total: Math.max(0, totalClient - promoDiscount),
           quantite: qte,   // necessaire pour restituer le BON stock si le paiement echoue
@@ -1315,9 +1416,13 @@ const server = http.createServer(async (req, res) => {
         try {
           let amount = 0, clientEmail = '', items = [];
           if (USE_DB) {
-            const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,client_email,montant_total,initiales,finition,emplacement');
+            const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,client_email,montant_total,initiales,finition,emplacement,statut,payment_status');
             if (!rows || !rows[0]) return sendJSON(res,{ ok:false, error:'order_not_found' }, 404);
             const o = rows[0];
+            // Une commande deja payee, annulee ou expiree ne rouvre pas de paiement :
+            // sinon un retour arriere du navigateur debitait la cliente deux fois.
+            if (o.statut !== 'En attente paiement' || ['Payee','Expiree','Rembourse','Remboursé'].includes(String(o.payment_status||'')))
+              return sendJSON(res,{ ok:false, error:'commande_close', message:'Cette commande n\'est plus ouverte au paiement.' }, 409);
             amount = Math.round(Number(o.montant_total) * 100);
             clientEmail = o.client_email || '';
             items = [{
@@ -1331,7 +1436,7 @@ const server = http.createServer(async (req, res) => {
             items = [{ name:'La Pochette ELLIA', description:'Mode demo', amount: amount }];
           }
           if (amount < 50) return sendJSON(res,{ ok:false, error:'amount_too_low' }, 400);
-          const origin = (req.headers.origin || 'https://ellia-paris.fr').replace(/\/$/,'');
+          const origin = (process.env.SITE_URL || 'https://ellia-paris.fr').replace(/\/$/,'');
           const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             payment_method_types: ['card'],
@@ -1341,6 +1446,10 @@ const server = http.createServer(async (req, res) => {
               quantity: 1
             })),
             metadata: { numero: numero },
+            // 30 min : passe ce delai Stripe emet checkout.session.expired et le
+            // stock reserve est rendu. Le nettoyage serveur (60 min) prend le relais
+            // si l'evenement n'arrive pas.
+            expires_at: Math.floor(Date.now()/1000) + 30*60,
             // Stripe ne recopie PAS les metadata de la session vers le PaymentIntent :
             // sans ceci, l'evenement payment_failed n'a pas le numero et le stock
             // n'est jamais restitue.
@@ -1348,7 +1457,9 @@ const server = http.createServer(async (req, res) => {
             success_url: origin + '/confirmation.html?n=' + encodeURIComponent(numero) + '&session_id={CHECKOUT_SESSION_ID}',
             cancel_url:  origin + '/checkout.html?cancelled=1&n=' + encodeURIComponent(numero),
             locale: 'fr',
-            shipping_address_collection: { allowed_countries: ['FR','BE','CH','LU','MC','GB','DE','ES','IT','US','CA'] }
+            // Lancement : France et Monaco uniquement (TVA, port et douane hors de ce
+            // perimetre ne sont pas traites). L'adresse est deja saisie sur le site.
+            shipping_address_collection: { allowed_countries: ['FR','MC'] }
           });
           if (USE_DB) {
             // Filtre sur le statut : une commande DEJA PAYEE ne doit jamais
@@ -1358,7 +1469,7 @@ const server = http.createServer(async (req, res) => {
           return sendJSON(res,{ ok:true, url: session.url, session_id: session.id });
         } catch(e) {
           console.error('[Stripe] checkout session error:', e.message);
-          return sendJSON(res,{ ok:false, error:'stripe_error', message: e.message }, 500);
+          return sendJSON(res,{ ok:false, error:'stripe_error', message:'Le service de paiement est momentanément indisponible. Réessayez dans un instant.' }, 500);
         }
       }
 
@@ -1401,13 +1512,35 @@ const server = http.createServer(async (req, res) => {
             const obj = event.data.object;
             const numero = (obj.metadata && obj.metadata.numero) || null;
             if (numero && USE_DB) {
+              // 0. Si le stock de cette commande avait deja ete rendu (session ou
+              //    nettoyage expire), un paiement tardif doit le reprendre — sinon
+              //    on vend une piece deux fois.
+              try {
+                const av = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=quantite,payment_status,statut');
+                const a0 = av && av[0];
+                if (a0 && String(a0.payment_status||'') === 'Expiree') {
+                  const q = Math.max(1, Number(a0.quantite)||1);
+                  await sb('rpc/adjust_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_delta:-q, p_reason:'sale',
+                    p_notes:'Paiement tardif apres expiration — stock repris ('+numero+')', p_admin:'system', p_order:numero, p_source:'webhook' }});
+                  alerte('paiement_tardif', 'Paiement reçu après expiration — '+numero,
+                    'La cliente a payé après le délai. Le stock a été repris automatiquement : vérifiez qu\'il en reste.', 'haute');
+                }
+              } catch(_){}
               // 1. Marquer la commande comme payee — UNIQUEMENT si encore en attente
-              //    (idempotence : un rejeu du webhook ne retrograde pas une commande deja expediee)
-              await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&statut=eq.'+encodeURIComponent('En attente paiement'),{ method:'PATCH', body:{
+              //    (ou expiree sans paiement) ; un rejeu ne retrograde jamais une
+              //    commande deja expediee. PATCH atomique : une seule ligne peut
+              //    basculer, donc UN SEUL e-mail meme si Stripe envoie deux evenements.
+              const bascule = await sb('orders?numero=eq.'+encodeURIComponent(numero)
+                +'&or=(payment_status.is.null,and(payment_status.neq.Payee,payment_status.neq.'+encodeURIComponent('Remboursé')+',payment_status.neq.Rembourse))'
+                +'&or=(statut.eq.'+encodeURIComponent('En attente paiement')+',statut.eq.'+encodeURIComponent('Annulée')+')',{ method:'PATCH', prefer:'return=representation', body:{
                 payment_status:'Payee',
                 payment_date: new Date().toISOString(),
                 statut: 'Nouvelle'
               }});
+              if (!Array.isArray(bascule) || !bascule.length) {
+                console.log('[Stripe webhook] Commande', numero, 'deja traitee — evenement ignore');
+                return sendJSON(res,{ received:true, duplicate:true });
+              }
               console.log('[Stripe webhook] Commande', numero, 'marquee payee');
               // 2. Envoyer l'email de confirmation au client AVEC le preview
               try {
@@ -1461,21 +1594,26 @@ const server = http.createServer(async (req, res) => {
                 console.error('[Stripe webhook] erreur envoi mail:', mailErr.message);
               }
             }
-          } else if (event.type === 'payment_intent.payment_failed' || event.type === 'checkout.session.expired') {
+          } else if (event.type === 'checkout.session.expired') {
             const obj = event.data.object;
             const numero = (obj.metadata && obj.metadata.numero) || null;
             if (numero && USE_DB) {
               // Marquer echouee + RESTITUER le stock (decremente a la creation de commande)
               // Filtre payment_status : ne restituer qu'une fois (idempotence sur rejeu webhook)
               try {
-                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&or=(payment_status.is.null,payment_status.neq.Echouee)&select=numero,quantite,statut');
-                const ord = rows && rows[0];
-                if (ord && String(ord.statut||'').includes('attente')) {
-                  await sb('orders?numero=eq.'+encodeURIComponent(numero),{ method:'PATCH', body:{ payment_status:'Echouee' }});
+                // Ecriture conditionnelle AVEC retour : si Stripe rejoue l'evenement
+                // (ou si deux sessions existaient), la 2e passe ne trouve plus de
+                // ligne a basculer et ne rend pas le stock une seconde fois.
+                const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)
+                  +'&statut=eq.'+encodeURIComponent('En attente paiement')
+                  +'&or=(payment_status.is.null,and(payment_status.neq.Payee,payment_status.neq.Expiree))',
+                  { method:'PATCH', prefer:'return=representation', body:{ payment_status:'Expiree' }});
+                const ord = Array.isArray(rows) && rows[0];
+                if (ord) {
                   const q = Math.max(1, Number(ord.quantite)||1);
                   await sb('rpc/adjust_stock',{ method:'POST', body:{
                     p_ref:'ELLIA-NOIR', p_delta:q, p_reason:'return',
-                    p_notes:'Restitution auto — paiement echoue/expire ('+numero+')',
+                    p_notes:'Restitution auto — session de paiement expiree ('+numero+')',
                     p_admin:'system', p_order:numero, p_source:'webhook'
                   }});
                   console.log('[Stripe webhook] Stock restitue (+'+q+') pour', numero);
@@ -1506,6 +1644,11 @@ const server = http.createServer(async (req, res) => {
         const d = JSON.parse((await readBody(req))||'{}');
         const email = String(d.email||'').toLowerCase().trim();
         if(!isEmail(email)) return sendJSON(res,{ ok:false, error:'invalid_email' }, 400);
+        // cart_data : liste blanche et borne (etait recopie tel quel, jusqu'a 256 Ko)
+        const cartData = (Array.isArray(d.cart_data) ? d.cart_data : []).slice(0,5).map(it => ({
+          nom: clean(it && it.nom, 60), prix: Math.max(0, Math.min(10000, Number(it && it.prix)||0)),
+          initiales: clean(it && it.initiales, 18) }));
+        d.cart_data = cartData;
         try {
           // Si meme email recent (<30 min) on update au lieu de creer
           const recent = await sb('abandoned_carts?email=eq.'+encodeURIComponent(email)+'&converted_at=is.null&created_at=gte.'+encodeURIComponent(new Date(Date.now()-30*60*1000).toISOString())+'&select=id');
@@ -1645,7 +1788,11 @@ const server = http.createServer(async (req, res) => {
           if (sansAcc.startsWith('livr')) upd.delivered_at = new Date().toISOString();
         }
         if(d.suivi!==undefined) upd.suivi = clean(d.suivi, 60);
-        if(d.transporteur!==undefined) upd.transporteur = clean(d.transporteur, 40);
+        if(d.transporteur!==undefined) {
+          const TRANSPORTEURS = ['', 'Colissimo', 'Chronopost', 'Mondial Relay', 'UPS', 'DHL', 'La Poste', 'Autre'];
+          const t = clean(d.transporteur, 40);
+          upd.transporteur = TRANSPORTEURS.includes(t) ? t : 'Autre';
+        }
         // Client
         if(d.client_prenom!==undefined) upd.client_prenom = clean(d.client_prenom, 80);
         if(d.client_nom!==undefined)    upd.client_nom    = clean(d.client_nom, 120);
@@ -2151,9 +2298,57 @@ const server = http.createServer(async (req, res) => {
         const sec = await getAdminSetting('totp_secret');
         return sendJSON(res,{ enabled: !!sec });
       }
+      /* ----- JEU D'ESSAI DES E-MAILS (admin) -----
+         Envoie chaque modele a une adresse de test avec des donnees fictives.
+         Aucune ecriture en base, aucun numero de facture consomme (numero
+         F-EP-TEST-0000 fourni d'avance). Les envois « internes » partent vers
+         MAIL_INTERNE (CONTACT_TO) : mettez-y la meme adresse pour tout recevoir. */
+      if (req.method==='POST' && pathname==='/api/admin/emails-test'){
+        if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
+        if (!transporter) return sendJSON(res,{ ok:false, error:'smtp_absent', detail:'SMTP non configuré sur le serveur.' }, 503);
+        if (!rateAllowed('login', clientIp(req))) return sendJSON(res,{ ok:false, error:'trop_de_tentatives' }, 429);
+        let d = {}; try { d = JSON.parse((await readBody(req))||'{}'); } catch(_){}
+        const to = String(d.to||'').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 120) return sendJSON(res,{ ok:false, error:'email_invalide' }, 400);
+        const numero = 'EP-TEST-' + Date.now().toString(36).toUpperCase().slice(-5);
+        const items = [
+          { ref:'ELLIA-NOIR', nom:'La Pochette ELLIA — Noir', prix:184, initiales:'S.G', finition:'Or', emplacement:'Devant', fontScale:120,
+            flame:{ enabled:true, symbol:'rabbi', symbol_name:'Rabbi', finish:'Argent', placement:'Devant' } },
+          { ref:'ELLIA-NOIR', nom:'La Pochette ELLIA — Noir', prix:159 }
+        ];
+        const base = {
+          numero, client_prenom:'Sacha', client_nom:'Test', client_email:to, telephone:'06 00 00 00 00',
+          adresse_livraison:'2 rue Suchet', cp_livraison:'94700', ville_livraison:'Maisons-Alfort', pays_livraison:'France',
+          adresse_facturation:'2 rue Suchet', cp_facturation:'94700', ville_facturation:'Maisons-Alfort', pays_facturation:'France',
+          items, items_data:items, quantite:2, montant_total:333, montant_ht:277.5, montant_tva:55.5, tva_rate:20,
+          prix_pochette:159, prix_personnalisation:12.5, frais_port:0, promo_code:'BIENVENUE10', promo_discount:10,
+          initiales:'S.G', finition:'Or', emplacement:'Devant',
+          is_gift:true, gift_message:'Pour toi, avec tout mon amour.', gift_from:'Sacha', gift_date:'2026-12-24',
+          payment_method:'Stripe', payment_status:'Payee', payment_date:new Date().toISOString(), created_at:new Date().toISOString()
+        };
+        const envois = [];
+        const essai = async (nom, fn) => { try { const r = await fn(); envois.push({ nom, ok: r !== false }); } catch(e){ envois.push({ nom, ok:false, erreur:String(e.message||e) }); } };
+        await essai('1. Confirmation de commande (gravée, cadeau, promo) + notification interne', () => notifyNewOrder(base, numero));
+        await essai('2. Confirmation de commande sans gravure', () => notifyNewOrder({ ...base, numero: numero+'B', items:[items[1]], items_data:[items[1]], quantite:1, montant_total:159, is_gift:false, promo_code:null, promo_discount:0, initiales:'' }, numero+'B'));
+        await essai('3. Commande en préparation', () => notifyStatus(base, numero, 'En préparation'));
+        await essai('4. Expédition + facture PDF (client) + archive interne', async () => { const r = await sendInvoiceForOrder({ ...base, invoice_number:'F-EP-TEST-0000', statut:'Expédiée', transporteur:'Colissimo', suivi:'6A12345678901' }); return r.client; });
+        await essai('5. Commande livrée', () => notifyStatus({ ...base, transporteur:'Colissimo', suivi:'6A12345678901' }, numero, 'Livrée'));
+        await essai('6. Commande annulée', () => notifyStatus(base, numero, 'Annulée'));
+        await essai('7. Réinitialisation du mot de passe', () => sendMail(to, 'Réinitialisation de votre mot de passe — ELLIA PARIS',
+          emailLayout('<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Réinitialiser votre mot de passe</h1><p style="margin:0 0 14px">Bonjour,</p><p style="margin:0 0 14px">Vous avez demandé à réinitialiser le mot de passe de votre compte ELLIA PARIS. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p><p style="margin:26px 0"><a href="https://ellia-paris.fr/connexion.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p><p style="margin:0 0 8px;font-size:13px;color:#6a655d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p><p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>', 'Choisissez un nouveau mot de passe — lien valable 1 heure')));
+        await essai('8. Accusé de réception d\'un message de contact', () => sendMail(to, 'Votre message a bien été reçu — ELLIA PARIS',
+          emailLayout('<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Message bien reçu</h1><p style="margin:0 0 14px">' + bonjour('Sacha') + '</p><p style="margin:0 0 14px">Nous avons bien reçu votre message et nous vous répondons sous 24 heures ouvrées.</p><p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>', 'Nous vous répondons sous 24 heures ouvrées')));
+        await essai('9. Demande d\'avis après livraison', () => sendMail(to, 'Votre Pochette ELLIA — un mot sur votre expérience ?',
+          emailLayout('<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Comment trouvez-vous votre pochette ?</h1><p style="margin:0 0 14px">' + bonjour('Sacha') + '</p><p style="margin:0 0 14px">Votre Pochette ELLIA est arrivée il y a quelques jours. Votre avis aide les prochaines clientes à choisir en confiance, et nous aide à progresser.</p><p style="margin:24px 0"><a href="https://ellia-paris.fr/pochette.html?avis=1&amp;n=' + numero + '#avis" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Donner mon avis</a></p><p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">Message unique envoyé après votre livraison. Pour ne plus recevoir ce type de message, <a href="mailto:contact@ellia-paris.fr?subject=D%C3%A9sinscription" style="color:#56524c">écrivez-nous</a>.</p>', 'Votre avis compte — deux minutes suffisent'), true));
+        await essai('10. Relance panier abandonné', () => sendMail(to, 'Votre pochette vous attend — ELLIA PARIS',
+          emailLayout('<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous attend</h1><p style="margin:0 0 12px">' + bonjour('Sacha') + '</p><p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande&nbsp;?</p><p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(184) + '</b></p><p style="margin:24px 0"><a href="https://ellia-paris.fr/panier.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Reprendre mon panier</a></p><p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">Vous recevez ce message parce que vous avez commencé une commande sur ellia-paris.fr. Pour ne plus recevoir de rappel, <a href="mailto:contact@ellia-paris.fr?subject=D%C3%A9sinscription%20rappels" style="color:#56524c">écrivez-nous en un clic</a>.</p>', 'Votre pochette est encore dans votre panier'), true));
+        await essai('11. Alerte d\'exploitation (interne)', () => { alerte('test_' + Date.now(), 'E-mail de test — alerte', 'Ceci est un jeu d\'essai lancé depuis l\'administration. Rien à faire.', 'haute'); return true; });
+        console.log('[E-MAIL] Jeu d\'essai envoye a', to, '—', envois.filter(e => e.ok).length + '/' + envois.length);
+        return sendJSON(res,{ ok:true, to, interne: MAIL_INTERNE, envois });
+      }
       if (totpMod && req.method==='POST' && pathname==='/api/admin/2fa/setup'){
         const secret = totpMod.generateSecret();
-        const uri = totpMod.otpauthUri(secret, process.env.SMTP_USER || 'admin@ellia-paris.fr', 'ELLIA PARIS');
+        const uri = totpMod.otpauthUri(secret, 'admin@ellia-paris.fr', 'ELLIA PARIS');
         return sendJSON(res,{ secret, uri });
       }
       if (totpMod && req.method==='POST' && pathname==='/api/admin/2fa/enable'){
@@ -2185,7 +2380,19 @@ const server = http.createServer(async (req, res) => {
     pathname = isAuthed(req) ? '/admin.html' : '/admin-login.html';
   }
 
+  // SEO : une seule adresse par page. /index.html et /journal/index.html
+  // renvoient definitivement vers la version courte ; un dossier sert son index.
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    if (pathname === '/index.html') { res.statusCode = 301; res.setHeader('Location','/'); return res.end(); }
+    const mIdx = pathname.match(/^(\/[a-z0-9_-]+)\/index\.html$/i);
+    if (mIdx) { res.statusCode = 301; res.setHeader('Location', mIdx[1] + '/'); return res.end(); }
+  }
+  // Un dossier demande sans barre finale (/journal) : renvoyer vers /journal/
+  if ((req.method === 'GET' || req.method === 'HEAD') && !path.extname(pathname) && !pathname.endsWith('/') && !pathname.startsWith('/api')) {
+    try { if (fs.statSync(path.join(ROOT, pathname)).isDirectory()) { res.statusCode = 301; res.setHeader('Location', pathname + '/'); return res.end(); } } catch(_){}
+  }
   if (pathname === '/') pathname = '/index.html';
+  else if (pathname.endsWith('/')) pathname += 'index.html';
   const safe = path.normalize(pathname).replace(/^(\.\.[\/\\])+/,'');
   const file = path.join(ROOT, safe);
   if (!file.startsWith(ROOT)) { res.statusCode=403; return res.end('Forbidden'); }
@@ -2199,7 +2406,7 @@ const server = http.createServer(async (req, res) => {
   // Le site n'en a aucun besoin : il n'utilise que les PNG de assets/.
   // Les laisser accessibles reviendrait a offrir a quiconque de quoi
   // fabriquer un packaging identique.
-  const DOSSIERS_PRIVES = ['assets/logo/'];
+  const DOSSIERS_PRIVES = ['assets/logo/', 'design/'];   // design/ : planches et fichiers de fabrication
   if (DOSSIERS_PRIVES.some(d => chemin.startsWith(d))) {
     res.statusCode = 403; return res.end('Forbidden');
   }
@@ -2332,7 +2539,7 @@ function alerte(type, titre, details, gravite){
     return;
   }
   ALERTE_DERNIERE.set(cle, now);
-  const dest = process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+  const dest = process.env.ALERT_TO || MAIL_INTERNE;
   if (!dest || !transporter) return;
 
   const couleur = urgent ? '#b1432f' : '#a8791f';
@@ -2536,7 +2743,7 @@ async function sauvegardeQuotidienne(forcee){
     return;
   }
   _derniereSauvegarde = Date.now();
-  const dest = process.env.BACKUP_TO || process.env.ALERT_TO || process.env.CONTACT_TO || process.env.SMTP_USER;
+  const dest = process.env.BACKUP_TO || process.env.ALERT_TO || MAIL_INTERNE;
   if (!dest || !transporter) {
     console.warn('[Sauvegarde] Aucune adresse ou pas de serveur mail — sauvegarde impossible.');
     return;
@@ -2634,6 +2841,46 @@ async function sauvegardeQuotidienne(forcee){
 /* Purge des configurations partagees expirees.
    Sans elle, chaque lien cree (apercu JPEG de 120 Ko compris) restait en base
    pour toujours, alors qu'il n'est plus consultable apres 90 jours. */
+/* LIBERATION DU STOCK RESERVE
+   Une commande creee reserve son stock immediatement (decrement_stock). Si la
+   cliente ne paie jamais — abandon, robot, session Stripe jamais ouverte —
+   rien ne le rendait : deux requetes anonymes pouvaient bloquer toute la
+   boutique en « rupture » pour toujours. Toutes les 15 min, on annule les
+   commandes en attente depuis plus de 60 min et on rend leurs pieces.
+   60 min > 30 min de validite de la session Stripe : une cliente en train de
+   payer n'est jamais coupee. Un paiement encore plus tardif est rattrape par
+   le webhook, qui reprend le stock et alerte. */
+async function libererStockExpire(){
+  if (!USE_DB) return;
+  try {
+    const limite = new Date(Date.now() - 60*60*1000).toISOString();
+    const rows = await sb('orders?statut=eq.'+encodeURIComponent('En attente paiement')
+      +'&created_at=lt.'+encodeURIComponent(limite)
+      +'&or=(payment_status.is.null,and(payment_status.neq.Payee,payment_status.neq.Expiree))'
+      +'&select=numero,quantite,created_at&limit=100');
+    if (!Array.isArray(rows) || !rows.length) return;
+    let n = 0;
+    for (const o of rows) {
+      // PATCH filtre : si une autre execution (ou le webhook) a deja bascule
+      // cette commande, aucune ligne ne revient et on ne rend pas deux fois.
+      const b = await sb('orders?numero=eq.'+encodeURIComponent(o.numero)
+        +'&statut=eq.'+encodeURIComponent('En attente paiement')
+        +'&or=(payment_status.is.null,and(payment_status.neq.Payee,payment_status.neq.Expiree))',
+        { method:'PATCH', prefer:'return=representation',
+          body:{ statut:'Annulée', payment_status:'Expiree',
+                 notes_admin:'[AUTO] Non payee apres 60 min — stock rendu' } });
+      if (!Array.isArray(b) || !b.length) continue;
+      const q = Math.max(1, Number(o.quantite)||1);
+      try {
+        await sb('rpc/adjust_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_delta:q, p_reason:'return',
+          p_notes:'Liberation auto — commande non payee ('+o.numero+')', p_admin:'system', p_order:o.numero, p_source:'cron' }});
+        n++;
+      } catch(e){ console.warn('[Stock] liberation KO pour', o.numero, ':', e.message); }
+    }
+    if (n) console.log('[Stock] '+n+' commande(s) non payee(s) annulee(s), stock rendu.');
+  } catch(e){ console.warn('[Stock] liberation KO :', e.message); }
+}
+
 async function purgerPartages(){
   if (!USE_DB) return;
   try {
@@ -2747,7 +2994,7 @@ async function demanderAvis(){
       const lien = 'https://ellia-paris.fr/pochette.html?avis=1&n=' + encodeURIComponent(o.numero) + '#avis';
       const inner =
         '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous plaît-elle&nbsp;?</h1>' +
-        '<p style="margin:0 0 14px">Bonjour ' + escH(prenom) + ',</p>' +
+        '<p style="margin:0 0 14px">' + bonjour(prenom) + '</p>' +
         '<p style="margin:0 0 14px">Votre Pochette ELLIA' +
           (o.initiales ? (' gravée <b>' + escH(o.initiales) + '</b>') : '') +
           ' est arrivée il y a quelques jours. Nous serions heureux de savoir ce que vous en pensez.</p>' +
@@ -2771,7 +3018,8 @@ async function demanderAvis(){
         continue;
       }
       const envoye = await sendMail(o.client_email,
-        'Votre Pochette ELLIA — un mot sur votre expérience ?', emailLayout(inner));
+        'Votre Pochette ELLIA — un mot sur votre expérience ?',
+        emailLayout(inner + '<p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">Message unique envoyé après votre livraison. Pour ne plus recevoir ce type de message, <a href="mailto:contact@ellia-paris.fr?subject=D%C3%A9sinscription" style="color:#56524c">écrivez-nous</a>.</p>', 'Votre avis compte — deux minutes suffisent'), true);
       if (envoye) console.log('[Avis] Demande envoyee pour', o.numero);
       else console.warn('[Avis] Envoi echoue pour', o.numero);
     }
@@ -2796,17 +3044,17 @@ async function processAbandonedCarts(){
     const rows = await sb('abandoned_carts?reminder_sent_at=is.null&converted_at=is.null&created_at=lte.'+encodeURIComponent(cutoff)+'&created_at=gte.'+encodeURIComponent(recent)+'&select=*&limit=20');
     for (const c of (rows||[])) {
       const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Votre pochette vous attend</h1>' +
-        '<p style="margin:0 0 12px">Bonjour ' + escH(c.client_prenom || '') + ',</p>' +
-        '<p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande ?</p>' +
-        '<p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(c.cart_total) + '</b></p>' +
+        '<p style="margin:0 0 12px">' + bonjour(c.client_prenom) + '</p>' +
+        '<p style="margin:0 0 14px">Nous avons remarqué que vous avez laissé un article dans votre panier. Souhaitez-vous finaliser votre commande&nbsp;?</p>' +
+        (Number(c.cart_total) > 0 ? '<p style="margin:0 0 14px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Montant : <b style="font-family:Georgia,serif;color:#0d0d0d">' + euro(c.cart_total) + '</b></p>' : '') +
         '<p style="margin:24px 0"><a href="https://ellia-paris.fr/panier.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Reprendre ma commande</a></p>' +
         '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>' +
         // Message commercial : le lien de retrait doit figurer dans le corps.
         '<p style="margin:22px 0 0;font-size:11.5px;color:#9a958c;font-family:Arial,Helvetica,sans-serif;line-height:1.6">' +
           'Vous recevez ce message parce que vous avez commencé une commande sur ellia-paris.fr. ' +
-          'Pour ne plus recevoir de rappel, <a href="mailto:contact@ellia-paris.fr?subject=Desinscription%20rappels" style="color:#56524c">écrivez-nous en un clic</a>.' +
+          'Pour ne plus recevoir de rappel, <a href="mailto:contact@ellia-paris.fr?subject=D%C3%A9sinscription%20rappels" style="color:#56524c">écrivez-nous en un clic</a>.' +
         '</p>';
-      sendMail(c.email, 'Votre pochette vous attend — ELLIA PARIS', emailLayout(inner), true);
+      sendMail(c.email, 'Votre pochette vous attend — ELLIA PARIS', emailLayout(inner, 'Votre pochette est encore dans votre panier'), true);
       try { await sb('abandoned_carts?id=eq.'+c.id, { method:'PATCH', body:{ reminder_sent_at: new Date().toISOString() } }); } catch(_){}
     }
   } catch(e){ console.warn('Abandoned cart cron KO :', e.message); }
@@ -2848,6 +3096,8 @@ if (WORKERS > 1 && cluster.isPrimary) {
   if (USE_DB) {
     setInterval(processAbandonedCarts, 10*60*1000);
     setInterval(reconcilierStripe, 15*60*1000);
+    setInterval(libererStockExpire, 15*60*1000);
+    setTimeout(libererStockExpire, 120*1000);   // un passage 2 min apres le demarrage
     setInterval(surveillance,       30*60*1000);
     setTimeout(reconcilierStripe, 45*1000);   // premiere passe peu apres le demarrage
     setTimeout(surveillance,      70*1000);
@@ -2860,6 +3110,11 @@ if (WORKERS > 1 && cluster.isPrimary) {
   setTimeout(verifierEnvoiMail, 90*1000);   // une seule fois, et tard : un redemarrage en boucle ne doit pas marteler le serveur mail
 } else {
   if (USE_DB && WORKERS === 1) {
+    // Liberation du stock des commandes jamais payees : indispensable ici,
+    // ce mode (1 processus) est celui de l'hebergeur. Sans lui, dix requetes
+    // anonymes suffisaient a afficher « Epuise » a toutes les clientes.
+    setInterval(libererStockExpire, 15*60*1000);
+    setTimeout(libererStockExpire, 120*1000);
     setInterval(processAbandonedCarts, 10*60*1000);
     setInterval(reconcilierStripe, 15*60*1000);
     setInterval(surveillance,       30*60*1000);

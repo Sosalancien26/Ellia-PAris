@@ -8,11 +8,14 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "nodemailer": "^9.0.1",
+    "nodemailer": "^10.0.13",
     "pdfkit": "^0.15.0",
     "stripe": "^17.5.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }

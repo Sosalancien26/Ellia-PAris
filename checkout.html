@@ -60,21 +60,21 @@
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
-    <nav class="links"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
-      <a href="journal/index.html">Journal</a></nav>
+    <a href="/"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
+    <nav class="links"><a href="/">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+      <a href="/journal/">Journal</a></nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
-      <a href="journal/index.html">Journal</a><a href="compte.html">Compte</a></div>
+<div class="mobile-menu" id="mobileMenu"><a href="/">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a>
+      <a href="/journal/">Journal</a><a href="compte.html">Compte</a></div>
 
 <main id="contenu">
 <section class="page-hero page-top"><div class="wrap"><div class="breadcrumb"><a href="panier.html">Panier</a> · Commande</div><h1 style="margin-top:14px">Finaliser la commande</h1></div></section>
 
 <section class="pad" style="padding-top:30px">
   <div class="co-grid">
-    <form class="co-form" id="coForm" onsubmit="return false">
+    <form class="co-form" id="coForm" onsubmit="return false" novalidate>
       <div class="acct-note" id="acctNote">Vous avez un compte ? <a href="connexion.html">Connectez-vous</a> pour retrouver vos commandes. (La commande fonctionne aussi sans compte.)</div>
 
       <h2>Coordonnées</h2>
@@ -84,17 +84,17 @@
         <div class="co-field"><label for="nom">Nom <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="nom" required aria-required="true" autocomplete="family-name"></div>
       </div>
       <div class="frow">
-        <div class="co-field"><label for="email">E-mail <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="email" required aria-required="true" type="email" autocomplete="email"></div>
+        <div class="co-field"><label for="email">E-mail <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="email" required aria-required="true" type="email" autocomplete="email"><small style="display:block;margin-top:6px;font-size:11.5px;line-height:1.45;color:var(--gris-txt)">Si vous ne finalisez pas, nous pourrons vous envoyer <strong>un seul</strong> rappel de votre panier, puis effacer votre e-mail sous 30 jours. <label style="display:inline;cursor:pointer"><input type="checkbox" id="noReminder" style="width:auto;margin:0 4px 0 0;vertical-align:middle">Je ne souhaite pas de rappel</label> · <a href="confidentialite.html" style="color:inherit">Confidentialité</a></small></div>
         <div class="co-field"><label for="telephone">Téléphone <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="telephone" required aria-required="true" type="tel" autocomplete="tel"></div>
       </div>
 
       <div class="co-sep"><h2>Adresse de livraison</h2></div>
       <div class="co-field"><label for="l_adresse">Adresse <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_adresse" required aria-required="true" autocomplete="shipping street-address"></div>
       <div class="frow">
-        <div class="co-field"><label for="l_cp">Code postal <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_cp" required aria-required="true"></div>
-        <div class="co-field"><label for="l_ville">Ville <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_ville" required aria-required="true"></div>
+        <div class="co-field"><label for="l_cp">Code postal <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_cp" inputmode="numeric" autocomplete="shipping postal-code" required aria-required="true"></div>
+        <div class="co-field"><label for="l_ville">Ville <span aria-hidden="true">*</span><span class="sr-only">(obligatoire)</span></label><input id="l_ville" autocomplete="shipping address-level2" required aria-required="true"></div>
       </div>
-      <div class="co-field"><label for="l_pays">Pays</label><input id="l_pays" value="France"></div>
+      <div class="co-field"><label for="l_pays">Pays</label><select id="l_pays" autocomplete="country-name"><option>France</option><option>Monaco</option></select><small style="display:block;margin-top:4px;font-size:11.5px;color:var(--gris-txt)">Livraison hors France : écrivez-nous à contact@ellia-paris.fr</small></div>
 
       <label class="co-check" for="sameAddr"><input type="checkbox" id="sameAddr" checked> L'adresse de facturation est identique</label>
 
@@ -174,7 +174,7 @@
       </div>
       <div id="coDiscount" style="display:none;justify-content:space-between;padding:6px 0;font-size:13.5px;color:#1f6e3a"><span>Réduction <span id="coDiscountCode"></span></span><span id="coDiscountAmount">-0 €</span></div>
       <div class="co-tot"><span class="eyebrow">Total</span><span class="v" id="coTotal">0 €</span></div>
-      <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte · Rétractation 14 jours (hors pièces gravées)</p>
+      <p style="font-size:12.5px;color:var(--gris-txt);margin-top:16px">Livraison offerte en France · Rétractation 14 jours (hors pièces gravées)</p>
     </div>
   </div>
 </section>
@@ -297,10 +297,9 @@ document.addEventListener('DOMContentLoaded', function(){
     finally { clearTimeout(to); }
   }
   const RE_MAIL = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-  document.getElementById('validate').addEventListener('click', async ()=>{
-    const err=document.getElementById('err'); err.textContent='';
-    // La case n'apparait que si une piece du panier porte une gravure.
-    (function(){
+  // La case « pièce gravée » doit être visible AVANT le premier clic (L.221-5) :
+  // affichée au chargement, puis re-évaluée à chaque tentative.
+  function afficherCaseGravure(){
       var ack = document.getElementById('persoAck');
       if (!ack) return;
       var pano = (window.Cart && typeof Cart.items === 'function') ? Cart.items() : [];
@@ -310,7 +309,13 @@ document.addEventListener('DOMContentLoaded', function(){
                (i.extra2 && i.extra2.enabled) || (i.extra3 && i.extra3.enabled);
       });
       ack.style.display = grave ? 'flex' : 'none';
-    })();
+  }
+  document.addEventListener('DOMContentLoaded', afficherCaseGravure);
+  window.addEventListener('pageshow', afficherCaseGravure);
+
+  document.getElementById('validate').addEventListener('click', async ()=>{
+    const err=document.getElementById('err'); err.textContent='';
+    afficherCaseGravure();
 
     function stop(msg, id){ err.textContent = msg;
       document.querySelectorAll('[aria-invalid="true"]').forEach(function(o){o.removeAttribute('aria-invalid');o.removeAttribute('aria-describedby');});
@@ -447,6 +452,13 @@ document.addEventListener('DOMContentLoaded', function(){
         // Le panier sera vide sur la page de confirmation apres paiement reussi.
         window.location.href = sd.url;
         return;
+      } else if (sd && sd.error === 'commande_close') {
+        // La commande precedente a expire (30 min) : on oublie le marqueur et
+        // on relance proprement, sinon la cliente tourne en boucle sur « reessayez ».
+        try{ sessionStorage.removeItem('ellia_pending_order'); }catch(_){}
+        err.textContent = 'Votre précédente tentative a expiré. Cliquez à nouveau sur « Commander » : une nouvelle commande sera créée.';
+        validateBtn.textContent = oldBtnText;
+        validateBtn.disabled = false;
       } else {
         // Stripe indisponible : on N'ABANDONNE PAS la cliente sur une fausse confirmation
         console.warn('Stripe indisponible :', sd.error);
@@ -521,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if($email) $email.addEventListener('blur', async function(){
     const email = ($email.value||'').trim().toLowerCase();
     if(!email || captured) return;
+    var nr = document.getElementById('noReminder'); if (nr && nr.checked) return;   // opposition simple, avant toute collecte
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     captured = true;
     try {

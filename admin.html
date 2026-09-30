@@ -331,7 +331,7 @@
 
 <div class="admin-top">
   <div class="brand"><img loading="lazy" decoding="async" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><span class="tag">Espace Pro</span></div>
-  <div class="actions"><a class="back" href="index.html">← Voir la boutique</a><a class="back" href="#" id="logout">Déconnexion</a></div>
+  <div class="actions"><a class="back" href="/">← Voir la boutique</a><a class="back" href="#" id="logout">Déconnexion</a></div>
 </div>
 
 <div class="shell">
@@ -373,6 +373,20 @@
       </p>
       <button id="btnRecon" style="padding:11px 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer">Vérifier maintenant</button>
       <div id="reconOut" style="margin-top:16px"></div>
+    </div>
+
+    <div class="card" id="cardMails">
+      <h3>Jeu d'essai des e-mails</h3>
+      <div class="csub">Envoie les 11 modèles (commande, expédition + facture PDF, statuts, mot de passe, contact, avis, relance, alerte) avec des données fictives</div>
+      <p style="font-size:13.5px;color:var(--gris);line-height:1.7;margin:12px 0 16px;max-width:640px">
+        Rien n'est écrit en base et aucun numéro de facture n'est consommé. Les e-mails « internes »
+        (nouvelle commande, archive facture, alerte) partent vers la boîte de la maison (variable CONTACT_TO).
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input id="mailTestTo" type="email" placeholder="adresse@exemple.fr" autocomplete="email" style="padding:11px 14px;border:1px solid var(--ligne);font-size:14px;min-width:260px">
+        <button id="btnMailTest" style="padding:11px 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--noir);background:var(--noir);color:#fff;cursor:pointer">Envoyer le jeu d'essai</button>
+      </div>
+      <div id="mailTestOut" style="margin-top:16px"></div>
     </div>
   </div>
 

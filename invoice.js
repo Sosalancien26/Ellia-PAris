@@ -8,7 +8,17 @@ const path = require('path');
 
 let PDFDocument = null;
 try { PDFDocument = require('pdfkit'); }
+
 catch(e){ console.warn('pdfkit indisponible — installer via npm install pdfkit'); }
+// Identite legale de l'emetteur (Kbis du 14/09/2026). Le NIC du SIRET est
+// lu dans SOCIETE_NIC (5 chiffres) : tant qu'il manque, seul le SIREN
+// est imprime, ce qui reste exact.
+const SOCIETE = {
+  forme:   'SAS au capital de 1 000 €',
+  adresse: '2 rue Suchet, 94700 Maisons-Alfort, France',
+  rcs:     'RCS Créteil 877 702 985' + (process.env.SOCIETE_NIC ? (' — SIRET 877 702 985 ' + String(process.env.SOCIETE_NIC).trim()) : ''),
+  tva:     'TVA intracom. FR26 877 702 985'
+};
 
 const NOIR  = '#0d0d0d';
 const GRIS  = '#5c5852';
@@ -20,7 +30,7 @@ function eur(n){
 }
 function dateFr(d){
   const x = d instanceof Date ? d : new Date(d || Date.now());
-  return x.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+  return x.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric', timeZone:'Europe/Paris' });
 }
 function s(x){ return (x==null?'':String(x)); }
 
@@ -66,7 +76,7 @@ function generateInvoicePDF(order){
     }
 
     doc.font('Helvetica').fontSize(8).fillColor(GRIS2)
-       .text('MAISON DE MAROQUINERIE  ·  PARIS', 55, 138, { characterSpacing: 1.6 });
+       .text('MAROQUINERIE  ·  MAISONS-ALFORT', 55, 138, { characterSpacing: 1.6 });
 
     // Bloc FACTURE droite — colonne large pour pas wrap
     const rcolX = 340, rcolW = 200;
@@ -90,10 +100,10 @@ function generateInvoicePDF(order){
     doc.font('Helvetica-Bold').fontSize(11).fillColor(NOIR)
        .text('ELLIA PARIS', 55, yBlocks + 14);
     doc.font('Helvetica').fontSize(9).fillColor(GRIS)
-       .text(process.env.SOCIETE_FORME || 'Maison de maroquinerie', 55, yBlocks + 30, { lineBreak:false })
-       .text(process.env.SOCIETE_ADRESSE || 'Paris, France',          55, yBlocks + 43, { lineBreak:false })
-       .text((process.env.SOCIETE_SIRET ? ('SIRET ' + process.env.SOCIETE_SIRET) : 'SIRET : en cours d\'immatriculation'), 55, yBlocks + 56, { lineBreak:false })
-       .text((process.env.SOCIETE_TVA ? ('TVA intracom. ' + process.env.SOCIETE_TVA) : ''), 55, yBlocks + 69, { lineBreak:false })
+       .text(SOCIETE.forme,   55, yBlocks + 30, { lineBreak:false })
+       .text(SOCIETE.adresse, 55, yBlocks + 43, { lineBreak:false })
+       .text(SOCIETE.rcs,     55, yBlocks + 56, { lineBreak:false })
+       .text(SOCIETE.tva,     55, yBlocks + 69, { lineBreak:false })
        .text('contact@ellia-paris.fr · ellia-paris.fr', 55, yBlocks + 82, { lineBreak:false });
 
     const clientX = 320;
@@ -133,7 +143,10 @@ function generateInvoicePDF(order){
       pu:    pochettePrixHT
     });
     if (Number(order.prix_personnalisation || 0) > 0) {
-      const persoPrixHT = Number(order.prix_personnalisation) / tvaCoef;
+      // prix_personnalisation est une MOYENNE par pochette (total gravure / qte) :
+      // on facture la gravure sur une seule ligne au montant total, plus lisible
+      // quand une seule pochette sur deux est gravee.
+      const persoPrixHT = (Number(order.prix_personnalisation) * qte) / tvaCoef;
       // Detail COMPLET depuis items_data : sinon seul le 1er article apparait
       // et les symboles graves (flamme, hamsa, peace, ellia) sont invisibles.
       let persoSub = '';
@@ -158,7 +171,7 @@ function generateInvoicePDF(order){
       items.push({
         label: 'Gravure personnalisée',
         sub:   persoSub || 'Initiales gravées sur plaque',
-        qte:   qte,
+        qte:   1,
         pu:    persoPrixHT
       });
     }
@@ -227,8 +240,10 @@ function generateInvoicePDF(order){
     const payY = tableY + 95;
     doc.font('Helvetica').fontSize(8).fillColor(GRIS2).text('PAIEMENT', 55, payY, { characterSpacing:1.8, lineBreak:false });
     doc.font('Helvetica').fontSize(10).fillColor(NOIR);
-    doc.text('Mode : '   + (order.payment_method || '—'),     55, payY+14, { lineBreak:false });
-    doc.text('Statut : ' + (order.payment_status || 'En attente'), 55, payY+28, { lineBreak:false });
+    const modeLisible = /stripe/i.test(String(order.payment_method||'')) ? 'Carte bancaire (Stripe)' : (order.payment_method || '—');
+    const statutLisible = { Payee:'Payée', Expiree:'Expirée', Rembourse:'Remboursée', Echouee:'Échouée' }[String(order.payment_status||'')] || (order.payment_status || 'En attente');
+    doc.text('Mode : '   + modeLisible,   55, payY+14, { lineBreak:false });
+    doc.text('Statut : ' + statutLisible, 55, payY+28, { lineBreak:false });
     if (order.payment_date) {
       doc.text('Réglé le : ' + dateFr(order.payment_date), 55, payY+42, { lineBreak:false });
     }
@@ -243,8 +258,10 @@ function generateInvoicePDF(order){
     const footY = 745;
     doc.moveTo(55, footY).lineTo(540, footY).strokeColor(LIGNE).lineWidth(0.5).stroke();
     doc.font('Helvetica').fontSize(7.5).fillColor(GRIS2);
-    const legal = 'ELLIA PARIS · Maison de maroquinerie · contact@ellia-paris.fr · ellia-paris.fr' +
-      '\nEn cas de retard de paiement : pénalités au taux de 3 fois le taux d\'intérêt légal, et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L.441-10 du Code de commerce).';
+    // Vente a un consommateur payee comptant : pas de penalites de retard ni
+    // d'indemnite de 40 EUR (reservees au B2B, art. L.441-10 C. com.).
+    const legal = 'ELLIA PARIS · ' + SOCIETE.forme + ' · ' + SOCIETE.rcs + ' · ' + SOCIETE.tva + ' · ' + SOCIETE.adresse +
+      '\n' + (/pay/i.test(String(order.payment_status||'')) ? ('Facture acquittée — ' + (order.payment_method || 'carte bancaire') + '.') : 'Facture en attente de règlement.') + ' Vente à consommateur : garantie légale de conformité de deux ans (art. L.217-3 s. du Code de la consommation) — voir CGV sur ellia-paris.fr.';
     doc.text(legal, 55, footY+10, { width:485, align:'center', lineGap:2, height:40 });
     doc.font('Helvetica-Bold').fontSize(8).fillColor(NOIR)
        .text('Merci de votre confiance', 55, footY+50, { width:485, align:'center', characterSpacing:1.4, lineBreak:false });

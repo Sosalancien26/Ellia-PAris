@@ -108,20 +108,26 @@
   // Construit la liste complete des gravures (initiales + flame + extras 1/2/3) — items_data est un JSONB en DB
   function gravureFull(o){
     var parts = [];
-    // Initiales
-    if (o.initiales && o.initiales !== '—') {
+    var items = Array.isArray(o.items_data) ? o.items_data : [];
+    // ARTICLE PAR ARTICLE. Avant, seules les initiales du premier article
+    // etaient affichees : la 2e pochette d'une commande partait sans gravure
+    // ou avec les initiales de la 1re. Une piece gravee ne se revend pas.
+    if (items.length) {
+      items.forEach(function(it, i){
+        var pre = items.length > 1 ? '<b>Pochette '+(i+1)+'</b> — ' : '';
+        var l = [];
+        if (it && it.initiales) l.push('Initiales <b>« '+esc(it.initiales)+' »</b> · '+esc(it.finition||'—')+' · '+esc(it.emplacement||'—'));
+        ['flame','extra','extra2','extra3'].forEach(function(k){
+          var s = it && it[k];
+          if (s && s.enabled) l.push((esc(s.symbol_name||s.symbol||'Symbole'))+' : '+esc(s.finish||'—')+' · '+esc(s.placement||'—'));
+        });
+        if (!l.length) l.push('sans gravure');
+        parts.push(pre + l.join(' · '));
+      });
+    } else if (o.initiales && o.initiales !== '—') {
+      // Anciennes commandes sans items_data
       parts.push('Initiales <b>« '+esc(o.initiales)+' »</b> · '+esc(o.finition||'—')+' · '+esc(o.emplacement||'—'));
     }
-    // Items_data : array d'items du panier, chaque item peut avoir flame/extra/extra2/extra3
-    var items = Array.isArray(o.items_data) ? o.items_data : [];
-    items.forEach(function(it){
-      ['flame','extra','extra2','extra3'].forEach(function(k){
-        var s = it && it[k];
-        if (s && s.enabled) {
-          parts.push((esc(s.symbol_name||s.symbol||'Symbole'))+' : '+esc(s.finish||'—')+' · '+esc(s.placement||'—'));
-        }
-      });
-    });
     if (!parts.length) return 'Sans gravure';
     return '<div style="line-height:1.85">· '+parts.join('<br/>· ')+'</div>';
   }
@@ -236,7 +242,7 @@
   }
   function exportCsv(){
     const head = ['N°','Date','Client','Email','Téléphone','Initiales','Finition','Emplacement','Adresse','Total','Statut','Transporteur','Suivi'];
-    const esc = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
+    const esc = s => { let t = String(s==null?'':s); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g,'""') + '"'; };
     const rows = ORDERS.map(o => [o.id,o.date,o.client,o.email,o.telephone,o.initiales,o.finition,o.emplacement,o.adresse,o.total,o.statut,o.transporteur,o.suivi].map(esc).join(','));
     const csv = '﻿' + head.map(esc).join(',') + '\n' + rows.join('\n');
     const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -343,6 +349,8 @@
     var f = [];
     if (o.initiales && o.initiales !== '—' && o.finition && o.finition !== '—') f.push(String(o.finition).trim());
     (Array.isArray(o.items_data) ? o.items_data : []).forEach(function(it){
+      // finition des initiales de CHAQUE pochette, pas seulement de la premiere
+      if (it && it.initiales && it.finition && it.finition !== '—') f.push(String(it.finition).trim());
       ['flame','extra','extra2','extra3'].forEach(function(k){
         var sy = it && it[k];
         if (sy && sy.enabled && sy.finish) f.push(String(sy.finish).trim());
@@ -363,13 +371,20 @@
   // unitaire comme pour l'impression groupee.
   function corpsBon(o){
     var detail = (typeof gravureFull === 'function') ? gravureFull(o) : '';
-    var gravure = (o.initiales && o.initiales !== '—')
-      ? '<tr><td>Initiales à graver</td><td style="font-size:26px;font-family:Georgia,serif;letter-spacing:.2em"><b>'+esc(o.initiales)+'</b></td></tr>'+
-        '<tr><td>Finition</td><td><b>'+esc(o.finition||'—')+'</b></td></tr>'+
-        '<tr><td>Emplacement</td><td><b>'+esc(o.emplacement||'—')+'</b></td></tr>'+
-        (detail ? '<tr><td>Détail complet</td><td>'+detail+'</td></tr>' : '')
-      : (detail ? '<tr><td>Gravure</td><td>'+detail+'</td></tr>'
-                : '<tr><td colspan="2"><b>Sans gravure</b></td></tr>');
+    var arts = Array.isArray(o.items_data) && o.items_data.length ? o.items_data
+             : [{ initiales:o.initiales, finition:o.finition, emplacement:o.emplacement }];
+    var gravure = '';
+    arts.forEach(function(it, i){
+      var titre = arts.length > 1 ? 'Pochette '+(i+1)+' / '+arts.length : 'Gravure';
+      if (it && it.initiales && it.initiales !== '—') {
+        gravure += '<tr><td>'+titre+' — initiales à graver</td><td style="font-size:26px;font-family:Georgia,serif;letter-spacing:.2em"><b>'+esc(it.initiales)+'</b></td></tr>'+
+                   '<tr><td>Finition</td><td><b>'+esc(it.finition||'—')+'</b></td></tr>'+
+                   '<tr><td>Emplacement</td><td><b>'+esc(it.emplacement||'—')+'</b></td></tr>';
+      } else {
+        gravure += '<tr><td>'+titre+'</td><td><b>Sans initiales</b></td></tr>';
+      }
+    });
+    if (detail && detail !== 'Sans gravure') gravure += '<tr><td>Détail complet</td><td>'+detail+'</td></tr>';
     var fins = finitionsRequises(o);
     return '<h1>ELLIA PARIS — Bon de préparation<br><span style="font-size:15px;font-weight:normal">Commande '+esc(o.id)+' · '+esc(o.date||'')+'</span></h1>'+
       (fins.length > 1 ? ('<div style="border:1px solid #111;padding:9px 12px;margin:0 0 14px;font-size:13px">'+
@@ -1552,6 +1567,31 @@
   (function(){
     var b = document.getElementById('ordBonsGraver');
     if (b) b.addEventListener('click', function(){ printBonsAGraver(); });
+  })();
+
+  /* ---- Jeu d'essai des e-mails ---- */
+  (function(){
+    var b = document.getElementById('btnMailTest');
+    if (!b) return;
+    var out = document.getElementById('mailTestOut');
+    var inp = document.getElementById('mailTestTo');
+    b.addEventListener('click', async function(){
+      var to = (inp.value||'').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { out.innerHTML = '<p style="color:#b1432f">Adresse e-mail invalide.</p>'; inp.focus(); return; }
+      b.disabled = true; var lib = b.textContent; b.textContent = 'Envoi en cours…'; out.innerHTML = '';
+      try{
+        var r = await fetch('/api/admin/emails-test', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ to: to }) });
+        var d = await r.json().catch(function(){ return {}; });
+        if (!r.ok || !d.ok) { out.innerHTML = '<p style="color:#b1432f">Envoi impossible : ' + esc(d.detail || d.error || ('erreur ' + r.status)) + '</p>'; }
+        else {
+          var ok = d.envois.filter(function(e){ return e.ok; }).length;
+          out.innerHTML = '<p style="margin:0 0 8px"><b>' + ok + ' / ' + d.envois.length + ' envoyés</b> à ' + esc(d.to) + ' — e-mails internes vers ' + esc(d.interne) + '.</p>'
+            + '<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">' + d.envois.map(function(e){ return '<li style="color:' + (e.ok ? '#2f7d4f' : '#b1432f') + '">' + esc(e.nom) + (e.ok ? '' : ' — ' + esc(e.erreur||'échec')) + '</li>'; }).join('') + '</ul>'
+            + '<p style="font-size:12.5px;color:var(--gris);margin-top:10px">Vérifiez la boîte de réception et le dossier spam. L\'archive facture et la notification de commande arrivent sur la boîte interne.</p>';
+        }
+      } catch(e){ out.innerHTML = '<p style="color:#b1432f">Erreur réseau.</p>'; }
+      b.disabled = false; b.textContent = lib;
+    });
   })();
 
   /* ---- Controle des paiements (reconciliation Stripe a la demande) ---- */

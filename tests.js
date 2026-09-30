@@ -496,7 +496,7 @@ verifier('la demande d\'avis se base sur la date de livraison',
 verifier('la date de livraison est enregistrée au changement de statut',
          srcServeur.includes("upd.delivered_at = new Date().toISOString()"));
 verifier('la commande est marquée AVANT l\'envoi de la demande d\'avis',
-         srcServeur.indexOf('marquage impossible') < srcServeur.indexOf("un mot sur votre expérience"));
+         srcServeur.lastIndexOf('marquage impossible') < srcServeur.lastIndexOf("un mot sur votre expérience"));
 
 // Les liens de partage expirés doivent être supprimés.
 verifier('les configurations partagées expirées sont purgées',
@@ -965,6 +965,202 @@ verifier('la sauvegarde ne peut pas s\'exécuter deux fois dans la journée',
   verifier('aucune minuterie ne dépend d\'un délai calculé non vérifié',
            delaisSuspects.length === 0, delaisSuspects.join(' | '));
 }
+
+/* ══════════════════════════════════════════════════════════════
+   REVUE DU 23 SEPTEMBRE 2026 — chaque correctif a son garde-fou.
+   Si l'une de ces lignes passe au rouge, une faille corrigée est
+   revenue.
+   ══════════════════════════════════════════════════════════════ */
+section('Stock, paiement et doublons (revue du 23/09/2026)');
+const srcAdmin = lire('admin.js');
+
+// C1 — le stock ne reste plus bloqué par des commandes jamais payées
+verifier('une commande est limitée à 5 articles',
+         srcServeur.includes('d.items.length > 5') && srcServeur.includes('trop_articles'));
+verifier('la session Stripe expire au bout de 30 minutes',
+         /expires_at:\s*Math\.floor\(Date\.now\(\)\s*\/\s*1000\)\s*\+\s*30\s*\*\s*60/.test(srcServeur));
+verifier('une tâche rend le stock des commandes impayées après 60 min',
+         srcServeur.includes('libererStockExpire') && srcServeur.includes('Non payee apres 60 min'));
+verifier('la libération du stock est atomique (PATCH conditionnel, return=representation)',
+         (() => { const i = srcServeur.indexOf('async function libererStockExpire');
+                  const c = srcServeur.slice(i, i + 3000);
+                  return i > 0 && c.includes("prefer:'return=representation'") && c.includes('adjust_stock'); })());
+verifier('un paiement tardif (après expiration) re-décrémente le stock',
+         srcServeur.includes("String(a0.payment_status||'') === 'Expiree'") && srcServeur.includes('paiement_tardif'));
+verifier('un échec de paiement ne rend PAS le stock (seule l\'expiration le fait)',
+         !srcServeur.includes("event.type === 'payment_intent.payment_failed'")
+         && srcServeur.includes("event.type === 'checkout.session.expired'"));
+
+// H1/H2 — la gravure facturée est celle que l'atelier voit
+verifier('chaque article est normalisé côté serveur (initiales, finition, symboles)',
+         srcServeur.includes('const normItem') && srcServeur.includes('const normSymb') && srcServeur.includes("SYMB_OK"));
+verifier('les initiales enregistrées viennent du premier article facturé',
+         srcServeur.includes("initiales: premier.initiales"));
+verifier('le bon à graver liste chaque pochette de la commande',
+         srcAdmin.includes('items_data') && srcAdmin.includes('Pochette '));
+
+// H3 — limitation de débit
+verifier('l\'adresse IP est lue sur le DERNIER élément de x-forwarded-for',
+         srcServeur.includes('liste[liste.length - 1]'));
+verifier('une IP invalide est rejetée par net.isIP',
+         srcServeur.includes("require('net')") && srcServeur.includes('net.isIP'));
+verifier('la table des limites est plafonnée (pas d\'épuisement mémoire)',
+         srcServeur.includes('RATE_MAX_CLES'));
+verifier('une requête refusée n\'allonge plus la fenêtre de blocage',
+         /if\s*\(arr\.length\s*>=\s*cfg\.max\)\s*\{[^}]*return false/.test(srcServeur));
+
+// M1/M3/M4/M5 — doublons et courses
+verifier('la bascule « payée » est atomique : un seul e-mail par paiement',
+         srcServeur.includes('const bascule = await sb(') && srcServeur.includes('duplicate:true'));
+verifier('une commande déjà payée/expirée ne peut pas rouvrir une session Stripe',
+         srcServeur.includes('commande_close'));
+verifier('le numéro de facture est posé par écriture conditionnelle (invoice_number=is.null)',
+         srcServeur.includes('invoice_number=is.null'));
+verifier('un repli existe si la séquence de facture est injoignable',
+         srcServeur.includes('numeroFactureRepli') && srcServeur.includes('facture_repli'));
+verifier('la comparaison du jeton maître est à temps constant',
+         srcServeur.includes('timingSafeEqual'));
+verifier('un octet nul dans l\'URL est refusé',
+         srcServeur.includes("includes('\\0')"));
+verifier('user_id n\'est stocké que s\'il ressemble à un UUID',
+         srcServeur.includes('user_id: /^[0-9a-f]{8}-[0-9a-f]{4}-'));
+
+verifier('la migration UNIQUE sur invoice_number est versionnée',
+         fs.existsSync(path.join(RACINE, 'sql', '2026-09-23_facture_numero_unique.sql')));
+
+section('SEO — adresses, balises, données structurées');
+
+verifier('/index.html redirige en 301 vers /',
+         srcServeur.includes("pathname === '/index.html'") && srcServeur.includes("setHeader('Location','/')"));
+verifier('un dossier sert son index.html (ex. /journal/)',
+         srcServeur.includes("else if (pathname.endsWith('/')) pathname += 'index.html'"));
+verifier('personnalisation.html : plus de lien « Livraison & retours » mort',
+         !lire('personnalisation.html').includes('<a href="#">Livraison'));
+verifier('cgv.html porte l\'ancre #livraison',
+         lire('cgv.html').includes('id="livraison"'));
+verifier('personnalisation.html : description sans apostrophe échappée',
+         !lire('personnalisation.html').includes("jusqu\\'à"));
+{
+  const nbProduct = (f) => (lire(f).match(/"@type":\s*"Product"/g) || []).length;
+  verifier('un seul Product JSON-LD sur le site (pochette.html)',
+           nbProduct('pochette.html') === 1 && nbProduct('personnalisation.html') === 0 && nbProduct('index.html') === 0);
+  const offres = (lire('pochette.html').match(/"@type":\s*"Offer"/g) || []).length;
+  verifier('pochette.html : une seule Offer, au prix public de 159 €',
+           offres === 1 && lire('pochette.html').includes('"price": "159.00"'));
+}
+for (const f of ['pochette.html','personnalisation.html','contact.html','entretien.html','index.html']) {
+  const h = lire(f);
+  for (const m of h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    let okJson = true; try { JSON.parse(m[1]); } catch(e){ okJson = false; }
+    verifier(f + ' : JSON-LD valide', okJson);
+  }
+  verifier(f + ' porte un bloc Open Graph complet',
+           /og:title/.test(h) && /og:description/.test(h) && /og:image/.test(h) && /og:url/.test(h));
+  const titre = (h.match(/<title>([^<]+)<\/title>/) || [])[1] || '';
+  verifier(f + ' : titre entre 30 et 70 caractères', titre.length >= 30 && titre.length <= 70, titre.length + ' car.');
+}
+{
+  const robots = lire('robots.txt');
+  verifier('robots.txt ne bloque plus les pages noindex (sinon la balise n\'est jamais lue)',
+           !/Disallow:\s*\/(panier|compte|facture|checkout)\.html/.test(robots));
+  verifier('robots.txt bloque toujours /admin et /api',
+           robots.includes('Disallow: /admin') && robots.includes('Disallow: /api'));
+  const sm = lire('sitemap.xml');
+  verifier('sitemap.xml : chaque URL a une date <lastmod>',
+           (sm.match(/<loc>/g) || []).length === (sm.match(/<lastmod>/g) || []).length);
+  verifier('journal/index.html : plus de balise no-store',
+           !lire('journal/index.html').includes('no-store'));
+  const vAccueil = (lire('index.html').match(/styles\.css\?v=(\d+)/) || [])[1];
+  const vJournal = (lire('journal/index.html').match(/styles\.css\?v=(\d+)/) || [])[1];
+  verifier('le journal charge la même version de styles.css que l\'accueil', vAccueil && vAccueil === vJournal);
+}
+
+section('Audit pré-production du 30/09/2026');
+
+// Stock : la tâche de libération tourne aussi en mode 1 processus (mode de l'hébergeur)
+{
+  const i = srcServeur.indexOf('if (USE_DB && WORKERS === 1) {');
+  const bloc = srcServeur.slice(i, i + 1200);
+  verifier('libererStockExpire est planifiée en mode 1 processus', i > 0 && bloc.includes('setInterval(libererStockExpire'));
+}
+verifier('le serveur refuse de démarrer en production sans ADMIN_PASSWORD',
+         srcServeur.includes('if (USE_DB && !process.env.ADMIN_PASSWORD)') && srcServeur.includes('process.exit(1)'));
+verifier('checkout.session.expired : écriture conditionnelle avec retour (stock rendu une seule fois)',
+         (() => { const i = srcServeur.indexOf("event.type === 'checkout.session.expired'");
+                  const c = srcServeur.slice(i, i + 1500);
+                  return i > 0 && c.includes("prefer:'return=representation'") && c.includes('payment_status.neq.Expiree') && !c.includes('neq.Echouee'); })());
+verifier('chaque article facturé porte son nom et son prix recalculé serveur (e-mail jamais à 0 €)',
+         srcServeur.includes("nom:'La Pochette ELLIA — Noir'") && srcServeur.includes('n.prix = Math.round((prixCatalogue + prixPersoItem(n))'));
+verifier('la taille de gravure (fontScale) est transmise à l\'atelier', srcServeur.includes('n.fontScale ='));
+verifier('la mention de rétractation dépend d\'une gravure réelle',
+         srcServeur.includes('const estGravee') && srcServeur.includes('L221-18'));
+verifier('l\'e-mail de confirmation rappelle l\'identité et l\'adresse du vendeur (L.221-13)',
+         srcServeur.includes('2 rue Suchet, 94700 Maisons-Alfort — RCS Créteil 877 702 985'));
+verifier('le transporteur est limité à une liste blanche côté serveur', srcServeur.includes('const TRANSPORTEURS ='));
+verifier('la livraison est limitée à la France et Monaco (serveur + Stripe)',
+         srcServeur.includes("const PAYS_LIVRES = ['France', 'Monaco']") && srcServeur.includes("allowed_countries: ['FR','MC']"));
+verifier('un dossier sans barre finale (/journal) est redirigé en 301',
+         srcServeur.includes("fs.statSync(path.join(ROOT, pathname)).isDirectory()"));
+verifier('la facture est datée du jour d\'émission', srcServeur.includes('invoice_date: new Date() })'));
+
+// Facture PDF
+{
+  const inv = lire('invoice.js');
+  verifier('facture : identité légale réelle (SAS, Maisons-Alfort, RCS Créteil, TVA)',
+           inv.includes("'SAS au capital de 1 000 €'") && inv.includes('94700 Maisons-Alfort') && inv.includes('RCS Créteil 877 702 985') && inv.includes('FR26 877 702 985'));
+  verifier('facture : plus de pénalités de retard ni d\'indemnité de 40 € (vente à consommateur)',
+           !inv.includes('indemnité forfaitaire de 40'));
+  verifier('facture : plus de « SIRET en cours d\'immatriculation »', !inv.includes('en cours d\'immatriculation'));
+}
+// Exports CSV : neutralisation des formules
+for (const f of ['compta.js','admin.js']) {
+  verifier(f + ' : les cellules commençant par = + - @ sont neutralisées', /\^\[=\+\\-@\\t\\r\]/.test(lire(f)));
+}
+// commande.html : transporteur échappé
+verifier('commande.html échappe le transporteur', lire('commande.html').includes("escq(o.transporteur||'—')"));
+
+// Checkout
+{
+  const co = lire('checkout.html');
+  verifier('checkout : la case « pièce gravée » est affichée dès le chargement',
+           co.includes("document.addEventListener('DOMContentLoaded', afficherCaseGravure)"));
+  verifier('checkout : une commande expirée est recréée au lieu de boucler', co.includes("sd.error === 'commande_close'") && co.includes("removeItem('ellia_pending_order')"));
+  verifier('checkout : une seule source de validation (novalidate)', co.includes('id="coForm" onsubmit="return false" novalidate'));
+  verifier('checkout : pays limité à France/Monaco', co.includes('<select id="l_pays"') && co.includes('<option>Monaco</option>'));
+  verifier('checkout : information et opposition à la relance de panier avant collecte',
+           co.includes('id="noReminder"') && co.includes("nr && nr.checked) return"));
+}
+verifier('inscription.html informe sur les CGV et la confidentialité', lire('inscription.html').includes('politique de confidentialité'));
+verifier('pochette.html : 5 symboles, garantie légale, retours à la charge du client dans le JSON-LD',
+         lire('pochette.html').includes('5 symboles au choix') && lire('pochette.html').includes('Garantie légale 2 ans') && lire('pochette.html').includes('ReturnShippingFees'));
+verifier('cgv.html : prix fermes (plus « à titre indicatif »)', !lire('cgv.html').includes('titre indicatif'));
+// Liens internes sans redirection
+{
+  let mauvais = [];
+  for (const f of pagesHtml) { const h = lire(f); if (h.includes('href="index.html"') || h.includes('href="journal/index.html"') || h.includes('href="../index.html"')) mauvais.push(f); }
+  verifier('aucun lien interne ne passe par la redirection 301 (index.html)', mauvais.length === 0, mauvais.join(', '));
+}
+verifier('la migration de durcissement Supabase est versionnée',
+         fs.existsSync(path.join(RACINE, 'sql', '2026-09-30_durcissement_pre_prod.sql')));
+
+section('E-mails — Brevo et jeu d\'essai');
+verifier('SMTP_USER (identifiant Brevo) n\'est plus jamais un destinataire ni un expéditeur',
+         !/process\.env\.SMTP_USER\s*\|\|\s*'no-reply|\|\|\s*process\.env\.SMTP_USER\b/.test(srcServeur) && !srcServeur.includes('sendMail(process.env.SMTP_USER'));
+verifier('une boîte interne unique (MAIL_INTERNE) reçoit commandes, contacts, avis, alertes, sauvegardes',
+         srcServeur.includes("const MAIL_INTERNE = process.env.CONTACT_TO || 'contact@ellia-paris.fr'") && (srcServeur.match(/MAIL_INTERNE/g)||[]).length >= 6);
+verifier('expéditeur par défaut = contact@ellia-paris.fr', srcServeur.includes("process.env.MAIL_FROM || 'ELLIA PARIS <contact@ellia-paris.fr>'"));
+verifier('le pied de page des e-mails porte l\'identité légale', srcServeur.includes("RCS Créteil 877 702 985</div>'"));
+verifier('« Bonjour , » impossible (helper bonjour)', srcServeur.includes('function bonjour(nom)') && !/Bonjour ' \+ escH\(/.test(srcServeur));
+verifier('la date cadeau est affichée en français', srcServeur.includes('function dateFrLongue') && !srcServeur.includes('escH(d.gift_date)'));
+verifier('la demande d\'avis est un envoi commercial avec lien de retrait',
+         /un mot sur votre expérience \?',[\s\S]{0,900}subject=D%C3%A9sinscription[\s\S]{0,300}\), true\)/.test(srcServeur));
+verifier('la relance panier n\'affiche pas « 0,00 € »', srcServeur.includes('Number(c.cart_total) > 0 ?'));
+verifier('le jeu d\'essai des e-mails existe, réservé à l\'admin, sans consommer de numéro de facture',
+         srcServeur.includes("pathname==='/api/admin/emails-test'") && srcServeur.includes("invoice_number:'F-EP-TEST-0000'")
+         && /emails-test'\)\{\s*\n\s*if \(ROLE !== 'admin'\)/.test(srcServeur));
+verifier('l\'administration propose le bouton du jeu d\'essai', lire('admin.html').includes('id="btnMailTest"') && lire('admin.js').includes("'/api/admin/emails-test'"));
+verifier('facture PDF : date en heure de Paris et mention « acquittée » conditionnelle',
+         lire('invoice.js').includes("timeZone:'Europe/Paris'") && lire('invoice.js').includes('Facture en attente de règlement'));
 
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.

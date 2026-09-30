@@ -6,8 +6,8 @@
 <!-- Le CDN de l'hebergeur remplace l'en-tete HTTP correspondant :
      cette balise est le seul moyen que la politique atteigne le navigateur. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Personnalisation — ELLIA PARIS</title>
-<meta name="description" content="Composez votre Pochette ELLIA : jusqu\'à 18 caractères gravés, 5 symboles, 4 finitions précieuses. Configurateur 3D en temps réel." />
+<title>Pochette en cuir personnalisée, initiales gravées — ELLIA PARIS</title>
+<meta name="description" content="Composez votre Pochette ELLIA : Gravez vos initiales sur la pochette en cuir ELLIA PARIS : jusqu'à 18 caractères, 5 symboles, 4 finitions (or, or rose, argent, aveugle). Configurateur 3D en temps réel." />
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
@@ -35,38 +35,11 @@
   @media (max-width:560px){.sym-btn small{font-size:8.5px}}
 </style>
 
-<!-- Personnalisation Product + Breadcrumb Schema -->
+<!-- Breadcrumb Schema (le Product unique est declare sur pochette.html) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
-    {
-      "@type": "Product",
-      "@id": "https://ellia-paris.fr/personnalisation.html#product",
-      "name": "La Pochette ELLIA personnalisée",
-      "description": "Composez votre pochette ELLIA PARIS : jusqu'à 18 caractères gravés au foil précieux (Or, Or rose, Argent, Aveugle), jusqu'à 4 symboles superposables au choix parmi cinq motifs (Aesh Sheli, Main de Fatma, Peace, picto ELLIA, Rabbi) avec finition et emplacement indépendants. Configurateur 3D temps réel.",
-      "image": "https://ellia-paris.fr/assets/pochette-back.webp",
-      "brand": { "@type": "Brand", "name": "ELLIA PARIS" },
-      "offers": {
-        "@type": "Offer",
-        "priceCurrency": "EUR",
-        "price": "218.00",
-        "priceSpecification": {
-          "@type": "PriceSpecification",
-          "price": "218.00",
-          "priceCurrency": "EUR",
-          "description": "Pochette 159 € TTC. Gravure en supplément : 5 €/lettre, 2 €/caractère spécial, 10 €/symbole."
-        },
-        "availability": "https://schema.org/InStock",
-        "url": "https://ellia-paris.fr/personnalisation.html"
-      },
-      "additionalProperty": [
-        { "@type": "PropertyValue", "name": "Caractères max", "value": "18 caractères" },
-        { "@type": "PropertyValue", "name": "Symboles superposables", "value": "Jusqu'à 4 symboles" },
-        { "@type": "PropertyValue", "name": "Finitions disponibles", "value": "Or, Or rose, Argent, Aveugle" },
-        { "@type": "PropertyValue", "name": "Symboles disponibles", "value": "Aesh Sheli, Main de Fatma, Peace, Logo ELLIA" }
-      ]
-    },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
@@ -88,23 +61,23 @@
 
 <header id="header" class="solid">
   <div class="bar">
-    <a href="index.html" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
+    <a href="/" aria-label="ELLIA PARIS"><img class="nav-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /></a>
     <nav class="links">
-      <a href="index.html">Accueil</a>
+      <a href="/">Accueil</a>
       <a href="pochette.html">La Pochette ELLIA</a>
       <a href="personnalisation.html" class="active">Personnalisation</a>
       <a href="maison.html">Maison</a>
-      <a href="journal/index.html">Journal</a>
+      <a href="/journal/">Journal</a>
     </nav>
     <div class="nav-right"><a href="compte.html" class="nav-ico account">Compte</a><a href="panier.html" class="nav-ico" data-cart-count>Panier (0)</a><button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span><span></span></button></div>
   </div>
 </header>
-<div class="mobile-menu" id="mobileMenu"><a href="index.html">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="journal/index.html">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
+<div class="mobile-menu" id="mobileMenu"><a href="/">Accueil</a><a href="pochette.html">La Pochette ELLIA</a><a href="personnalisation.html">Personnalisation</a><a href="maison.html">Maison</a><a href="/journal/">Journal</a><a href="compte.html">Compte</a><a href="panier.html">Panier</a><a href="contact.html">Contact</a></div>
 
 <main id="contenu">
 <section class="page-hero page-top">
   <div class="wrap">
-    <div class="breadcrumb reveal"><a href="index.html">Accueil</a> · Personnalisation</div>
+    <div class="breadcrumb reveal"><a href="/">Accueil</a> · Personnalisation</div>
     <div class="reveal"><div class="eyebrow" style="margin-top:24px">Sur-mesure</div><h1>Gravée à votre nom</h1><p>Jusqu'à 18 caractères et 4 symboles superposables, quatre finitions précieuses, emplacements au choix. Composez une pièce qui n'appartient qu'à vous.</p></div>
   </div>
 </section>
@@ -383,7 +356,7 @@
     <div class="foot-grid">
       <div><img class="foot-logo" src="assets/logo_black_trim.png?v=1785400000" alt="ELLIA PARIS" /><p class="desc">Maison de maroquinerie parisienne. La pochette en cuir grainé à fermeture biométrique, gravée à votre nom.</p></div>
       <div><h2 class="foot-h">La Maison</h2><ul><li><a href="maison.html">Savoir-faire</a></li><li><a href="maison.html">Lookbook</a></li><li><a href="maison.html">Notre histoire</a></li></ul></div>
-      <div><h2 class="foot-h">Boutique</h2><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="#">Livraison & retours</a></li></ul></div>
+      <div><h2 class="foot-h">Boutique</h2><ul><li><a href="pochette.html">La Pochette ELLIA</a></li><li><a href="personnalisation.html">Personnalisation</a></li><li><a href="cgv.html#livraison">Livraison & retours</a></li></ul></div>
       <div><h2 class="foot-h">Suivez-nous</h2><ul><li><a href="https://instagram.com/ellia_paris_officiel" rel="noopener" target="_blank">Instagram</a></li><li><a href="https://tiktok.com/@ellia_paris_officiel" rel="noopener" target="_blank">TikTok</a></li><li><a href="https://facebook.com/ellia_paris_officiel" rel="noopener" target="_blank">Facebook</a></li></ul></div>
     </div>
     <div class="foot-bottom"><span>© 2026 ELLIA PARIS — Tous droits réservés</span><span><a href="mentions.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></span></div>

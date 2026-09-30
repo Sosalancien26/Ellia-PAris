@@ -7,7 +7,7 @@
 const SEUIL_MICRO_BIENS  = 188700; // EUR — vente de biens (maroquinerie)
 const SEUIL_FRANCHISE_TVA= 91900;  // EUR — franchise TVA biens
 
-function csvEscape(s){ return '"' + String(s==null?'':s).replace(/"/g,'""') + '"'; }
+function csvEscape(s){ let t = String(s==null?'':s); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g,'""') + '"'; }  // ' devant = + - @ : un nom de client ne devient jamais une formule Excel
 function eur2(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function dateFR(d){ if(!d) return ''; try{ return new Date(d).toLocaleDateString('fr-FR'); }catch(_){ return ''; } }
 function num2(n){ return Number(n||0).toFixed(2).replace('.', ','); }

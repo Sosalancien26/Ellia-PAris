@@ -6,15 +6,8 @@ Disallow: /admin-login.html
 Disallow: /admin.html
 Disallow: /api
 Disallow: /api/
-Disallow: /panier.html
-Disallow: /checkout.html
-Disallow: /confirmation.html
-Disallow: /connexion.html
-Disallow: /inscription.html
-Disallow: /compte.html
-Disallow: /commande.html
-Disallow: /facture.html
-Disallow: /404.html
+# Les pages privees (panier, compte, facture...) portent une balise noindex :
+# elles ne sont pas bloquees ici, sinon les robots ne verraient jamais cette balise.
 
 # Bloque les bots agressifs / scrapers IA non désirés
 User-agent: CCBot
