@@ -10,13 +10,11 @@ let PDFDocument = null;
 try { PDFDocument = require('pdfkit'); }
 
 catch(e){ console.warn('pdfkit indisponible — installer via npm install pdfkit'); }
-// Identite legale de l'emetteur (Kbis du 14/09/2026). Le NIC du SIRET est
-// lu dans SOCIETE_NIC (5 chiffres) : tant qu'il manque, seul le SIREN
-// est imprime, ce qui reste exact.
+// Identite legale de l'emetteur (Kbis du 14/09/2026, avis INSEE).
 const SOCIETE = {
   forme:   'SAS au capital de 1 000 €',
   adresse: '2 rue Suchet, 94700 Maisons-Alfort, France',
-  rcs:     'RCS Créteil 877 702 985' + (process.env.SOCIETE_NIC ? (' — SIRET 877 702 985 ' + String(process.env.SOCIETE_NIC).trim()) : ''),
+  rcs:     'RCS Créteil 877 702 985 — SIRET 877 702 985 00020 — APE 4619B',
   tva:     'TVA intracom. FR26 877 702 985'
 };
 
