@@ -1564,7 +1564,12 @@ const server = http.createServer(async (req, res) => {
                 +'&or=(statut.eq.'+encodeURIComponent('En attente paiement')+',statut.eq.'+encodeURIComponent('Annulée')+')',{ method:'PATCH', prefer:'return=representation', body:{
                 payment_status:'Payee',
                 payment_date: new Date().toISOString(),
-                statut: 'Nouvelle'
+                statut: 'Nouvelle',
+                // Identifiants Stripe : indispensables pour rembourser depuis l'admin.
+                // checkout.session.completed : obj = session (payment_intent dedans) ;
+                // payment_intent.succeeded : obj = le PaymentIntent lui-meme.
+                stripe_session_id: (obj.object === 'checkout.session') ? obj.id : null,
+                stripe_payment_intent: (obj.object === 'payment_intent') ? obj.id : (typeof obj.payment_intent === 'string' ? obj.payment_intent : (obj.payment_intent && obj.payment_intent.id) || null)
               }});
               if (!Array.isArray(bascule) || !bascule.length) {
                 console.log('[Stripe webhook] Commande', numero, 'deja traitee — evenement ignore');
@@ -1754,6 +1759,55 @@ const server = http.createServer(async (req, res) => {
 
       // Verification manuelle des paiements (bouton dans l'administration).
       // Reservee a l'admin : elle peut modifier des statuts de commande.
+      /* ----- REMBOURSEMENT (admin) -----
+         Rembourse le paiement chez Stripe, marque la commande « Remboursée »,
+         rend le stock si demande, previent la cliente, journalise. Idempotent :
+         une commande deja remboursee n'est pas remboursee deux fois. */
+      if (req.method==='POST' && /^\/api\/admin\/orders\/[^/]+\/refund$/.test(pathname)){
+        if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
+        if (!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
+        if (!stripe) return sendJSON(res,{ ok:false, error:'stripe_absent', detail:'Clé Stripe non configurée.' }, 503);
+        const numero = decodeURIComponent(pathname.split('/')[4] || '');
+        if (!/^EP-[A-Z0-9]{4,14}$/.test(numero)) return sendJSON(res,{ ok:false, error:'numero_invalide' }, 400);
+        let d = {}; try { d = JSON.parse((await readBody(req))||'{}'); } catch(_){}
+        const motif = clean(d.motif, 200) || 'Remboursement depuis l\'administration';
+        const rendreStock = d.restock !== false;
+        let o;
+        try { const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,statut,payment_status,payment_method,montant_total,quantite,client_email,client_prenom,client_nom,stripe_payment_intent,stripe_session_id,refund_id'); o = rows && rows[0]; }
+        catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
+        if (!o) return sendJSON(res,{ ok:false, error:'introuvable' }, 404);
+        if (o.refund_id || /^rembours/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'deja_remboursee', detail:'Cette commande a déjà été remboursée.' }, 409);
+        if (!/^pay/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'non_payee', detail:'Seule une commande payée peut être remboursée.' }, 400);
+        // Retrouver le PaymentIntent (commandes payees avant que l'identifiant soit memorise)
+        let pi = o.stripe_payment_intent || null;
+        if (!pi && o.stripe_session_id) { try { const s = await stripe.checkout.sessions.retrieve(o.stripe_session_id); pi = typeof s.payment_intent === 'string' ? s.payment_intent : (s.payment_intent && s.payment_intent.id) || null; } catch(_){} }
+        if (!pi) return sendJSON(res,{ ok:false, error:'paiement_introuvable', detail:'Identifiant de paiement Stripe absent : remboursez depuis le Dashboard Stripe, puis passez le paiement en « Remboursé » ici.' }, 422);
+        let refund;
+        try { refund = await stripe.refunds.create({ payment_intent: pi, reason: 'requested_by_customer', metadata: { numero, motif } }); }
+        catch(e){ console.error('[Remboursement] Stripe KO', numero, e.message); return sendJSON(res,{ ok:false, error:'stripe_refus', detail:'Stripe a refusé le remboursement : ' + String(e.message||'').slice(0,160) }, 502); }
+        const montant = refund.amount != null ? refund.amount / 100 : Number(o.montant_total);
+        try {
+          await sb('orders?numero=eq.'+encodeURIComponent(numero), { method:'PATCH', body:{
+            payment_status:'Remboursé', statut:'Remboursée', refund_id: refund.id, refund_amount: montant, refunded_at: new Date().toISOString(),
+            notes_admin: ('[REMBOURSEMENT ' + new Date().toISOString().slice(0,10) + '] ' + motif).slice(0, 500) }});
+        } catch(e){ console.error('[Remboursement] base KO apres remboursement Stripe', numero, e.message); }
+        let stockRendu = false;
+        if (rendreStock) {
+          try { await sb('rpc/adjust_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_delta: Math.max(1, Number(o.quantite)||1), p_reason:'return', p_notes:'Remboursement ' + numero + ' — ' + motif, p_admin: AUTH.login, p_order: numero, p_source:'admin' }}); stockRendu = true; }
+          catch(e){ console.warn('[Remboursement] stock non rendu', numero, e.message); }
+        }
+        journaliser(AUTH.login, ROLE, 'commande.remboursee', numero, { montant, refund_id: refund.id, motif, stock_rendu: stockRendu });
+        let mailOk = false;
+        if (o.client_email) {
+          const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre remboursement est en route</h1>' +
+            '<p style="margin:0 0 8px">' + bonjour(o.client_prenom || o.client_nom) + '</p>' +
+            '<p style="margin:0 0 4px">Nous avons procédé au remboursement de votre commande <b>' + escH(numero) + '</b>, d\'un montant de <b>' + euro(montant) + '</b>, sur le moyen de paiement utilisé lors de votre achat.</p>' +
+            '<p style="margin:12px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Selon votre banque, la somme apparaît sur votre compte sous 5 à 10 jours ouvrés.</p>' +
+            '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+          mailOk = await sendMail(o.client_email, 'Commande ' + numero + ' — remboursement effectué', emailLayout(inner, 'Remboursement de ' + euro(montant) + ' effectué'));
+        }
+        return sendJSON(res,{ ok:true, numero, refund_id: refund.id, montant, stock_rendu: stockRendu, mail_client: mailOk });
+      }
       if (req.method==='POST' && pathname==='/api/admin/reconcilier'){
         if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
         if (!stripe)  return sendJSON(res,{ ok:false, error:'stripe_absent', detail:'Clé Stripe non configurée sur le serveur.' }, 503);

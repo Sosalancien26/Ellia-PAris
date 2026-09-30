@@ -244,6 +244,19 @@ async function main(){
   const ann = await api('PATCH', '/api/orders/' + payees[30].numero, { statut: 'Annulée' }, A);
   await sleep(300);
   ok('statut → Annulée : e-mail client', ann.status === 200 && mailsPour(payees[30].payload.client_email, /Annulée/).length === 1);
+  // Remboursement depuis l'admin
+  const stockAvantRemb = mock.db.products[0].stock;
+  const cRemb = payees[25];
+  ok('les identifiants Stripe sont mémorisés au paiement', !!enBase.find(o => o.numero === cRemb.numero).stripe_payment_intent);
+  const rf = await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', { motif: 'test banc', restock: true }, A);
+  await sleep(300);
+  const oR = enBase.find(o => o.numero === cRemb.numero);
+  ok('remboursement Stripe depuis l\'admin → Remboursée, stock rendu, cliente prévenue', rf.status === 200 && rf.json.ok && oR.payment_status === 'Remboursé' && oR.statut === 'Remboursée' && oR.refund_id && mock.db.products[0].stock === stockAvantRemb + cRemb.qte && mailsPour(cRemb.payload.client_email, /remboursement effectué/).length === 1, rf.status + ' ' + rf.text.slice(0, 150));
+  ok('remboursement enregistré chez Stripe (payment_intent)', fs.existsSync(path.join(OUT, 'refunds.jsonl')) && fs.readFileSync(path.join(OUT, 'refunds.jsonl'), 'utf8').includes(oR.stripe_payment_intent));
+  ok('second remboursement refusé (409)', (await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', {}, A)).status === 409);
+  ok('remboursement d\'une commande non payée refusé', (await api('POST', '/api/admin/orders/' + abandonnees[1].numero + '/refund', {}, A)).status === 400);
+  const statsR = await api('GET', '/api/stats', undefined, A);
+  ok('le chiffre d\'affaires exclut la commande remboursée (et l\'annulée)', Math.abs(Number(statsR.json.ca_total) - (caAttendu - cRemb.total - payees[30].total)) < 0.05, statsR.json.ca_total + ' attendu ' + (caAttendu - cRemb.total - payees[30].total));
   // Transporteur inconnu -> Autre
   await api('PATCH', '/api/orders/' + payees[22].numero, { transporteur: '<script>alert(1)</script>', suivi: 'X1' }, A);
   ok('transporteur hors liste → remplacé par « Autre »', enBase.find(o => o.numero === payees[22].numero).transporteur === 'Autre');

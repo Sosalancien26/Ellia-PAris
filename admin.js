@@ -599,8 +599,33 @@
         '<input class="om-suivi" placeholder="N° de suivi" value="'+esc(o.suivi||'')+'">'+
         '<button class="ord-save" id="omSave">Enregistrer</button>'+
         '<span class="ord-saved" id="omSaved" style="display:none">✓ Enregistré</span>'+
-      '</div>';
+      '</div>'+
+      // Remboursement : admin seulement, commande payee et non remboursee
+      ((window.__role==='admin' && /^pay/i.test(o.payment_status||'')) ?
+        '<div id="omRefundBloc" style="margin-top:22px;padding:16px 18px;border:1px solid #ecdfbd;background:#fdf9ef">'+
+          '<div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:8px">Remboursement</div>'+
+          '<p style="font-size:13px;color:var(--gris);line-height:1.6;margin:0 0 12px">Rembourse intégralement le paiement chez Stripe ('+eur(o.total)+'), passe la commande en « Remboursée », rend la pochette au stock et prévient la cliente par e-mail.</p>'+
+          '<input id="omRefundMotif" placeholder="Motif (rétractation, défaut, geste commercial…)" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--ligne);font-size:14px;margin-bottom:10px">'+
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px"><input type="checkbox" id="omRefundStock" checked> Rendre la pochette au stock (décochez si la pièce est gravée ou non retournée)</label>'+
+          '<button type="button" id="omRefund" style="padding:11px 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid #b1432f;background:#b1432f;color:#fff;cursor:pointer">Rembourser '+eur(o.total)+'</button>'+
+          '<div id="omRefundOut" style="margin-top:10px;font-size:13px"></div>'+
+        '</div>' : '');
     document.getElementById('omClose').addEventListener('click',closeOrder);
+    const rBtn = document.getElementById('omRefund');
+    if (rBtn) rBtn.addEventListener('click', async ()=>{
+      const motif = (document.getElementById('omRefundMotif').value||'').trim();
+      if (!confirm('Rembourser '+eur(o.total)+' à '+(o.client||'la cliente')+' ?\nCette opération est définitive chez Stripe.')) return;
+      rBtn.disabled = true; rBtn.textContent = 'Remboursement en cours…';
+      const out = document.getElementById('omRefundOut');
+      try {
+        const r = await fetch('/api/admin/orders/'+encodeURIComponent(o.id)+'/refund', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ motif, restock: document.getElementById('omRefundStock').checked }) });
+        const d = await r.json().catch(()=>({}));
+        if (!r.ok || !d.ok) { out.style.color='#b1432f'; out.textContent = d.detail || d.error || ('Erreur '+r.status); rBtn.disabled=false; rBtn.textContent='Rembourser '+eur(o.total); return; }
+        out.style.color='#2f7d4f'; out.textContent = '✓ '+eur(d.montant)+' remboursés (Stripe '+d.refund_id+')'+(d.stock_rendu?' · stock rendu':'')+(d.mail_client?' · cliente prévenue':' · e-mail non envoyé');
+        rBtn.textContent = 'Remboursée';
+        setTimeout(()=>{ location.reload(); }, 2500);
+      } catch(e){ out.style.color='#b1432f'; out.textContent='Erreur réseau.'; rBtn.disabled=false; rBtn.textContent='Rembourser '+eur(o.total); }
+    });
     if (window.__role === 'admin') chargerJournal(o.id);
     const omE = document.getElementById('omEdit');
     if (omE) omE.addEventListener('click',()=>openEditMode(o.id));
