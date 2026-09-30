@@ -2406,7 +2406,7 @@ const server = http.createServer(async (req, res) => {
   // Le site n'en a aucun besoin : il n'utilise que les PNG de assets/.
   // Les laisser accessibles reviendrait a offrir a quiconque de quoi
   // fabriquer un packaging identique.
-  const DOSSIERS_PRIVES = ['assets/logo/', 'design/'];   // design/ : planches et fichiers de fabrication
+  const DOSSIERS_PRIVES = ['assets/logo/', 'design/'];   // design/ : reserve aux fichiers de fabrication, s'il en revient
   if (DOSSIERS_PRIVES.some(d => chemin.startsWith(d))) {
     res.statusCode = 403; return res.end('Forbidden');
   }
