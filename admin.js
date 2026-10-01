@@ -153,7 +153,7 @@
     return '<div class="'+rowClass+'" data-id="'+esc(o.id)+'">'+
       avatar+
       '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span>'+(o.is_gift ? '<span class="badge" style="background:#f5ead2;color:#7a5c10;border-color:#e0cfa0" title="Commande cadeau — bon de livraison sans prix">Cadeau</span>' : '')+'</div>'+
-        '<div class="orow-sub"><b style="color:#3a352d">'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
+        '<div class="orow-sub"><b>'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
         '<div style="margin-top:2px">'+grav+'</div></div>'+
       '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
         '<select class="statut row-statut" data-row-statut="'+esc(o.id)+'" title="Changer le statut">'+sOpts+'</select>'+
@@ -168,12 +168,14 @@
     }
     const box=document.getElementById('ordersBody');
     const pbox=document.getElementById('ordersPipeline');
+    const head=document.getElementById('ordHead');
     if(VIEW==='pipeline' && pbox){
-      box.style.display='none'; pbox.style.display='grid';
+      box.style.display='none'; pbox.style.display='grid'; if(head) head.style.display='none';
       renderPipeline(list,pbox);
       return;
     }
     if(pbox) pbox.style.display='none';
+    if(head) head.style.display = list.length ? '' : 'none';
     box.style.display='';
     box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
     bindRows(box);
