@@ -514,6 +514,8 @@ function _notifyNewOrderInternal(d, numero){
     emailLayout('<h2 style="font-weight:normal;font-size:22px;margin:0 0 8px">Nouvelle commande ' + escH(numero) + '</h2><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px">' + escH(d.client_nom||'') + ' — ' + escH(d.client_email||'') + (d.telephone?(' — '+escH(d.telephone)):'') + '</p>' + lineItems(d.items) + '<p style="font-family:Georgia,serif"><b>Total ' + euro(d.montant_total) + '</b></p>' + (d.is_gift ? ('<div style="margin:14px 0;padding:12px 14px;background:#fdf6e8;border-left:3px solid #a8791f;font-family:Arial,sans-serif;font-size:13.5px"><b>CADEAU</b> — bon de livraison sans prix' + (d.gift_message ? ('<br>Carte à calligraphier :<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;margin-top:6px;padding:10px 12px;background:#fff;border:1px dashed #c9bfa4">« ' + escH(d.gift_message) + ' »</div>' + (d.gift_from ? (' — ' + escH(d.gift_from)) : '')) : '<br>Carte vierge') + (d.gift_date ? ('<br>Arrivée souhaitée : <b>' + dateFrLongue(d.gift_date) + '</b>') : '') + '</div>') : '') + addressBlock(d), 'Nouvelle commande ' + numero));
   return envoiClient;
 }
+// Adresse a laquelle les clientes renvoient la pochette (surchargeable sans code)
+const ADRESSE_RETOUR = (process.env.RETOUR_ADRESSE || 'ELLIA PARIS — Service retours, 2 rue Suchet, 94700 Maisons-Alfort, France').trim();
 const STATUT_MSG = {
   'nouvelle':'a bien été reçue et est en cours de traitement.',
   'en preparation':'est en cours de préparation dans notre atelier.',
@@ -521,6 +523,22 @@ const STATUT_MSG = {
   'livree':'a été livrée. Nous espérons qu\'elle vous comble.',
   'annulee':'a été annulée. Pour toute question, répondez à cet e-mail.'
 };
+function mailRetourAttendu(o, numero){
+  const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Retour de votre commande ' + escH(numero) + '</h1>' +
+    '<p style="margin:0 0 8px">' + bonjour(o.client_prenom || o.client_nom) + '</p>' +
+    '<p style="margin:0 0 12px">Nous avons bien enregistré votre demande de retour. Pour que nous puissions procéder au remboursement, merci de nous renvoyer la pochette dans son écrin d\'origine, non portée, sous <b>14 jours</b>, à l\'adresse suivante :</p>' +
+    '<p style="margin:0 0 12px;padding:14px 18px;background:#f6f3ec;font-family:Arial,sans-serif;font-size:14px;line-height:1.6"><b>' + escH(ADRESSE_RETOUR) + '</b><br/>Référence à indiquer dans le colis : <b>' + escH(numero) + '</b></p>' +
+    '<p style="margin:0 0 4px;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Nous vous conseillons un envoi suivi. Dès réception et contrôle de la pièce, vous recevrez un e-mail de confirmation, puis le remboursement sous 14 jours au plus tard sur le moyen de paiement utilisé.</p>' +
+    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+  return sendMail(o.client_email, 'Commande ' + numero + ' — votre retour', emailLayout(inner, 'Retour de la commande ' + numero + ' : mode d\'emploi'));
+}
+function mailRetourRecu(o, numero){
+  const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Nous avons bien reçu votre retour</h1>' +
+    '<p style="margin:0 0 8px">' + bonjour(o.client_prenom || o.client_nom) + '</p>' +
+    '<p style="margin:0 0 4px">La pochette de votre commande <b>' + escH(numero) + '</b> nous est bien parvenue. Votre remboursement est en cours de traitement : vous recevrez un e-mail dès qu\'il sera effectué.</p>' +
+    '<p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>';
+  return sendMail(o.client_email, 'Commande ' + numero + ' — retour reçu', emailLayout(inner, 'Retour reçu pour la commande ' + numero));
+}
 function trackUrl(transporteur, suivi){
   if(!suivi) return '';
   const t=(transporteur||'').toLowerCase(); const n=encodeURIComponent(suivi);
@@ -707,7 +725,7 @@ async function getOrders(){
   // ATTENTION : la fiche admin renvoie TOUS ces champs lors d'un enregistrement.
   // Un champ absent ici = valeur par defaut du formulaire ecrite en base
   // (montant ecrase a 159 €, notes internes videes...). Ne rien retirer.
-  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,payment_date,promo_discount,is_gift,gift_message,gift_from,gift_date,preview,items_data,created_at,quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,notes_admin,promo_code&order=created_at.desc');
+  const rows = await sb('orders?select=numero,client_prenom,client_nom,client_email,telephone,initiales,finition,emplacement,montant_total,statut,suivi,transporteur,adresse_livraison,cp_livraison,ville_livraison,pays_livraison,adresse_facturation,cp_facturation,ville_facturation,pays_facturation,invoice_number,manual_order,payment_method,payment_status,payment_date,promo_discount,is_gift,gift_message,gift_from,gift_date,preview,items_data,created_at,quantite,prix_pochette,prix_personnalisation,frais_port,tva_rate,notes_admin,promo_code,refund_id,refund_amount,refunded_at,retour_statut,retour_demande_at,retour_recu_at,retour_etat,retour_note&order=created_at.desc');
   const j=(a,cp,v,p)=>[a,((cp||'')+' '+(v||'')).trim(),p].filter(x=>x&&String(x).trim()).join(' · ');
   return rows.map(r=>({ id:r.numero, date:(r.created_at||'').slice(0,10),
     client:((r.client_prenom||'')+' '+(r.client_nom||'')).trim()||'—',
@@ -717,6 +735,8 @@ async function getOrders(){
     suivi:r.suivi||'', transporteur:r.transporteur||'',
     invoice_number:r.invoice_number||'', manual:!!r.manual_order,
     payment_method:r.payment_method||'', payment_status:r.payment_status||'',
+    refund_id:r.refund_id||null, refund_amount:r.refund_amount, refunded_at:r.refunded_at||null,
+    retour_statut:r.retour_statut||null, retour_demande_at:r.retour_demande_at||null, retour_recu_at:r.retour_recu_at||null, retour_etat:r.retour_etat||null, retour_note:r.retour_note||'',
     payment_date:r.payment_date||null, promo_discount: r.promo_discount==null ? 0 : Number(r.promo_discount),
     is_gift: !!r.is_gift, gift_message:r.gift_message||'', gift_from:r.gift_from||'', gift_date:r.gift_date||'',
     preview:r.preview||null,
@@ -1773,6 +1793,56 @@ const server = http.createServer(async (req, res) => {
          Rembourse le paiement chez Stripe, marque la commande « Remboursée »,
          rend le stock si demande, previent la cliente, journalise. Idempotent :
          une commande deja remboursee n'est pas remboursee deux fois. */
+      /* ----- Suivi des retours : la pochette doit revenir AVANT tout remboursement ----- */
+      if (req.method==='POST' && /^\/api\/admin\/orders\/[^/]+\/retour$/.test(pathname)){
+        if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
+        if (!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
+        const numero = decodeURIComponent(pathname.split('/')[4] || '');
+        if (!/^EP-[A-Z0-9]{4,14}$/.test(numero)) return sendJSON(res,{ ok:false, error:'numero_invalide' }, 400);
+        let d = {}; try { d = JSON.parse((await readBody(req))||'{}'); } catch(_){ return sendJSON(res,{ ok:false, error:'json_invalide' }, 400); }
+        const action = String(d.action||'');
+        const note = clean(d.note, 300);
+        let o;
+        try { const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,statut,payment_status,quantite,client_email,client_prenom,client_nom,retour_statut,refund_id,initiales'); o = rows && rows[0]; }
+        catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
+        if (!o) return sendJSON(res,{ ok:false, error:'introuvable' }, 404);
+        if (o.refund_id || /^rembours/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'deja_remboursee', detail:'Commande déjà remboursée.' }, 409);
+        const now = new Date().toISOString();
+        if (action === 'attendre'){
+          if (!/^pay/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'non_payee', detail:'Un retour ne concerne qu\'une commande payée.' }, 400);
+          if (o.retour_statut === 'attendu' || o.retour_statut === 'recu') return sendJSON(res,{ ok:false, error:'retour_deja_ouvert', detail:'Un retour est déjà en cours sur cette commande.' }, 409);
+          try { await sb('orders?numero=eq.'+encodeURIComponent(numero), { method:'PATCH', body:{ statut:'Retour attendu', retour_statut:'attendu', retour_demande_at: now, retour_recu_at: null, retour_etat: null, retour_note: note || null }}); }
+          catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
+          journaliser(AUTH.login, ROLE, 'retour.attendu', numero, { note });
+          let mailOk = false;
+          if (o.client_email) mailOk = await mailRetourAttendu(o, numero);
+          return sendJSON(res,{ ok:true, numero, retour_statut:'attendu', mail_client: mailOk });
+        }
+        if (action === 'recu'){
+          if (o.retour_statut !== 'attendu') return sendJSON(res,{ ok:false, error:'retour_non_attendu', detail:'Aucun retour n\'est attendu sur cette commande : déclarez d\'abord le retour.' }, 409);
+          const etat = d.etat === 'revendable' ? 'revendable' : (d.etat === 'non_revendable' ? 'non_revendable' : null);
+          if (!etat) return sendJSON(res,{ ok:false, error:'etat_requis', detail:'Indiquez si la pochette est remise en vente ou non.' }, 400);
+          try { await sb('orders?numero=eq.'+encodeURIComponent(numero), { method:'PATCH', body:{ statut:'Retour reçu', retour_statut:'recu', retour_recu_at: now, retour_etat: etat, retour_note: note || null }}); }
+          catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
+          let stockRendu = false;
+          if (etat === 'revendable') {
+            try { await sb('rpc/adjust_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_delta: Math.max(1, Number(o.quantite)||1), p_reason:'return', p_notes:'Retour reçu ' + numero + (note ? ' — ' + note : ''), p_admin: AUTH.login, p_order: numero, p_source:'admin' }}); stockRendu = true; }
+            catch(e){ console.warn('[Retour] stock non rendu', numero, e.message); }
+          }
+          journaliser(AUTH.login, ROLE, 'retour.recu', numero, { etat, note, stock_rendu: stockRendu });
+          let mailOk = false;
+          if (o.client_email) mailOk = await mailRetourRecu(o, numero);
+          return sendJSON(res,{ ok:true, numero, retour_statut:'recu', etat, stock_rendu: stockRendu, mail_client: mailOk });
+        }
+        if (action === 'annuler'){
+          if (o.retour_statut !== 'attendu') return sendJSON(res,{ ok:false, error:'retour_non_attendu', detail:'Seul un retour attendu peut être annulé.' }, 409);
+          try { await sb('orders?numero=eq.'+encodeURIComponent(numero), { method:'PATCH', body:{ statut:'Livrée', retour_statut:'annule', retour_note: note || null }}); }
+          catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
+          journaliser(AUTH.login, ROLE, 'retour.annule', numero, { note });
+          return sendJSON(res,{ ok:true, numero, retour_statut:'annule' });
+        }
+        return sendJSON(res,{ ok:false, error:'action_invalide' }, 400);
+      }
       if (req.method==='POST' && /^\/api\/admin\/orders\/[^/]+\/refund$/.test(pathname)){
         if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
         if (!USE_DB) return sendJSON(res,{ ok:false, error:'no_db' }, 503);
@@ -1781,13 +1851,19 @@ const server = http.createServer(async (req, res) => {
         if (!/^EP-[A-Z0-9]{4,14}$/.test(numero)) return sendJSON(res,{ ok:false, error:'numero_invalide' }, 400);
         let d = {}; try { d = JSON.parse((await readBody(req))||'{}'); } catch(_){}
         const motif = clean(d.motif, 200) || 'Remboursement depuis l\'administration';
-        const rendreStock = d.restock !== false;
         let o;
-        try { const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,statut,payment_status,payment_method,montant_total,quantite,client_email,client_prenom,client_nom,stripe_payment_intent,stripe_session_id,refund_id'); o = rows && rows[0]; }
+        try { const rows = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=numero,statut,payment_status,payment_method,montant_total,quantite,client_email,client_prenom,client_nom,stripe_payment_intent,stripe_session_id,refund_id,retour_statut,retour_etat'); o = rows && rows[0]; }
         catch(e){ return sendJSON(res,{ ok:false, error:'db' }, 500); }
         if (!o) return sendJSON(res,{ ok:false, error:'introuvable' }, 404);
         if (o.refund_id || /^rembours/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'deja_remboursee', detail:'Cette commande a déjà été remboursée.' }, 409);
         if (!/^pay/i.test(String(o.payment_status||''))) return sendJSON(res,{ ok:false, error:'non_payee', detail:'Seule une commande payée peut être remboursée.' }, 400);
+        // Qui dit remboursement dit retour : on attend la pochette, sauf decision explicite « sans retour »
+        // (colis jamais expedie, geste commercial, piece perdue par le transporteur...).
+        if (o.retour_statut === 'attendu') return sendJSON(res,{ ok:false, error:'retour_en_attente', detail:'Le retour de la pochette n\'a pas encore été reçu. Déclarez « Retour reçu » dans la fiche, puis remboursez.' }, 409);
+        const sansRetour = d.sans_retour === true;
+        if (o.retour_statut !== 'recu' && !sansRetour) return sendJSON(res,{ ok:false, error:'retour_non_renseigne', detail:'La pochette doit-elle être retournée ? Déclarez le retour (et attendez-le), ou confirmez un remboursement sans retour.' }, 400);
+        // Le stock n'est rendu qu'au moment de la reception du retour (etat verifie) ; sans retour, au choix de l'admin
+        const rendreStock = sansRetour && d.restock === true;
         // Retrouver le PaymentIntent (commandes payees avant que l'identifiant soit memorise)
         let pi = o.stripe_payment_intent || null;
         if (!pi && o.stripe_session_id) { try { const s = await stripe.checkout.sessions.retrieve(o.stripe_session_id); pi = typeof s.payment_intent === 'string' ? s.payment_intent : (s.payment_intent && s.payment_intent.id) || null; } catch(_){} }
@@ -1799,6 +1875,7 @@ const server = http.createServer(async (req, res) => {
         try {
           await sb('orders?numero=eq.'+encodeURIComponent(numero), { method:'PATCH', body:{
             payment_status:'Remboursé', statut:'Remboursée', refund_id: refund.id, refund_amount: montant, refunded_at: new Date().toISOString(),
+            retour_statut: sansRetour ? 'sans_retour' : o.retour_statut,
             notes_admin: ('[REMBOURSEMENT ' + new Date().toISOString().slice(0,10) + '] ' + motif).slice(0, 500) }});
         } catch(e){ console.error('[Remboursement] base KO apres remboursement Stripe', numero, e.message); }
         let stockRendu = false;
@@ -1806,7 +1883,7 @@ const server = http.createServer(async (req, res) => {
           try { await sb('rpc/adjust_stock',{ method:'POST', body:{ p_ref:'ELLIA-NOIR', p_delta: Math.max(1, Number(o.quantite)||1), p_reason:'return', p_notes:'Remboursement ' + numero + ' — ' + motif, p_admin: AUTH.login, p_order: numero, p_source:'admin' }}); stockRendu = true; }
           catch(e){ console.warn('[Remboursement] stock non rendu', numero, e.message); }
         }
-        journaliser(AUTH.login, ROLE, 'commande.remboursee', numero, { montant, refund_id: refund.id, motif, stock_rendu: stockRendu });
+        journaliser(AUTH.login, ROLE, 'commande.remboursee', numero, { montant, refund_id: refund.id, motif, stock_rendu: stockRendu, sans_retour: sansRetour, retour_etat: o.retour_etat || null });
         let mailOk = false;
         if (o.client_email) {
           const inner = '<h1 style="font-weight:normal;font-size:27px;margin:0 0 12px">Votre remboursement est en route</h1>' +
@@ -1862,6 +1939,10 @@ const server = http.createServer(async (req, res) => {
           let payeeDeja = false;
           try { const cur = await sb('orders?numero=eq.'+encodeURIComponent(numero)+'&select=payment_status'); payeeDeja = !!(cur && cur[0] && /^pay/i.test(String(cur[0].payment_status || ''))); } catch(_){}
           if (payeeDeja) return sendJSON(res,{ ok:false, error:'statut_invalide', detail:'Une commande payée ne peut pas repasser « En attente paiement ».' }, 400);
+        }
+        // Les statuts de retour portent une decision (stock, e-mail) : uniquement via /retour
+        if (d.statut !== undefined && /^retour/i.test(String(d.statut).normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
+          return sendJSON(res,{ ok:false, error:'statut_invalide', detail:'Les retours se gèrent depuis la fiche commande (« Déclarer un retour » / « Retour reçu »).' }, 400);
         }
         // Atelier : seuls le statut, le suivi colis et les notes sont modifiables
         if (ROLE === 'atelier') {
@@ -2449,6 +2530,8 @@ const server = http.createServer(async (req, res) => {
         await essai('4. Expédition + facture PDF (client) + archive interne', async () => { const r = await sendInvoiceForOrder({ ...base, invoice_number:'F-EP-TEST-0000', statut:'Expédiée', transporteur:'Colissimo', suivi:'6A12345678901' }); return r.client; });
         await essai('5. Commande livrée', () => notifyStatus({ ...base, transporteur:'Colissimo', suivi:'6A12345678901' }, numero, 'Livrée'));
         await essai('6. Commande annulée', () => notifyStatus(base, numero, 'Annulée'));
+        await essai('6b. Retour : mode d\'emploi envoyé à la cliente', () => mailRetourAttendu(base, numero));
+        await essai('6c. Retour reçu, remboursement à suivre', () => mailRetourRecu(base, numero));
         await essai('7. Réinitialisation du mot de passe', () => sendMail(to, 'Réinitialisation de votre mot de passe — ELLIA PARIS',
           emailLayout('<h1 style="font-weight:normal;font-size:27px;margin:0 0 14px">Réinitialiser votre mot de passe</h1><p style="margin:0 0 14px">Bonjour,</p><p style="margin:0 0 14px">Vous avez demandé à réinitialiser le mot de passe de votre compte ELLIA PARIS. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p><p style="margin:26px 0"><a href="https://ellia-paris.fr/connexion.html" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;padding:14px 30px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Choisir un nouveau mot de passe</a></p><p style="margin:0 0 8px;font-size:13px;color:#6a655d;font-family:Arial,sans-serif">Ce lien est valable 1 heure. Si vous n\'êtes pas à l\'origine de cette demande, ignorez simplement cet e-mail — votre mot de passe restera inchangé.</p><p style="margin:24px 0 0;font-size:14px;color:#56524c;font-family:Arial,sans-serif">Avec soin,<br/>ELLIA PARIS</p>', 'Choisissez un nouveau mot de passe — lien valable 1 heure')));
         await essai('8. Accusé de réception d\'un message de contact', () => sendMail(to, 'Votre message a bien été reçu — ELLIA PARIS',

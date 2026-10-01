@@ -17,6 +17,7 @@
     ]
   };
   const STATUTS=['En attente paiement','Nouvelle','En préparation','Prête à expédier','Expédiée','Livrée','Annulée','Remboursée'];
+  const STATUTS_RETOUR=['Retour attendu','Retour reçu']; // poses uniquement depuis la fiche commande
 
   // Garde anti-crash : le role "atelier" recoit les stats/commandes SANS champs financiers
   const eur=n=>(n==null||isNaN(Number(n)))?'—':Number(n).toLocaleString('fr-FR')+' €';
@@ -28,6 +29,7 @@
     if(n.startsWith('prete')||n.startsWith('prête'))return'b-prep';
     if(n.startsWith('exped'))return'b-exp';
     if(n.startsWith('livr'))return'b-livree';
+    if(n.startsWith('retour'))return'b-retour';
     if(n.startsWith('annul'))return'b-cancel';
     if(n.startsWith('rembours'))return'b-cancel';
     return'b-prep';}
@@ -143,6 +145,7 @@
     'exped':    o=>norm(o.statut).startsWith('exped'),
     'livr':     o=>norm(o.statut).startsWith('livr'),
     'attente':  o=>norm(o.statut).includes('attente paiement'),
+    'retour':   o=>norm(o.statut).startsWith('retour'),
     'fin':      o=>{ const s=norm(o.statut); return s.startsWith('annul')||s.startsWith('rembours'); }
   };
   function majStatutVisuel(id, statut){
@@ -192,6 +195,7 @@
         const id = sel.dataset.rowStatut, statut = sel.value;
         const o = ORDERS.find(x=>x.id===id);
         const ancien = (o && o.statut) ? o.statut : sel.value;
+        if(norm(ancien).startsWith('retour')){ alert('Un retour est en cours sur cette commande : gérez-le depuis la fiche (« Retour reçu », « Rembourser »).'); sel.value=ancien; return; }
         // Le changement de statut declenche un EMAIL au client : on confirme.
         if(!confirm('Passer la commande '+id+' en « '+statut+' » ?\nUn e-mail sera envoyé au client.')){
           sel.value = ancien; return;
@@ -255,6 +259,94 @@
     const s=document.getElementById('ordSearch'); if(s) s.addEventListener('input',()=>{ SEARCH=s.value||''; applyFilter(); });
     const x=document.getElementById('ordExport'); if(x) x.addEventListener('click', exportCsv);
   })();
+  /* ───────── Retour & remboursement : un vrai suivi ─────────
+     1. La pochette doit-elle revenir ?  → « Déclarer un retour » (e-mail mode d'emploi à la cliente)
+                                         → ou « Rembourser sans retour » (colis jamais parti, geste commercial)
+     2. Colis revenu → « Retour reçu » : remise en vente (stock +1) ou non revendable
+     3. Puis seulement « Rembourser » (Stripe + e-mail)                                  */
+  function dateCourte(v){ if(!v) return ''; const d=new Date(v); return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function blocRetour(o){
+    const rs = o.retour_statut || '';
+    const rembourse = /^rembours/i.test(o.payment_status||'') || !!o.refund_id;
+    let etape='', corps='';
+    if (rembourse) {
+      etape = 'Remboursée';
+      corps = '<p class="rt-p">Remboursement effectué'+(o.refunded_at?' le '+dateCourte(o.refunded_at):'')+(o.refund_amount!=null?' — '+eur(o.refund_amount):'')+'.'+
+        (rs==='recu' ? ' Pochette retournée le '+dateCourte(o.retour_recu_at)+' ('+(o.retour_etat==='revendable'?'remise en vente':'non revendable')+').' : rs==='sans_retour' ? ' Sans retour de la pochette.' : '')+'</p>';
+    } else if (rs==='attendu') {
+      etape = 'Retour attendu';
+      corps = '<p class="rt-p">Retour déclaré le <b>'+dateCourte(o.retour_demande_at)+'</b>'+(o.retour_note?' — '+esc(o.retour_note):'')+'. La cliente a reçu le mode d\'emploi par e-mail. <b>On attend la pochette</b> avant de rembourser.</p>'+
+        '<div class="rt-grid">'+
+          '<label class="rt-opt"><input type="radio" name="rtEtat" value="revendable" checked> <span><b>Remise en vente</b><small>Pièce intacte, non gravée : le stock est crédité</small></span></label>'+
+          '<label class="rt-opt"><input type="radio" name="rtEtat" value="non_revendable"> <span><b>Non revendable</b><small>Gravée, abîmée, portée : stock inchangé</small></span></label>'+
+        '</div>'+
+        '<input id="rtNote" placeholder="Note de contrôle (état, emballage, suivi du colis retour…)">'+
+        '<div class="rt-actions"><button type="button" id="rtRecu" class="rt-btn primary">Retour reçu</button><button type="button" id="rtAnnuler" class="rt-btn ghost">Annuler le retour</button></div>';
+    } else if (rs==='recu') {
+      etape = 'Retour reçu — à rembourser';
+      corps = '<p class="rt-p">Pochette reçue le <b>'+dateCourte(o.retour_recu_at)+'</b> — '+(o.retour_etat==='revendable'?'remise en vente (stock crédité)':'non revendable')+(o.retour_note?' — '+esc(o.retour_note):'')+'.</p>'+
+        '<input id="omRefundMotif" placeholder="Motif (rétractation, défaut…)">'+
+        '<div class="rt-actions"><button type="button" id="omRefund" class="rt-btn danger">Rembourser '+eur(o.total)+'</button></div>';
+    } else {
+      etape = 'Aucun retour en cours';
+      corps = '<p class="rt-p">La cliente souhaite être remboursée ? <b>La pochette doit d\'abord revenir.</b> Déclarez le retour : elle reçoit l\'adresse et la marche à suivre, et le remboursement n\'est possible qu\'après réception.</p>'+
+        '<input id="rtNote" placeholder="Motif indiqué par la cliente (rétractation, défaut…)">'+
+        '<div class="rt-actions"><button type="button" id="rtAttendre" class="rt-btn primary">Déclarer un retour</button><button type="button" id="rtSans" class="rt-btn ghost">Rembourser sans retour…</button></div>'+
+        '<div id="rtSansBloc" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed #ecdfbd">'+
+          '<p class="rt-p">Uniquement si la pochette n\'a <b>jamais été expédiée</b>, est perdue par le transporteur, ou pour un geste commercial.</p>'+
+          '<input id="omRefundMotif" placeholder="Motif (obligatoire)">'+
+          '<label class="rt-check"><input type="checkbox" id="omRefundStock" '+(/exped|livr/.test(norm(o.statut))?'':'checked')+'> Rendre la pochette au stock (colis jamais parti)</label>'+
+          '<div class="rt-actions"><button type="button" id="omRefund" class="rt-btn danger">Rembourser '+eur(o.total)+' sans retour</button></div>'+
+        '</div>';
+    }
+    return '<div id="omRefundBloc" class="rt-bloc"><div class="rt-head"><span>Retour &amp; remboursement</span><span class="rt-etape">'+etape+'</span></div>'+corps+'<div id="omRefundOut" class="rt-out"></div></div>';
+  }
+  function bindRetour(o){
+    const out = ()=>document.getElementById('omRefundOut');
+    const post = async (url, body)=>{ const r = await fetch(url,{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }); const d = await r.json().catch(()=>({})); return { ok: r.ok && d.ok, d, status: r.status }; };
+    const fail = (b, label, d, status)=>{ const x=out(); x.style.color='#b1432f'; x.textContent = d.detail || d.error || ('Erreur '+status); b.disabled=false; b.textContent=label; };
+    const done = (txt)=>{ const x=out(); x.style.color='#2f7d4f'; x.textContent = txt; setTimeout(()=>openOrder(o.id), 1800); };
+    const bA = document.getElementById('rtAttendre');
+    if (bA) bA.addEventListener('click', async ()=>{
+      if (!confirm('Déclarer un retour pour '+o.id+' ?\nLa cliente recevra par e-mail l\'adresse de retour et la marche à suivre.')) return;
+      bA.disabled = true; bA.textContent = 'Envoi…';
+      const r = await post('/api/admin/orders/'+encodeURIComponent(o.id)+'/retour', { action:'attendre', note: (document.getElementById('rtNote')||{}).value||'' });
+      if (!r.ok) return fail(bA,'Déclarer un retour', r.d, r.status);
+      done('✓ Retour déclaré'+(r.d.mail_client?' · cliente prévenue':' · e-mail non envoyé'));
+    });
+    const bS = document.getElementById('rtSans');
+    if (bS) bS.addEventListener('click', ()=>{ const z=document.getElementById('rtSansBloc'); z.style.display = z.style.display==='none' ? '' : 'none'; });
+    const bR = document.getElementById('rtRecu');
+    if (bR) bR.addEventListener('click', async ()=>{
+      const etat = (document.querySelector('input[name=rtEtat]:checked')||{}).value;
+      if (!confirm('Confirmer la réception du retour '+o.id+' ('+(etat==='revendable'?'remise en vente, stock +1':'non revendable')+') ?\nLa cliente sera prévenue.')) return;
+      bR.disabled = true; bR.textContent = 'Enregistrement…';
+      const r = await post('/api/admin/orders/'+encodeURIComponent(o.id)+'/retour', { action:'recu', etat, note: (document.getElementById('rtNote')||{}).value||'' });
+      if (!r.ok) return fail(bR,'Retour reçu', r.d, r.status);
+      done('✓ Retour reçu'+(r.d.stock_rendu?' · stock crédité':'')+(r.d.mail_client?' · cliente prévenue':''));
+    });
+    const bX = document.getElementById('rtAnnuler');
+    if (bX) bX.addEventListener('click', async ()=>{
+      if (!confirm('Annuler le retour de '+o.id+' ? La commande repasse en « Livrée ».')) return;
+      const r = await post('/api/admin/orders/'+encodeURIComponent(o.id)+'/retour', { action:'annuler', note: (document.getElementById('rtNote')||{}).value||'' });
+      if (!r.ok) return fail(bX,'Annuler le retour', r.d, r.status);
+      done('✓ Retour annulé');
+    });
+    const rBtn = document.getElementById('omRefund');
+    if (rBtn) rBtn.addEventListener('click', async ()=>{
+      const motif = ((document.getElementById('omRefundMotif')||{}).value||'').trim();
+      const sans = !!document.getElementById('rtSansBloc');
+      if (sans && !motif) { const x=out(); x.style.color='#b1432f'; x.textContent='Indiquez le motif du remboursement sans retour.'; return; }
+      if (!confirm('Rembourser '+eur(o.total)+' à '+(o.client||'la cliente')+(sans?' SANS retour de la pochette':'')+' ?\nCette opération est définitive chez Stripe.')) return;
+      const label = rBtn.textContent; rBtn.disabled = true; rBtn.textContent = 'Remboursement en cours…';
+      const body = { motif }; if (sans) { body.sans_retour = true; body.restock = !!(document.getElementById('omRefundStock')||{}).checked; }
+      const r = await post('/api/admin/orders/'+encodeURIComponent(o.id)+'/refund', body);
+      if (!r.ok) return fail(rBtn,label, r.d, r.status);
+      const x=out(); x.style.color='#2f7d4f'; x.textContent = '✓ '+eur(r.d.montant)+' remboursés (Stripe '+r.d.refund_id+')'+(r.d.stock_rendu?' · stock rendu':'')+(r.d.mail_client?' · cliente prévenue':' · e-mail non envoyé');
+      rBtn.textContent = 'Remboursée';
+      setTimeout(()=>{ location.reload(); }, 2500);
+    });
+  }
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   /* Un aperçu n'est affichable que s'il est une image encodée, rien d'autre.
      Double barrière avec la validation serveur : si l'une cède, l'autre tient. */
@@ -566,32 +658,10 @@
         '<button class="ord-save" id="omSave">Enregistrer</button>'+
         '<span class="ord-saved" id="omSaved" style="display:none">✓ Enregistré</span>'+
       '</div>'+
-      // Remboursement : admin seulement, commande payee et non remboursee
-      ((window.__role==='admin' && /^pay/i.test(o.payment_status||'')) ?
-        '<div id="omRefundBloc" style="margin-top:22px;padding:16px 18px;border:1px solid #ecdfbd;background:#fdf9ef">'+
-          '<div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gris2);margin-bottom:8px">Remboursement</div>'+
-          '<p style="font-size:13px;color:var(--gris);line-height:1.6;margin:0 0 12px">Rembourse intégralement le paiement chez Stripe ('+eur(o.total)+'), passe la commande en « Remboursée », rend la pochette au stock et prévient la cliente par e-mail.</p>'+
-          '<input id="omRefundMotif" placeholder="Motif (rétractation, défaut, geste commercial…)" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--ligne);font-size:14px;margin-bottom:10px">'+
-          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px"><input type="checkbox" id="omRefundStock" checked> Rendre la pochette au stock (décochez si la pièce est gravée ou non retournée)</label>'+
-          '<button type="button" id="omRefund" style="padding:11px 20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid #b1432f;background:#b1432f;color:#fff;cursor:pointer">Rembourser '+eur(o.total)+'</button>'+
-          '<div id="omRefundOut" style="margin-top:10px;font-size:13px"></div>'+
-        '</div>' : '');
+      // Retour & remboursement : admin seulement, commande payee
+      (window.__role==='admin' && (/^pay/i.test(o.payment_status||'') || /^rembours/i.test(o.payment_status||'')) ? blocRetour(o) : '');
     document.getElementById('omClose').addEventListener('click',closeOrder);
-    const rBtn = document.getElementById('omRefund');
-    if (rBtn) rBtn.addEventListener('click', async ()=>{
-      const motif = (document.getElementById('omRefundMotif').value||'').trim();
-      if (!confirm('Rembourser '+eur(o.total)+' à '+(o.client||'la cliente')+' ?\nCette opération est définitive chez Stripe.')) return;
-      rBtn.disabled = true; rBtn.textContent = 'Remboursement en cours…';
-      const out = document.getElementById('omRefundOut');
-      try {
-        const r = await fetch('/api/admin/orders/'+encodeURIComponent(o.id)+'/refund', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ motif, restock: document.getElementById('omRefundStock').checked }) });
-        const d = await r.json().catch(()=>({}));
-        if (!r.ok || !d.ok) { out.style.color='#b1432f'; out.textContent = d.detail || d.error || ('Erreur '+r.status); rBtn.disabled=false; rBtn.textContent='Rembourser '+eur(o.total); return; }
-        out.style.color='#2f7d4f'; out.textContent = '✓ '+eur(d.montant)+' remboursés (Stripe '+d.refund_id+')'+(d.stock_rendu?' · stock rendu':'')+(d.mail_client?' · cliente prévenue':' · e-mail non envoyé');
-        rBtn.textContent = 'Remboursée';
-        setTimeout(()=>{ location.reload(); }, 2500);
-      } catch(e){ out.style.color='#b1432f'; out.textContent='Erreur réseau.'; rBtn.disabled=false; rBtn.textContent='Rembourser '+eur(o.total); }
-    });
+    bindRetour(o);
     if (window.__role === 'admin') chargerJournal(o.id);
     const omE = document.getElementById('omEdit');
     if (omE) omE.addEventListener('click',()=>openEditMode(o.id));

@@ -248,6 +248,25 @@ async function main(){
   const stockAvantRemb = mock.db.products[0].stock;
   const cRemb = payees[25];
   ok('les identifiants Stripe sont mémorisés au paiement', !!enBase.find(o => o.numero === cRemb.numero).stripe_payment_intent);
+  // 1) Qui dit remboursement dit retour : sans decision, le serveur pose la question
+  const rf0 = await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', { motif: 'test banc' }, A);
+  ok('rembourser sans avoir tranché la question du retour est refusé (400)', rf0.status === 400 && rf0.json.error === 'retour_non_renseigne', rf0.status + ' ' + rf0.text.slice(0, 120));
+  // 2) Retour declare → statut « Retour attendu », e-mail mode d'emploi, stock inchange
+  const rt1 = await api('POST', '/api/admin/orders/' + cRemb.numero + '/retour', { action: 'attendre', note: 'rétractation' }, A);
+  await sleep(300);
+  let oT = enBase.find(o => o.numero === cRemb.numero);
+  ok('déclarer un retour → « Retour attendu » + e-mail d\'instructions à la cliente', rt1.status === 200 && rt1.json.ok && oT.statut === 'Retour attendu' && oT.retour_statut === 'attendu' && mailsPour(cRemb.payload.client_email, /votre retour/).length === 1 && mock.db.products[0].stock === stockAvantRemb, rt1.status + ' ' + rt1.text.slice(0, 120));
+  ok('le mode d\'emploi de retour contient l\'adresse et le n° de commande', (mailsPour(cRemb.payload.client_email, /votre retour/)[0] || { html: '' }).html.includes(cRemb.numero) && /Maisons-Alfort|retours/i.test((mailsPour(cRemb.payload.client_email, /votre retour/)[0] || { html: '' }).html));
+  ok('rembourser pendant que le retour est attendu est refusé (409)', (await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', { motif: 'x' }, A)).status === 409);
+  ok('poser « Retour reçu » depuis le menu de statut est refusé (passe par la fiche)', (await api('PATCH', '/api/orders/' + cRemb.numero, { statut: 'Retour reçu' }, A)).status === 400);
+  ok('un second retour sur la même commande est refusé (409)', (await api('POST', '/api/admin/orders/' + cRemb.numero + '/retour', { action: 'attendre' }, A)).status === 409);
+  ok('« Retour reçu » sans état (revendable ou non) est refusé', (await api('POST', '/api/admin/orders/' + cRemb.numero + '/retour', { action: 'recu' }, A)).status === 400);
+  // 3) Colis revenu, piece intacte → stock credite, cliente prevenue
+  const rt2 = await api('POST', '/api/admin/orders/' + cRemb.numero + '/retour', { action: 'recu', etat: 'revendable', note: 'écrin intact' }, A);
+  await sleep(300);
+  oT = enBase.find(o => o.numero === cRemb.numero);
+  ok('retour reçu (revendable) → « Retour reçu », stock crédité, e-mail à la cliente', rt2.status === 200 && rt2.json.stock_rendu === true && oT.statut === 'Retour reçu' && oT.retour_etat === 'revendable' && mock.db.products[0].stock === stockAvantRemb + cRemb.qte && mailsPour(cRemb.payload.client_email, /retour reçu/).length === 1, rt2.status + ' ' + rt2.text.slice(0, 120));
+  // 4) Seulement maintenant : remboursement (le stock n'est PAS rendu deux fois)
   const rf = await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', { motif: 'test banc', restock: true }, A);
   await sleep(300);
   const oR = enBase.find(o => o.numero === cRemb.numero);
@@ -255,8 +274,21 @@ async function main(){
   ok('remboursement enregistré chez Stripe (payment_intent)', fs.existsSync(path.join(OUT, 'refunds.jsonl')) && fs.readFileSync(path.join(OUT, 'refunds.jsonl'), 'utf8').includes(oR.stripe_payment_intent));
   ok('second remboursement refusé (409)', (await api('POST', '/api/admin/orders/' + cRemb.numero + '/refund', {}, A)).status === 409);
   ok('remboursement d\'une commande non payée refusé', (await api('POST', '/api/admin/orders/' + abandonnees[1].numero + '/refund', {}, A)).status === 400);
+  // Remboursement SANS retour (colis jamais parti) : decision explicite + stock au choix
+  const cSans = payees[26];
+  const stockAvantSans = mock.db.products[0].stock;
+  const rfS = await api('POST', '/api/admin/orders/' + cSans.numero + '/refund', { motif: 'colis jamais expédié', sans_retour: true, restock: true }, A);
+  await sleep(300);
+  const oS = enBase.find(o => o.numero === cSans.numero);
+  ok('remboursement sans retour (explicite) → Remboursée, stock rendu, trace « sans_retour »', rfS.status === 200 && rfS.json.ok && oS.statut === 'Remboursée' && oS.retour_statut === 'sans_retour' && mock.db.products[0].stock === stockAvantSans + cSans.qte, rfS.status + ' ' + rfS.text.slice(0, 120));
+  // Retour annule → la commande redevient Livree
+  const cAnn = payees[27];
+  await api('POST', '/api/admin/orders/' + cAnn.numero + '/retour', { action: 'attendre' }, A);
+  const rtA = await api('POST', '/api/admin/orders/' + cAnn.numero + '/retour', { action: 'annuler', note: 'la cliente garde la pochette' }, A);
+  await sleep(200);
+  ok('retour annulé → commande de nouveau « Livrée »', rtA.status === 200 && enBase.find(o => o.numero === cAnn.numero).statut === 'Livrée');
   const statsR = await api('GET', '/api/stats', undefined, A);
-  ok('le chiffre d\'affaires exclut la commande remboursée (et l\'annulée)', Math.abs(Number(statsR.json.ca_total) - (caAttendu - cRemb.total - payees[30].total)) < 0.05, statsR.json.ca_total + ' attendu ' + (caAttendu - cRemb.total - payees[30].total));
+  ok('le chiffre d\'affaires exclut la commande remboursée (et l\'annulée)', Math.abs(Number(statsR.json.ca_total) - (caAttendu - cRemb.total - cSans.total - payees[30].total)) < 0.05, statsR.json.ca_total + ' attendu ' + (caAttendu - cRemb.total - cSans.total - payees[30].total));
   // Transporteur inconnu -> Autre
   await api('PATCH', '/api/orders/' + payees[22].numero, { transporteur: '<script>alert(1)</script>', suivi: 'X1' }, A);
   ok('transporteur hors liste → remplacé par « Autre »', enBase.find(o => o.numero === payees[22].numero).transporteur === 'Autre');
@@ -300,6 +332,7 @@ async function main(){
   ok('connexion comptable et atelier', lc.status === 200 && la.status === 200);
   ok('comptable : lecture des commandes et compta OK', (await api('GET', '/api/orders', undefined, C)).status === 200 && (await api('GET', '/api/admin/compta', undefined, C)).status === 200);
   ok('comptable : modification de statut refusée (403)', (await api('PATCH', '/api/orders/' + payees[2].numero, { statut: 'Livrée' }, C)).status === 403);
+  ok('atelier et comptable : gestion des retours refusée (403)', (await api('POST', '/api/admin/orders/' + payees[28].numero + '/retour', { action: 'attendre' }, T)).status === 403 && (await api('POST', '/api/admin/orders/' + payees[28].numero + '/retour', { action: 'attendre' }, C)).status === 403);
   ok('comptable : gestion des comptes refusée', (await api('GET', '/api/admin/users', undefined, C)).status === 403);
   const oa = await api('GET', '/api/orders', undefined, T);
   ok('atelier : voit les commandes SANS montants', oa.status === 200 && oa.json.every(o => o.montant_total === undefined && o.promo_discount === undefined), JSON.stringify(oa.json[0] || {}).slice(0, 150));

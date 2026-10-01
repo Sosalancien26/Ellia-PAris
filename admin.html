@@ -241,6 +241,7 @@
   .b-exp{background:var(--paper-2);color:#4c473f}
   .b-livree{background:var(--ok-bg);color:var(--ok)}
   .b-cancel{background:#f1efe9;color:#9a948a;text-decoration:line-through;text-decoration-color:#c8c2b6}
+  .b-retour{background:#efe6f3;color:#5e3a74}
 
   /* ── Filtres & petits boutons ── */
   .of,.hist-filter{border-radius:var(--r);font-size:11.5px;letter-spacing:.04em;padding:7px 12px;border:1px solid var(--hair);background:var(--surface);color:var(--txt-2);box-shadow:none;transition:.15s;transform:none}
@@ -343,6 +344,27 @@
     .orow .go{display:none}
     .ord-table td,.ord-table th{padding:9px 10px}
   }
+  /* Retour & remboursement (fiche commande) */
+  .rt-bloc{margin-top:22px;padding:16px 18px;border-radius:var(--r);background:#fbf8f1;border:1px solid #ecdfbd}
+  .rt-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-2)}
+  .rt-etape{font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:0;font-size:14px;color:var(--txt)}
+  .rt-p{font-size:13px;color:var(--txt-2);line-height:1.6;margin:0 0 12px}
+  .rt-bloc input[type=text],.rt-bloc input:not([type]){width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--hair);border-radius:var(--r);font-family:var(--sans);font-size:13.5px;background:var(--surface);margin-bottom:10px}
+  .rt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .rt-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--hair);border-radius:var(--r);background:var(--surface);cursor:pointer;font-size:13px}
+  .rt-opt:has(input:checked){border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+  .rt-opt input{margin-top:3px}
+  .rt-opt small{display:block;color:var(--txt-3);font-size:11.5px;margin-top:2px}
+  .rt-check{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px}
+  .rt-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .rt-btn{font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 18px;border-radius:var(--r);cursor:pointer;border:1px solid var(--hair);background:var(--surface);color:var(--txt);transition:.15s}
+  .rt-btn.primary{background:var(--ink);color:#f3f1ec;border-color:var(--ink)}
+  .rt-btn.primary:hover{background:var(--ink-3)}
+  .rt-btn.danger{background:#b1432f;color:#fff;border-color:#b1432f}
+  .rt-btn.ghost{background:transparent}
+  .rt-btn:disabled{opacity:.6;cursor:wait}
+  .rt-out{margin-top:10px;font-size:13px}
+  @media (max-width:600px){.rt-grid{grid-template-columns:1fr}}
   /* ── Tablette & mobile : barre latérale → rail horizontal ── */
   @media (max-width:1000px){
     :root{--side:0px}
@@ -435,7 +457,7 @@
 
     <div class="card" id="cardMails">
       <h3>Jeu d'essai des e-mails</h3>
-      <div class="csub">Envoie les 11 modèles (commande, expédition + facture PDF, statuts, mot de passe, contact, avis, relance, alerte) avec des données fictives</div>
+      <div class="csub">Envoie les 13 modèles (commande, expédition + facture PDF, statuts, retour, mot de passe, contact, avis, relance, alerte) avec des données fictives</div>
       <p style="font-size:13.5px;color:var(--gris);line-height:1.7;margin:12px 0 16px;max-width:640px">
         Rien n'est écrit en base et aucun numéro de facture n'est consommé. Les e-mails « internes »
         (nouvelle commande, archive facture, alerte) partent vers la boîte de la maison (variable CONTACT_TO).
@@ -467,6 +489,7 @@
         <button class="of" data-f="exped">Expédiées</button>
         <button class="of" data-f="livr">Livrées</button>
         <button class="of" data-f="attente">En attente de paiement</button>
+        <button class="of" data-f="retour">Retours</button>
         <button class="of" data-f="fin">Annulées · remboursées</button>
       </div>
       <div class="tbl-wrap">
