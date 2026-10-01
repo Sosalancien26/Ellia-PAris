@@ -135,80 +135,55 @@
   }
   let ORDERS=[], FILTER='', SEARCH='';
   // Mode d'affichage des commandes : 'list' (defaut) ou 'pipeline' — memorise en localStorage
-  let VIEW='list';
-  try{ if(localStorage.getItem('ellia_admin_view')==='pipeline') VIEW='pipeline'; }catch(_){}
-  function ocard(o){
-    const waiting = norm(o.statut).includes('attente paiement');
-    const rowClass = waiting ? 'ord-row ord-waiting' : 'ord-row';
-    // Résumé gravure directement visible dans la liste (précieux pour l'atelier)
+  // Filtres de la file de travail : chaque bouton = un predicat (une commande n'est jamais perdue)
+  const FILTRES = {
+    '':         o=>true,
+    'nouvelle': o=>norm(o.statut).startsWith('nouvelle'),
+    'prep':     o=>{ const s=norm(o.statut); return s.startsWith('en prep')||s.startsWith('prete')||s.startsWith('prête'); },
+    'exped':    o=>norm(o.statut).startsWith('exped'),
+    'livr':     o=>norm(o.statut).startsWith('livr'),
+    'attente':  o=>norm(o.statut).includes('attente paiement'),
+    'fin':      o=>{ const s=norm(o.statut); return s.startsWith('annul')||s.startsWith('rembours'); }
+  };
+  function majStatutVisuel(id, statut){
+    const sel=document.querySelector('[data-row-statut="'+id+'"]');
+    if(sel){ sel.value=statut; sel.className='statut row-statut '+badgeClass(statut); }
+    const tr=document.querySelector('tr.orow[data-id="'+id+'"]');
+    if(tr) tr.classList.toggle('attente', norm(statut).includes('attente paiement'));
+  }
+  function orow(o){
+    const attente = norm(o.statut).includes('attente paiement');
     const grav = (o.initiales && o.initiales !== '—')
       ? '<span class="grav-chip">✒ <b>'+esc(o.initiales)+'</b>'+(o.finition && o.finition!=='—' ? ' · '+esc(o.finition) : '')+(o.emplacement ? ' · '+esc(o.emplacement) : '')+'</span>'
-      : '<span class="grav-chip none">Sans gravure</span>';
-    const avatar = '<span class="orow-avatar">'+esc((o.client||'?').trim().charAt(0).toUpperCase()||'?')+'</span>';
-    // Statut modifiable directement depuis la liste (sans ouvrir la fiche)
-    // Si le statut en base n'est pas dans le referentiel, on l'ajoute pour ne pas afficher/ecrire un faux statut
+      : '<span class="grav-chip none">—</span>';
     const inRef = STATUTS.some(s=>norm(s)===norm(o.statut));
     const sOpts = (inRef?'':'<option selected>'+esc(o.statut)+'</option>')+
       STATUTS.map(s=>'<option'+(norm(s)===norm(o.statut)?' selected':'')+'>'+s+'</option>').join('');
-    return '<div class="'+rowClass+'" data-id="'+esc(o.id)+'">'+
-      avatar+
-      '<div class="orow-l"><div class="orow-top"><span class="oid">'+esc(o.id)+'</span><span class="badge '+badgeClass(o.statut)+'" data-badge="'+esc(o.id)+'">'+esc(o.statut)+'</span>'+(o.is_gift ? '<span class="badge" style="background:#f5ead2;color:#7a5c10;border-color:#e0cfa0" title="Commande cadeau — bon de livraison sans prix">Cadeau</span>' : '')+'</div>'+
-        '<div class="orow-sub"><b>'+esc(o.client||'')+'</b> · '+esc(o.date)+'</div>'+
-        '<div style="margin-top:2px">'+grav+'</div></div>'+
-      '<div class="orow-r"><span class="orow-total">'+(o.total==null?'—':eur(o.total))+'</span>'+
-        '<select class="statut row-statut" data-row-statut="'+esc(o.id)+'" title="Changer le statut">'+sOpts+'</select>'+
-        '<span class="orow-go">Voir le détail ›</span></div>'+
-    '</div>';
+    return '<tr class="orow'+(attente?' attente':'')+'" data-id="'+esc(o.id)+'">'+
+      '<td class="num">'+esc(o.id)+(o.is_gift ? ' <span class="tag-cadeau" title="Commande cadeau — bon de livraison sans prix">Cadeau</span>' : '')+'</td>'+
+      '<td class="cli"><b>'+esc(o.client||'—')+'</b><small>'+esc(o.email||'')+'</small></td>'+
+      '<td class="dt hide-m">'+esc(o.date||'')+'</td>'+
+      '<td class="grav hide-m">'+grav+'</td>'+
+      '<td class="tot">'+(o.total==null?'—':eur(o.total))+'</td>'+
+      '<td class="st"><select class="statut row-statut '+badgeClass(o.statut)+'" data-row-statut="'+esc(o.id)+'" title="Changer le statut">'+sOpts+'</select></td>'+
+      '<td class="go" aria-hidden="true">›</td>'+
+    '</tr>';
   }
   function applyFilter(){
-    let list = FILTER ? ORDERS.filter(o=>norm(o.statut).includes(FILTER)) : ORDERS.slice();
+    let list = ORDERS.filter(FILTRES[FILTER] || FILTRES['']);
     if(SEARCH){
       const q=SEARCH.toLowerCase();
       list = list.filter(o => (o.id||'').toLowerCase().includes(q) || (o.client||'').toLowerCase().includes(q) || (o.email||'').toLowerCase().includes(q));
     }
     const box=document.getElementById('ordersBody');
-    const pbox=document.getElementById('ordersPipeline');
-    const head=document.getElementById('ordHead');
-    if(VIEW==='pipeline' && pbox){
-      box.style.display='none'; pbox.style.display='grid'; if(head) head.style.display='none';
-      renderPipeline(list,pbox);
-      return;
-    }
-    if(pbox) pbox.style.display='none';
-    if(head) head.style.display = list.length ? '' : 'none';
-    box.style.display='';
-    box.innerHTML = list.length ? list.map(ocard).join('') : '<div class="ord-empty">Aucune commande dans cette vue.</div>';
+    const empty=document.getElementById('ordersEmpty');
+    box.innerHTML = list.map(orow).join('');
+    if(empty) empty.style.display = list.length ? 'none' : '';
     bindRows(box);
-  }
-  /* Vue Pipeline : 3 colonnes atelier → expédition (cartes ocard reutilisees) */
-  function renderPipeline(list,pbox){
-    const lb=document.getElementById('ordersBody'); if(lb) lb.innerHTML='';  // evite badges/listeners fantomes
-    const now=Date.now(), SEPT_JOURS=7*24*3600*1000;
-    const estRecent = o => { const d=new Date(o.date||''); return isNaN(d.getTime()) ? true : (now-d.getTime())<=SEPT_JOURS; };
-    const cols=[
-      { titre:'À graver', test:o=>norm(o.statut).startsWith('nouvelle') },
-      { titre:'À expédier', test:o=>{ const s=norm(o.statut); return s.startsWith('en prep')||s.startsWith('prete')||s.startsWith('prête'); } },
-      { titre:'Expédiées (7 j)', test:o=>norm(o.statut).startsWith('exped') && estRecent(o) },
-      // 4e colonne : AUCUNE commande ne doit disparaitre de la vue
-      // (en attente de paiement, livrees, annulees, remboursees, expediees anciennes)
-      { titre:'Autres', test:o=>{
-          const s=norm(o.statut);
-          if(s.startsWith('nouvelle') || s.startsWith('en prep') || s.startsWith('prete') || s.startsWith('prête')) return false;
-          if(s.startsWith('exped') && estRecent(o)) return false;
-          return true;
-        } }
-    ];
-    pbox.innerHTML = cols.map(c=>{
-      const rows=list.filter(c.test);
-      return '<div class="pipe-col"><div class="pipe-head"><span>'+c.titre+'</span><span class="pipe-count">'+rows.length+'</span></div>'+
-        (rows.length ? rows.map(ocard).join('') : '<div class="pipe-empty">Aucune commande</div>')+
-      '</div>';
-    }).join('');
-    bindRows(pbox);
   }
   /* Bind clic fiche + select statut inline sur les cartes d'un conteneur (liste OU pipeline) */
   function bindRows(box){
-    box.querySelectorAll('.ord-row').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
+    box.querySelectorAll('tr.orow').forEach(r=>r.addEventListener('click',()=>openOrder(r.dataset.id)));
     // Changement de statut inline : ne pas ouvrir la fiche quand on clique le select
     box.querySelectorAll('.row-statut').forEach(sel=>{
       sel.addEventListener('click', e=>e.stopPropagation());
@@ -226,7 +201,7 @@
           .then(r=>{
             if(!r.ok) throw new Error(r.status===403?'Droits insuffisants.':'Erreur serveur ('+r.status+')');
             if(o) o.statut = statut;
-            const b = document.querySelector('[data-badge="'+id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+            majStatutVisuel(id, statut);
             updateCounts(); updateDashAlert(); applyFilter();
           })
           .catch(err=>{ sel.value = ancien; alert('Changement non enregistré : '+(err.message||'erreur réseau')); })
@@ -235,13 +210,11 @@
     });
   }
   function updateCounts(){
-    const c=k=>ORDERS.filter(o=>norm(o.statut).includes(k)).length;
-    const map={'':ORDERS.length,'nouvelle':c('nouvelle'),'prep':c('prep'),'exped':c('exped'),'livr':c('livr')};
     document.querySelectorAll('#ordFilters .of').forEach(b=>{
-      const base = b.dataset.label || b.textContent.replace(/\s*\(\d+\)$/,'');
+      const base = b.dataset.label || b.textContent.replace(/\s*\d+$/,'').trim();
       b.dataset.label = base;
-      const n = map[b.dataset.f||''] || 0;
-      b.textContent = base + ' (' + n + ')';
+      const n = ORDERS.filter(FILTRES[b.dataset.f||''] || FILTRES['']).length;
+      b.innerHTML = esc(base) + '<span class="n">' + n + '</span>';
     });
   }
   function exportCsv(){
@@ -281,17 +254,6 @@
     }));
     const s=document.getElementById('ordSearch'); if(s) s.addEventListener('input',()=>{ SEARCH=s.value||''; applyFilter(); });
     const x=document.getElementById('ordExport'); if(x) x.addEventListener('click', exportCsv);
-    // Toggle Liste | Pipeline — restaure le mode memorise puis ecoute les clics
-    document.querySelectorAll('#ordViewToggle .of').forEach(b=>{
-      b.classList.toggle('active', (b.dataset.view||'list')===VIEW);
-      b.addEventListener('click',()=>{
-        document.querySelectorAll('#ordViewToggle .of').forEach(o=>o.classList.remove('active'));
-        b.classList.add('active');
-        VIEW = b.dataset.view||'list';
-        try{ localStorage.setItem('ellia_admin_view', VIEW); }catch(_){}
-        applyFilter();
-      });
-    });
   })();
   function omRow(k,v){ return v ? ('<div class="om-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>') : ''; }
   /* Un aperçu n'est affichable que s'il est une image encodée, rien d'autre.
@@ -664,7 +626,7 @@
           if(!r.ok) throw new Error(r.status===403?'Droits insuffisants pour cette action.':'Erreur serveur ('+r.status+')');
           // Succes confirme par le serveur : on met l'affichage a jour
           o.statut=statut; o.transporteur=transporteur; o.suivi=suivi;
-          const b=document.querySelector('[data-badge="'+o.id+'"]'); if(b){ b.textContent=statut; b.className='badge '+badgeClass(statut); }
+          majStatutVisuel(o.id, statut);
           updateCounts(); updateDashAlert(); applyFilter();
           const sv=document.getElementById('omSaved'); if(sv){ sv.style.display='inline'; setTimeout(()=>{ if(sv) sv.style.display='none'; },2000); }
         })
