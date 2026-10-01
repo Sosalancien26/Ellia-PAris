@@ -1196,6 +1196,9 @@ verifier('le banc d\'essai n\'est jamais servi publiquement', srcServeur.include
 verifier('le banc d\'essai existe (mock base, préchargement, scénarios)',
          ['mock-supabase.js','preload.js','run.js','LISEZ-MOI.md'].every(f => fs.existsSync(path.join(RACINE,'tests-e2e',f))));
 
+verifier('tableau de bord : une commande annulée/remboursée n\'est pas comptée « en attente »',
+         srcServeur.includes("const en_attente = orders.filter(o => !encaissee(o) && !estAnnuleeOuRemboursee(o)).length") && lire('admin.js').includes("s.annulees"));
+
 /* ══════════════════════════════════════════════════════════════
    8. SYNTAXE — aucun fichier ne doit être cassé.
    ══════════════════════════════════════════════════════════════ */

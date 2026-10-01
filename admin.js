@@ -82,9 +82,11 @@
     // panier de 45 € — absurde pour un produit a 159 €.
     var payees  = (s.commandes_payees != null) ? s.commandes_payees : null;
     var attente = (s.en_attente != null) ? s.en_attente : null;
+    var annulees = (s.annulees != null) ? s.annulees : 0;
     var sousCommandes = (payees != null)
       ? (payees + ' payée' + (payees > 1 ? 's' : '') +
-         (attente ? (' · ' + attente + ' en attente') : ''))
+         (attente ? (' · ' + attente + ' en attente') : '') +
+         (annulees ? (' · ' + annulees + ' annulée' + (annulees > 1 ? 's' : '') + '/remboursée' + (annulees > 1 ? 's' : '')) : ''))
       : '';
 
     document.getElementById('kpis').innerHTML=

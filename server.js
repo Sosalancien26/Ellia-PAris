@@ -759,7 +759,11 @@ async function getStats(){
   const ca_total = payees.reduce((s,o)=>s+o.total,0);
   const commandes = orders.length;                       // activite totale
   const commandes_payees = payees.length;                // base du panier moyen
-  const en_attente = commandes - commandes_payees;
+  // « En attente » = reellement en attente de paiement. Une commande annulee
+  // ou remboursee n'est ni payee ni en attente : elle est comptee a part.
+  const estAnnuleeOuRemboursee = (o) => /annul|rembours/.test(String(o.statut || '').toLowerCase()) || /^rembours/i.test(String(o.payment_status || ''));
+  const annulees = orders.filter(o => !encaissee(o) && estAnnuleeOuRemboursee(o)).length;
+  const en_attente = orders.filter(o => !encaissee(o) && !estAnnuleeOuRemboursee(o)).length;
   const panier_moyen = commandes_payees ? Math.round(ca_total/commandes_payees) : 0;
   const perso = orders.filter(o=>o.initiales && o.initiales!=='—').length;
   const taux_perso = commandes ? Math.round(perso/commandes*100) : 0;
@@ -775,7 +779,7 @@ async function getStats(){
     const k = d.getFullYear() + '-' + ('0' + d.getMonth()).slice(-2);
     ca_mois.push({ mois: MOIS[d.getMonth()], ca: Math.round((byMonth[k] || 0) * 100) / 100 });
   }
-  return { ca_total, commandes, commandes_payees, en_attente, panier_moyen, taux_perso, ca_mois };
+  return { ca_total, commandes, commandes_payees, en_attente, annulees, panier_moyen, taux_perso, ca_mois };
 }
 
 
