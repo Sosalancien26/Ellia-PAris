@@ -1146,9 +1146,9 @@ verifier('la migration de durcissement Supabase est versionnée',
 section('E-mails — Brevo et jeu d\'essai');
 verifier('SMTP_USER (identifiant Brevo) n\'est plus jamais un destinataire ni un expéditeur',
          !/process\.env\.SMTP_USER\s*\|\|\s*'no-reply|\|\|\s*process\.env\.SMTP_USER\b/.test(srcServeur) && !srcServeur.includes('sendMail(process.env.SMTP_USER'));
-verifier('trois adresses, trois rôles : commande@ (expéditeur + interne), contact@ (clientes, Reply-To), gestion@ hors site',
+verifier('adresses par rôle : contact@ (expéditeur, clientes), commande@ (ORDERS_TO), technique@ (ALERT_TO/BACKUP_TO)',
          srcServeur.includes("process.env.ORDERS_TO   || process.env.CONTACT_TO || 'commande@ellia-paris.fr'") && srcServeur.includes("const MAIL_REPLY_TO = process.env.REPLY_TO    || MAIL_CONTACT") && (srcServeur.match(/MAIL_INTERNE/g)||[]).length >= 6);
-verifier('expéditeur par défaut = commande@ellia-paris.fr, réponses vers contact@', srcServeur.includes("'ELLIA PARIS <commande@ellia-paris.fr>'") && srcServeur.includes("replyTo: MAIL_REPLY_TO"));
+verifier('expéditeur par défaut = contact@ellia-paris.fr, réponses vers contact@', srcServeur.includes("process.env.MAIL_FROM   || 'ELLIA PARIS <contact@ellia-paris.fr>'") && srcServeur.includes("replyTo: MAIL_REPLY_TO"));
 verifier('le formulaire de contact arrive sur la boîte contact@', srcServeur.includes("const adminMail = MAIL_CONTACT;"));
 verifier('le pied de page des e-mails porte l\'identité légale', srcServeur.includes("RCS Créteil 877 702 985</div>'"));
 verifier('« Bonjour , » impossible (helper bonjour)', srcServeur.includes('function bonjour(nom)') && !/Bonjour ' \+ escH\(/.test(srcServeur));

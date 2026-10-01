@@ -214,13 +214,13 @@ try {
 } catch (e) { console.warn('Nodemailer indisponible :', e.message); }
 // Depuis Brevo, SMTP_USER est un identifiant technique (xxx@smtp-brevo.com) :
 // il ne doit JAMAIS servir d'expediteur ni de destinataire.
-/* TROIS ADRESSES, TROIS ROLES
-   commande@  expediteur de tous les e-mails automatiques + boite interne qui
-              recoit les commandes, factures, avis, alertes, sauvegardes
-   contact@   boite lue par l'equipe pour les clientes : messages du formulaire,
-              et adresse de reponse (Reply-To) de chaque e-mail automatique
-   gestion@   fournisseurs et administratif (hors site)                      */
-const MAIL_FROM     = process.env.MAIL_FROM   || 'ELLIA PARIS <commande@ellia-paris.fr>';
+/* QUATRE ADRESSES, QUATRE ROLES (toutes recues dans contact@ via alias + filtres)
+   contact@    expediteur de tous les e-mails automatiques et adresse de reponse ;
+               sa boite de reception ne contient QUE les clientes (formulaire, reponses)
+   commande@   recoit les commandes passees, archives de factures, avis a moderer  (ORDERS_TO)
+   technique@  alertes d'exploitation et sauvegardes                               (ALERT_TO, BACKUP_TO)
+   gestion@    fournisseurs et administratif (hors site)                          */
+const MAIL_FROM     = process.env.MAIL_FROM   || 'ELLIA PARIS <contact@ellia-paris.fr>';
 const MAIL_INTERNE  = process.env.ORDERS_TO   || process.env.CONTACT_TO || 'commande@ellia-paris.fr';
 const MAIL_CONTACT  = process.env.CONTACT_TO  || 'contact@ellia-paris.fr';
 const MAIL_REPLY_TO = process.env.REPLY_TO    || MAIL_CONTACT;
