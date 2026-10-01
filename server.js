@@ -214,10 +214,16 @@ try {
 } catch (e) { console.warn('Nodemailer indisponible :', e.message); }
 // Depuis Brevo, SMTP_USER est un identifiant technique (xxx@smtp-brevo.com) :
 // il ne doit JAMAIS servir d'expediteur ni de destinataire.
-const MAIL_FROM = process.env.MAIL_FROM || 'ELLIA PARIS <contact@ellia-paris.fr>';
-// Boite interne (commandes, contacts, avis, alertes, sauvegardes) :
-// CONTACT_TO en priorite, sinon la boite de la maison.
-const MAIL_INTERNE = process.env.CONTACT_TO || 'contact@ellia-paris.fr';
+/* TROIS ADRESSES, TROIS ROLES
+   commande@  expediteur de tous les e-mails automatiques + boite interne qui
+              recoit les commandes, factures, avis, alertes, sauvegardes
+   contact@   boite lue par l'equipe pour les clientes : messages du formulaire,
+              et adresse de reponse (Reply-To) de chaque e-mail automatique
+   gestion@   fournisseurs et administratif (hors site)                      */
+const MAIL_FROM     = process.env.MAIL_FROM   || 'ELLIA PARIS <commande@ellia-paris.fr>';
+const MAIL_INTERNE  = process.env.ORDERS_TO   || process.env.CONTACT_TO || 'commande@ellia-paris.fr';
+const MAIL_CONTACT  = process.env.CONTACT_TO  || 'contact@ellia-paris.fr';
+const MAIL_REPLY_TO = process.env.REPLY_TO    || MAIL_CONTACT;
 function euro(n){ return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 const LOGO = 'https://ellia-paris.fr/assets/logo_black_trim.png';
 function emailLayout(inner, preheader){
@@ -355,7 +361,7 @@ function sendMail(to, subject, html, marketing){
   return transporter.sendMail({
     from: MAIL_FROM,
     // Le client peut repondre directement a l'email (invite a le faire dans certains messages)
-    replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
+    replyTo: MAIL_REPLY_TO,
     to,
     subject,
     html,
@@ -371,7 +377,7 @@ function sendMailWithAttachment(to, subject, html, attachments){
   if (envoiSuspendu()) return Promise.resolve(false);
   return transporter.sendMail({
     from: MAIL_FROM,
-    replyTo: process.env.CONTACT_TO || 'contact@ellia-paris.fr',
+    replyTo: MAIL_REPLY_TO,
     to,
     subject,
     html,
@@ -1207,7 +1213,7 @@ const server = http.createServer(async (req, res) => {
         const subjects = {commande:'Question sur une commande',personnalisation:'Personnalisation',livraison:'Livraison & retours',entretien:'Entretien & SAV',presse:'Presse & partenariats',autre:'Autre demande'};
         const sujLabel = subjects[sujet] || sujet;
         const escapeMsg = String(message).replace(/[&<>]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[ch])).replace(/\n/g,'<br>');
-        const adminMail = MAIL_INTERNE;
+        const adminMail = MAIL_CONTACT;   // message d'une cliente : boite contact@
         const innerAdmin = '<h2 style="font-family:Georgia,serif;font-size:22px;color:#0d0d0d;margin:0 0 18px">Nouveau message — ' + escH(sujLabel) + '</h2>' +
           '<table style="width:100%;border-collapse:collapse;font-size:14px;font-family:Arial,sans-serif">' +
             '<tr><td style="padding:8px 0;color:#666;width:140px">Nom</td><td style="padding:8px 0;color:#0d0d0d"><b>' + escH(nom) + '</b></td></tr>' +
@@ -2407,7 +2413,7 @@ const server = http.createServer(async (req, res) => {
          Envoie chaque modele a une adresse de test avec des donnees fictives.
          Aucune ecriture en base, aucun numero de facture consomme (numero
          F-EP-TEST-0000 fourni d'avance). Les envois « internes » partent vers
-         MAIL_INTERNE (CONTACT_TO) : mettez-y la meme adresse pour tout recevoir. */
+         MAIL_INTERNE (ORDERS_TO) : mettez-y la meme adresse pour tout recevoir. */
       if (req.method==='POST' && pathname==='/api/admin/emails-test'){
         if (ROLE !== 'admin') return sendJSON(res,{ ok:false, error:'acces_refuse' }, 403);
         if (!transporter) return sendJSON(res,{ ok:false, error:'smtp_absent', detail:'SMTP non configuré sur le serveur.' }, 503);
