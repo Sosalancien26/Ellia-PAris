@@ -2875,8 +2875,9 @@ async function _reconcilierStripe(manuel){
 /* ============================================================
    SURVEILLANCE — ce qui doit alerter meme sans reconciliation
    ============================================================ */
-async function surveillance(){
+async function surveillance(essai){
   if (!USE_DB) return;
+  essai = essai || 1;
   try {
     // 1) Commande payee mais jamais traitee depuis plus de 2 h
     const limite = new Date(Date.now() - 2*60*60*1000).toISOString();
@@ -2902,9 +2903,13 @@ async function surveillance(){
       }
     }
   } catch(e){
-    console.warn('[Surveillance] KO :', e.message);
+    console.warn('[Surveillance] KO (essai ' + essai + '/3) :', e.message);
+    // Un simple temps mort reseau Hostinger → Supabase ne merite pas une alerte critique :
+    // on reessaie deux fois (1 min puis 3 min) avant de prevenir.
+    if (essai === 1) { setTimeout(() => surveillance(2), 60*1000); return; }
+    if (essai === 2) { setTimeout(() => surveillance(3), 3*60*1000); return; }
     alerte('surveillance_panne', 'Surveillance en échec',
-      'La base de données ne répond pas à la surveillance automatique :\n' + e.message, 'critique');
+      'La base de données ne répond pas à la surveillance automatique (3 essais sur 4 minutes) :\n' + e.message, 'critique');
   }
 }
 
@@ -3299,7 +3304,7 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setInterval(reconcilierStripe, 15*60*1000);
     setInterval(libererStockExpire, 15*60*1000);
     setTimeout(libererStockExpire, 120*1000);   // un passage 2 min apres le demarrage
-    setInterval(surveillance,       30*60*1000);
+    setInterval(() => surveillance(1), 30*60*1000);
     setTimeout(reconcilierStripe, 45*1000);   // premiere passe peu apres le demarrage
     setTimeout(surveillance,      70*1000);
     planifierSauvegarde();
@@ -3318,7 +3323,7 @@ if (WORKERS > 1 && cluster.isPrimary) {
     setTimeout(libererStockExpire, 120*1000);
     setInterval(processAbandonedCarts, 10*60*1000);
     setInterval(reconcilierStripe, 15*60*1000);
-    setInterval(surveillance,       30*60*1000);
+    setInterval(() => surveillance(1), 30*60*1000);
     setTimeout(reconcilierStripe, 45*1000);
     setTimeout(surveillance,      70*1000);
     planifierSauvegarde();
